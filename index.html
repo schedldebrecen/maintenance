@@ -32,6 +32,12 @@
         
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin-top: 10px; margin-bottom: 10px; }
         .img-container img { max-width: 120px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
+        
+        /* Szűrő panel dizájn */
+        .filter-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ccc; }
+        .filter-panel h4 { margin: 0 0 10px 0; font-size: 14px; color: #333; }
+        .date-row { display: flex; gap: 10px; }
+        .date-row input { margin: 0; padding: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -77,7 +83,7 @@
             </label>
         </div>
 
-        <textarea id="megoldas" rows="2" placeholder="Megoldás"></textarea>
+        <textarea id="megoldas" rows="2" placeholder="Megoldás (Hagyd üresen, ha csak feladatot adsz ki!)"></textarea>
         <input type="number" id="ido" step="0.5" placeholder="Ráfordított idő (óra) - Opcionális">
         
         <button type="button" onclick="document.getElementById('kepInput').click()" style="background: #17a2b8; margin-bottom: 5px;">📸 Fénykép készítése</button>
@@ -98,6 +104,16 @@
 
     <div id="lezartFeladatok" class="view box">
         <h3>Lezárt Feladatok</h3>
+        
+        <div class="filter-panel">
+            <h4>🔍 Gyorskeresés és Szűrés</h4>
+            <input type="text" id="filterGep" placeholder="Keresés gép vagy hiba alapján..." onkeyup="renderClosedTasks()" style="margin-bottom:10px; padding:8px;">
+            <div class="date-row">
+                <input type="date" id="filterDatumTol" onchange="renderClosedTasks()">
+                <input type="date" id="filterDatumIg" onchange="renderClosedTasks()">
+            </div>
+        </div>
+
         <div id="closedTasksContainer">Betöltés...</div>
     </div>
 
@@ -112,102 +128,75 @@
 
 <script>
     // =========================================================================
-    // IDE MÁSOLD BE A GOOGLE APPS SCRIPT WEB APP URL-CÍMÉT!
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyt0h6H9NWUQo-AddZ2AGulc2jv4213U8_gKZIlwkNSfdo11-9xMgbA0_i7leJtY7O/exec"; 
+    // IDE MÁSOLD BE A LEGUJABB GOOGLE APPS SCRIPT WEB APP URL-CÍMÉT!
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec"; 
     // =========================================================================
 
-    // Képek memóriája
     let feltoltendoKepek = [];
+    
+    // Globális változók a szűréshez
+    let globalOpenTasks = [];
+    let globalClosedTasks = [];
 
-    // --- Saját gépadatbázis (Valós ipari struktúra) ---
     const gepAdatbazis = {
         "Production - Line 1": [
-            "TPMS1 - Screwing Station Manual - Atlas Copco",
-            "WGS1 - Wheel gauging - IEF Werner",
-            "RMS1 - Tire assembly - Hofmann",
-            "RMM1 - Matching machine - Hofmann",
-            "RFG1 - Tire Inflation - Hofmann",
-            "RSO1 - Bead Seat Optimizer - Hofmann",
-            "RGM1 - Tire Uniformity - Hofmann",
-            "AWS1 - Balancing - Hofmann",
-            "WC1 - Weight cutter - Rameckers",
-            "AGS1 - Weight applicator - KUKA"
+            "TPMS1 - Screwing Station Manual - Atlas Copco", "WGS1 - Wheel gauging - IEF Werner",
+            "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann",
+            "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann",
+            "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann",
+            "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA"
         ],
         "Production - Line 2": [
-            "RMS2 - Tire assembly - Hofmann",
-            "RFG2 - Tire Inflation - Hofmann",
-            "AWS2 - Balancing - Hofmann",
-            "WC2 - Weight cutter - Rameckers",
-            "AGS2 - Weight applicator - KUKA",
-            "AWSK1 - Control Balancing - Hofmann",
-            "TPMS writing /reading - ATEQ",
-            "EOL1 - End of Line control - Mabri Vision"
+            "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann",
+            "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers",
+            "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann",
+            "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision"
         ],
         "Production - Egyedi gépek": [
-            "MTAM1 - Manual tyre assembly machine - Hofmann",
-            "CUT1 - Bandage Cutting Machine - Cyklop",
+            "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop",
             "HP1 - Hydraulic Press - Strautmann"
         ],
         "Magasraktár - High Bay System": [
-            "RBG 1 - Beewen",
-            "RBG 2 - Beewen",
-            "RBG 3 - Beewen",
-            "Conveyors - Blume/Thepas"
+            "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas"
         ],
-        "Palettázó B&O": [
-            "Palettizing rendszer - B&O"
-        ],
+        "Palettázó B&O": [ "Palettizing rendszer - B&O" ],
         "Q-Area": [
-            "TLIT - Tire leak inspection tank - Corghi",
-            "MTAM2 - Manual tyre assembly machine - Aikido"
+            "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido"
         ],
         "Compressors": [
-            "DRAIN - Drain Water Separator - Boge",
-            "COMP1 - Compressor 1 - Boge",
-            "DRY1 - Air Dryer 1 - Beko",
-            "COMP2 - Compressor 2 - Boge",
-            "DRY2 - Air Dryer 2 - Beko",
-            "COMP3 - Compressor 3 - Boge"
+            "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge",
+            "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge",
+            "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge"
         ]
     };
 
     window.addEventListener('DOMContentLoaded', () => {
         const katSelect = document.getElementById('kategoria');
-        for (let kat in gepAdatbazis) {
-            katSelect.add(new Option(kat, kat));
-        }
+        for (let kat in gepAdatbazis) { katSelect.add(new Option(kat, kat)); }
     });
 
     function frissitGepek() {
         const kat = document.getElementById('kategoria').value;
         const gepSelect = document.getElementById('gep');
         gepSelect.innerHTML = '<option value="">Válassz gépet...</option>';
-        if (kat && gepAdatbazis[kat]) {
-            gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep)));
-        }
+        if (kat && gepAdatbazis[kat]) { gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep))); }
     }
 
     async function feldolgozUjKep(input) {
         if (input.files.length === 0) return;
         const elonezet = document.getElementById('kepElonezet');
         const uresSzoveg = document.getElementById('uresKepSzoveg');
-        
         if (uresSzoveg) uresSzoveg.style.display = 'none';
 
         for (let file of input.files) {
             let tomoritett = await compressImage(file);
             feltoltendoKepek.push(tomoritett);
-            
             let img = document.createElement('img');
             img.src = "data:image/jpeg;base64," + tomoritett.base64;
-            img.style.width = "60px";
-            img.style.height = "60px";
-            img.style.objectFit = "cover";
-            img.style.borderRadius = "4px";
-            img.style.border = "1px solid #ddd";
+            img.style.width = "60px"; img.style.height = "60px"; img.style.objectFit = "cover";
+            img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd";
             elonezet.appendChild(img);
         }
-        
         input.value = ""; 
     }
 
@@ -290,7 +279,7 @@
             prioritas: document.getElementById('prioritas').checked,
             megoldas: document.getElementById('megoldas').value,
             ido: document.getElementById('ido').value,
-            kepek: feltoltendoKepek // A memóriából olvassuk ki a képeket
+            kepek: feltoltendoKepek
         };
 
         try {
@@ -302,17 +291,15 @@
                 document.getElementById('megoldas').value = "";
                 document.getElementById('ido').value = "";
                 document.getElementById('prioritas').checked = false;
-                
-                // Képek törlése a memóriából rögzítés után
                 feltoltendoKepek = [];
                 document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>';
-                
                 setTimeout(() => status.innerText = "", 3000);
             }
         } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
         btn.disabled = false;
     }
 
+    // --- LEKÉRDEZÉS ÉS SZŰRÉS LOGIKA ---
     async function loadTasks() {
         document.getElementById('openTasksContainer').innerHTML = "Adatok betöltése...";
         document.getElementById('closedTasksContainer').innerHTML = "Adatok betöltése...";
@@ -322,32 +309,61 @@
             const result = await res.json();
             
             if(result.status === "success") {
-                let openTasks = [];
-                let closedTasks = [];
+                globalOpenTasks = [];
+                globalClosedTasks = [];
                 
                 result.data.forEach(task => {
-                    if (task.statusz === "Nyitott") openTasks.push(task);
-                    else closedTasks.push(task);
+                    if (task.statusz === "Nyitott") globalOpenTasks.push(task);
+                    else globalClosedTasks.push(task);
                 });
 
-                openTasks.sort((a, b) => {
+                globalOpenTasks.sort((a, b) => {
                     if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
                     if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
                     return 0;
                 });
 
-                let openHtml = "";
-                openTasks.forEach(task => openHtml += generateTaskCard(task));
-                document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
-
-                let closedHtml = "";
-                closedTasks.forEach(task => closedHtml += generateTaskCard(task));
-                document.getElementById('closedTasksContainer').innerHTML = closedHtml || "Nincs lezárt feladat.";
+                renderOpenTasks();
+                renderClosedTasks();
             }
         } catch(e) {
             document.getElementById('openTasksContainer').innerHTML = "Hiba a betöltéskor.";
             document.getElementById('closedTasksContainer').innerHTML = "Hiba a betöltéskor.";
         }
+    }
+
+    function renderOpenTasks() {
+        let openHtml = "";
+        globalOpenTasks.forEach(task => openHtml += generateTaskCard(task));
+        document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
+    }
+
+    // Dátum konvertáló a szűrőhöz (YYYY-MM-DD)
+    function toLocalISOString(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function renderClosedTasks() {
+        const szuroGep = document.getElementById('filterGep').value.toLowerCase();
+        const szuroTol = document.getElementById('filterDatumTol').value;
+        const szuroIg = document.getElementById('filterDatumIg').value;
+
+        let filtered = globalClosedTasks.filter(task => {
+            let matchText = task.gep.toLowerCase().includes(szuroGep) || task.hiba.toLowerCase().includes(szuroGep);
+            
+            let taskDateStr = toLocalISOString(new Date(task.idopont));
+            let matchTol = szuroTol ? (taskDateStr >= szuroTol) : true;
+            let matchIg = szuroIg ? (taskDateStr <= szuroIg) : true;
+
+            return matchText && matchTol && matchIg;
+        });
+
+        let closedHtml = "";
+        filtered.forEach(task => closedHtml += generateTaskCard(task));
+        document.getElementById('closedTasksContainer').innerHTML = closedHtml || "Nincs a szűrésnek megfelelő feladat.";
     }
 
     function generateTaskCard(task) {
@@ -373,6 +389,17 @@
             kepHtml += `</div>`;
         }
 
+        // KIEGÉSZÍTÉS PANEL (Minden kártyán elérhető utólag)
+        const appendFormHtml = `
+            <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                <button onclick="toggleAppendForm('${task.id}')" style="background: #6c757d; padding: 6px 10px; font-size: 13px; width: auto; margin:0;">+ Kiegészítés (Infó/Kép)</button>
+                <div id="appendForm_${task.id}" style="display: none; margin-top: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 6px;">
+                    <textarea id="extraText_${task.id}" rows="2" placeholder="Utólagos megjegyzés vagy megoldás leírása..."></textarea>
+                    <input type="file" id="extraKep_${task.id}" accept="image/*" capture="environment" multiple style="font-size: 14px; padding: 8px;">
+                    <button id="btnExtra_${task.id}" onclick="sendExtraInfo('${task.id}')" style="background: #17a2b8; padding: 10px; font-size: 14px; margin-top: 5px;">Hozzáadás mentése</button>
+                </div>
+            </div>`;
+
         if(task.statusz === "Nyitott") {
             return `
             <div class="task-card ${isPriority ? 'priority' : ''}">
@@ -386,24 +413,77 @@
                 <div class="task-title">${task.gep}</div>
                 <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
                 ${kepHtml}
-                <div style="font-size:12px; color:#666; margin-bottom:10px;">Beküldte: ${task.felhasznalo}</div>
+                <div style="font-size:12px; color:#666; margin-bottom:10px;">Beküldte: <b>${task.felhasznalo}</b></div>
                 
                 <div style="background:#eee; padding:10px; border-radius:6px;">
                     <input type="text" id="megoldas_${task.id}" placeholder="Megoldás beírása..." style="padding:8px; font-size:14px;">
                     <input type="number" id="ido_${task.id}" step="0.5" placeholder="Idő (óra)" style="padding:8px; font-size:14px;">
                     <button onclick="closeTask('${task.id}')" style="padding:10px; background:#28a745; margin-top:5px; color:white; font-weight:bold; border:none; border-radius:4px;">Jegy lezárása</button>
                 </div>
+                ${appendFormHtml}
             </div>`;
         } else {
+            // Lezárt feladatnál a megoldás szövegformázása (sortörések kezelése HTML-ben)
+            const formzottMegoldas = (task.megoldas || "").replace(/\n/g, '<br>');
             return `
             <div class="task-card closed">
                 <div class="task-header"><span>${formattedDate}</span> <span class="badge closed">Lezárt</span></div>
                 <div class="task-title">${task.gep}</div>
                 <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
                 ${kepHtml}
-                <div style="margin-bottom:5px; color:#28a745;"><b>Megoldás:</b> ${task.megoldas} (${task.ido} óra)</div>
-                <div style="font-size:12px; color:#666;">Lezárta: ${task.felhasznalo}</div>
+                <div style="margin-bottom:10px; color:#28a745;"><b>Megoldás:</b><br> ${formzottMegoldas} (${task.ido} óra)</div>
+                
+                <div style="font-size:12px; color:#444; background: #e9ecef; padding: 8px; border-radius: 4px;">
+                    <div><b>Beküldte:</b> ${task.felhasznalo}</div>
+                    <div style="margin-top:4px;"><b>Lezárta:</b> ${task.lezarta || "Ismeretlen (régi feladat)"}</div>
+                </div>
+                ${appendFormHtml}
             </div>`;
+        }
+    }
+
+    function toggleAppendForm(taskId) {
+        const form = document.getElementById(`appendForm_${taskId}`);
+        form.style.display = form.style.display === "none" ? "block" : "none";
+    }
+
+    async function sendExtraInfo(taskId) {
+        const textVal = document.getElementById(`extraText_${taskId}`).value;
+        const fileInput = document.getElementById(`extraKep_${taskId}`);
+
+        if (!textVal && fileInput.files.length === 0) {
+            alert("Kérlek írj be szöveget, vagy csatolj képet a kiegészítéshez!");
+            return;
+        }
+
+        const btn = document.getElementById(`btnExtra_${taskId}`);
+        btn.disabled = true;
+        btn.innerText = "Feltöltés és mentés...";
+
+        let payload = {
+            action: "appendInfo",
+            id: taskId,
+            felhasznalo: localStorage.getItem("activeUser"),
+            szoveg: textVal,
+            kepek: []
+        };
+
+        if (fileInput.files.length > 0) {
+            let promises = Array.from(fileInput.files).map(file => compressImage(file));
+            payload.kepek = await Promise.all(promises);
+        }
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+            const result = await res.json();
+            if(result.status === "success") {
+                alert("Kiegészítés sikeresen elmentve!");
+                loadTasks(); 
+            }
+        } catch(e) {
+            alert("Hiba történt!");
+            btn.disabled = false;
+            btn.innerText = "Hozzáadás mentése";
         }
     }
 
@@ -413,7 +493,10 @@
         if(!megoldas) { alert("Kérlek írd be a megoldást a lezáráshoz!"); return; }
 
         try {
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: taskId, megoldas: megoldas, ido: ido }) });
+            const res = await fetch(SCRIPT_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ action: "closeTask", id: taskId, megoldas: megoldas, ido: ido, lezarta: localStorage.getItem("activeUser") }) 
+            });
             const result = await res.json();
             if(result.status === "success") { loadTasks(); }
         } catch(e) { alert("Hiba a lezárás során."); }
