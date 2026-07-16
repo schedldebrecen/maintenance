@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Karbantartás Kezelő</title>
+    
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 10px; color: #333; }
         .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
@@ -37,7 +38,7 @@
 
 <div id="loginView" class="box active">
     <h2 style="text-align: center; color: #0056b3;">🛠️ CMMS Belépés</h2>
-    <input type="text" id="loginNev" placeholder="Név (pl. Kovács János)">
+    <input type="text" id="loginNev" placeholder="Név (pl. Admin)">
     <input type="password" id="loginJelszo" placeholder="PIN kód">
     <button onclick="login()">Belépés</button>
     <div id="loginStatus" style="color:red; margin-top:10px; text-align:center; font-weight:bold;"></div>
@@ -58,12 +59,15 @@
 
     <div id="ujHiba" class="view active box">
         <h3>Új hiba vagy feladat kiadása</h3>
-        <select id="gep">
-            <option value="CNC Eszterga #1">CNC Eszterga #1</option>
-            <option value="Kivágó Prés #3">Kivágó Prés #3</option>
-            <option value="Klíma / Kompresszor">Klíma / Kompresszor</option>
-            <option value="Egyéb infrastuktúra">Egyéb infrastuktúra</option>
+        
+        <select id="kategoria" onchange="frissitGepek()">
+            <option value="">Válassz kategóriát / csarnokot...</option>
         </select>
+        
+        <select id="gep">
+            <option value="">Előbb válassz kategóriát...</option>
+        </select>
+
         <input type="text" id="hiba" placeholder="Hiba rövid leírása (Kötelező)">
         
         <div style="margin: 12px 0; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #ffcccc;">
@@ -75,7 +79,10 @@
 
         <textarea id="megoldas" rows="2" placeholder="Megoldás (Hagyd üresen, ha csak feladatot adsz ki!)"></textarea>
         <input type="number" id="ido" step="0.5" placeholder="Ráfordított idő (óra) - Opcionális">
-        <input type="file" id="kep" accept="image/*" capture="environment" multiple>
+        
+        <input type="file" id="kep" accept="image/*" capture="environment" multiple onchange="mutatKepekSzamat(this)">
+        <div id="kepDarab" style="font-size: 13px; color: #666; margin-bottom: 10px; font-weight: bold;">Nincs kép kiválasztva (akár többet is kijelölhetsz)</div>
+        
         <button onclick="submitTask()" id="btnSubmit">Rögzítés és Beküldés</button>
         <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
     </div>
@@ -101,8 +108,84 @@
 
 <script>
     // =========================================================================
+    // IDE MÁSOLD BE A GOOGLE APPS SCRIPT WEB APP URL-CÍMÉT!
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyt0h6H9NWUQo-AddZ2AGulc2jv4213U8_gKZIlwkNSfdo11-9xMgbA0_i7leJtY7O/exec"; 
     // =========================================================================
+
+    // --- Saját gépadatbázis (Valós ipari struktúra) ---
+    const gepAdatbazis = {
+        "Production - Line 1": [
+            "TPMS1 - Screwing Station Manual - Atlas Copco",
+            "WGS1 - Wheel gauging - IEF Werner",
+            "RMS1 - Tire assembly - Hofmann",
+            "RMM1 - Matching machine - Hofmann",
+            "RFG1 - Tire Inflation - Hofmann",
+            "RSO1 - Bead Seat Optimizer - Hofmann",
+            "RGM1 - Tire Uniformity - Hofmann",
+            "AWS1 - Balancing - Hofmann",
+            "WC1 - Weight cutter - Rameckers",
+            "AGS1 - Weight applicator - KUKA"
+        ],
+        "Production - Line 2": [
+            "RMS2 - Tire assembly - Hofmann",
+            "RFG2 - Tire Inflation - Hofmann",
+            "AWS2 - Balancing - Hofmann",
+            "WC2 - Weight cutter - Rameckers",
+            "AGS2 - Weight applicator - KUKA",
+            "AWSK1 - Control Balancing - Hofmann",
+            "TPMS writing /reading - ATEQ",
+            "EOL1 - End of Line control - Mabri Vision"
+        ],
+        "Production - Egyedi gépek": [
+            "MTAM1 - Manual tyre assembly machine - Hofmann",
+            "CUT1 - Bandage Cutting Machine - Cyklop",
+            "HP1 - Hydraulic Press - Strautmann"
+        ],
+        "Main - High Bay System": [
+            "RBG 1 - Beewen",
+            "RBG 2 - Beewen",
+            "RBG 3 - Beewen",
+            "Conveyors - Blume/Thepas"
+        ],
+        "Main - Palettizing": [
+            "Palettizing rendszer - B&O"
+        ],
+        "Main - Q-Area": [
+            "TLIT - Tire leak inspection tank - Corghi",
+            "MTAM2 - Manual tyre assembly machine - Aikido"
+        ],
+        "Main - Compressors": [
+            "DRAIN - Drain Water Separator - Boge",
+            "COMP1 - Compressor 1 - Boge",
+            "DRY1 - Air Dryer 1 - Beko",
+            "COMP2 - Compressor 2 - Boge",
+            "DRY2 - Air Dryer 2 - Beko",
+            "COMP3 - Compressor 3 - Boge"
+        ]
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const katSelect = document.getElementById('kategoria');
+        for (let kat in gepAdatbazis) {
+            katSelect.add(new Option(kat, kat));
+        }
+    });
+
+    function frissitGepek() {
+        const kat = document.getElementById('kategoria').value;
+        const gepSelect = document.getElementById('gep');
+        gepSelect.innerHTML = '<option value="">Válassz gépet...</option>';
+        if (kat && gepAdatbazis[kat]) {
+            gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep)));
+        }
+    }
+
+    function mutatKepekSzamat(input) {
+        const szoveg = input.files.length > 0 
+            ? `📸 ${input.files.length} db kép kiválasztva` 
+            : "Nincs kép kiválasztva (akár többet is kijelölhetsz)";
+        document.getElementById('kepDarab').innerText = szoveg;
+    }
 
     async function hashPassword(password) {
         const msgBuffer = new TextEncoder().encode(password);
@@ -164,7 +247,11 @@
     }
 
     async function submitTask() {
+        const kategoria = document.getElementById('kategoria').value;
+        const gepVal = document.getElementById('gep').value;
         const hibaMezo = document.getElementById('hiba').value;
+        
+        if (!kategoria || !gepVal) { alert("Kérlek válassz kategóriát és gépet is!"); return; }
         if (!hibaMezo) { alert("A hiba leírása kötelező!"); return; }
 
         const btn = document.getElementById('btnSubmit');
@@ -174,9 +261,9 @@
         let payload = {
             action: "addTask",
             felhasznalo: localStorage.getItem("activeUser"),
-            gep: document.getElementById('gep').value,
+            gep: kategoria + " - " + gepVal, 
             hiba: hibaMezo,
-            prioritas: document.getElementById('prioritas').checked, // ÚJ adat
+            prioritas: document.getElementById('prioritas').checked,
             megoldas: document.getElementById('megoldas').value,
             ido: document.getElementById('ido').value,
             kepek: []
@@ -198,6 +285,7 @@
                 document.getElementById('ido').value = "";
                 document.getElementById('prioritas').checked = false;
                 fileInput.value = "";
+                document.getElementById('kepDarab').innerText = "Nincs kép kiválasztva (akár többet is kijelölhetsz)";
                 setTimeout(() => status.innerText = "", 3000);
             }
         } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
@@ -221,11 +309,10 @@
                     else closedTasks.push(task);
                 });
 
-                // ÚJ: Sorbarendezés - Sürgős (Prioritás = Igen) elemek kerüljenek előre!
                 openTasks.sort((a, b) => {
                     if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
                     if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
-                    return 0; // A dátum szerinti rendezés megmarad
+                    return 0;
                 });
 
                 let openHtml = "";
@@ -242,7 +329,7 @@
         }
     }
 
-function generateTaskCard(task) {
+    function generateTaskCard(task) {
         const dateObj = new Date(task.idopont);
         const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
         const isPriority = task.prioritas === "Igen";
@@ -254,17 +341,11 @@ function generateTaskCard(task) {
             urls.forEach(url => {
                 url = url.trim();
                 if(url) {
-                    // Kinyerjük a fájl egyedi ID-jét a linkből
                     const fileIdMatch = url.match(/id=([^&]+)/);
                     let thumbUrl = url;
-                    
-                    // Ha megvan az ID, generálunk egy Google Thumbnail (bélyegkép) linket
                     if (fileIdMatch && fileIdMatch[1]) {
-                        // A sz=w400 paraméter 400px széles előnézetet kér a Google-től
                         thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400`;
                     }
-                    
-                    // A kis kép (src) a bélyegkép lesz, kattintásra viszont az eredeti URL nyílik meg
                     kepHtml += `<img src="${thumbUrl}" onclick="window.open('${url}', '_blank')" alt="Hiba fotó" loading="lazy" onerror="this.src='https://via.placeholder.com/120?text=Kép+hiba'">`;
                 }
             });
