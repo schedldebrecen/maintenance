@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Karbantartás Kezelő</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 10px; color: #333; }
+        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; background: #0056b3; color: white; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        button:disabled { background: #999; }
+        
+        .nav { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .nav button { margin: 0; background: #e0e0e0; color: #333; font-size: 14px; padding: 10px; white-space: nowrap; }
+        .nav button.active { background: #0056b3; color: white; }
+        
+        .view { display: none; }
+        .view.active { display: block; }
+        #appView { display: none; }
+        
+        .task-card { border-left: 5px solid #0056b3; background: #fafafa; padding: 15px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .task-card.closed { border-left-color: #28a745; }
+        .task-card.priority { border-left-color: #dc3545; background: #fff5f5; }
+        
+        .task-header { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 8px; }
+        .task-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; }
+        .badge { background: #ffc107; color: #000; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge.closed { background: #28a745; color: white; }
+        .badge.priority { background: #dc3545; color: white; }
+        
+        .img-container { display: flex; gap: 10px; overflow-x: auto; margin-top: 10px; margin-bottom: 10px; }
+        .img-container img { max-width: 120px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="loginView" class="box active">
+    <h2 style="text-align: center; color: #0056b3;">🛠️ CMMS Belépés</h2>
+    <input type="text" id="loginNev" placeholder="Név (pl. Kovács János)">
+    <input type="password" id="loginJelszo" placeholder="PIN kód">
+    <button onclick="login()">Belépés</button>
+    <div id="loginStatus" style="color:red; margin-top:10px; text-align:center; font-weight:bold;"></div>
+</div>
+
+<div id="appView">
+    <div class="box" style="padding: 10px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>Szia, <b id="currentUserText"></b>!</div>
+        <button onclick="logout()" style="width:auto; padding:8px 15px; background:#dc3545; margin:0;">Kilépés</button>
+    </div>
+
+    <div class="nav">
+        <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
+        <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
+        <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
+        <button onclick="switchTab('profilCserelo', this)">Profil</button>
+    </div>
+
+    <div id="ujHiba" class="view active box">
+        <h3>Új hiba vagy feladat kiadása</h3>
+        <select id="gep">
+            <option value="CNC Eszterga #1">CNC Eszterga #1</option>
+            <option value="Kivágó Prés #3">Kivágó Prés #3</option>
+            <option value="Klíma / Kompresszor">Klíma / Kompresszor</option>
+            <option value="Egyéb infrastuktúra">Egyéb infrastuktúra</option>
+        </select>
+        <input type="text" id="hiba" placeholder="Hiba rövid leírása (Kötelező)">
+        
+        <div style="margin: 12px 0; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #ffcccc;">
+            <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; color: #dc3545; cursor: pointer;">
+                <input type="checkbox" id="prioritas" style="width: 20px; height: 20px; margin: 0;">
+                🔥 Magas prioritás / Sürgős!
+            </label>
+        </div>
+
+        <textarea id="megoldas" rows="2" placeholder="Megoldás (Hagyd üresen, ha csak feladatot adsz ki!)"></textarea>
+        <input type="number" id="ido" step="0.5" placeholder="Ráfordított idő (óra) - Opcionális">
+        <input type="file" id="kep" accept="image/*" capture="environment" multiple>
+        <button onclick="submitTask()" id="btnSubmit">Rögzítés és Beküldés</button>
+        <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
+    </div>
+
+    <div id="nyitottFeladatok" class="view box">
+        <h3>Elvégzendő Feladatok</h3>
+        <div id="openTasksContainer">Betöltés...</div>
+    </div>
+
+    <div id="lezartFeladatok" class="view box">
+        <h3>Lezárt Feladatok</h3>
+        <div id="closedTasksContainer">Betöltés...</div>
+    </div>
+
+    <div id="profilCserelo" class="view box">
+        <h3>PIN kód módosítása</h3>
+        <input type="password" id="regiJelszo" placeholder="Jelenlegi PIN kód">
+        <input type="password" id="ujJelszo" placeholder="Új PIN kód">
+        <button onclick="updatePassword()" id="btnProfil">Módosítás mentése</button>
+        <div id="profilStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyt0h6H9NWUQo-AddZ2AGulc2jv4213U8_gKZIlwkNSfdo11-9xMgbA0_i7leJtY7O/exec"; 
+    // =========================================================================
+
+    async function hashPassword(password) {
+        const msgBuffer = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    window.onload = function() {
+        const savedUser = localStorage.getItem("activeUser");
+        if(savedUser) {
+            document.getElementById('currentUserText').innerText = savedUser;
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('appView').style.display = 'block';
+        }
+    };
+
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    async function login() {
+        const nev = document.getElementById('loginNev').value;
+        const nyersJelszo = document.getElementById('loginJelszo').value;
+        const status = document.getElementById('loginStatus');
+        status.innerText = "Ellenőrzés...";
+
+        try {
+            const titkositottJelszo = await hashPassword(nyersJelszo);
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: nev, jelszo: titkositottJelszo }) });
+            const result = await res.json();
+            
+            if(result.status === "success") { localStorage.setItem("activeUser", nev); location.reload(); } 
+            else { status.innerText = result.message; }
+        } catch(e) { status.innerText = "Hálózati hiba!"; }
+    }
+
+    function logout() { localStorage.removeItem("activeUser"); location.reload(); }
+
+    async function compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const scaleSize = 1024 / img.width;
+                    canvas.width = 1024; canvas.height = img.height * scaleSize;
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve({ base64: canvas.toDataURL('image/jpeg', 0.7).split(',')[1], tipus: 'image/jpeg' });
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function submitTask() {
+        const hibaMezo = document.getElementById('hiba').value;
+        if (!hibaMezo) { alert("A hiba leírása kötelező!"); return; }
+
+        const btn = document.getElementById('btnSubmit');
+        const status = document.getElementById('taskStatus');
+        btn.disabled = true; status.style.color = "#0056b3"; status.innerText = "Képek feldolgozása és küldés...";
+
+        let payload = {
+            action: "addTask",
+            felhasznalo: localStorage.getItem("activeUser"),
+            gep: document.getElementById('gep').value,
+            hiba: hibaMezo,
+            prioritas: document.getElementById('prioritas').checked, // ÚJ adat
+            megoldas: document.getElementById('megoldas').value,
+            ido: document.getElementById('ido').value,
+            kepek: []
+        };
+
+        const fileInput = document.getElementById('kep');
+        if (fileInput.files.length > 0) {
+            let promises = Array.from(fileInput.files).map(file => compressImage(file));
+            payload.kepek = await Promise.all(promises);
+        }
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+            const result = await res.json();
+            if(result.status === "success") {
+                status.style.color = "green"; status.innerText = "✅ Rögzítve!";
+                document.getElementById('hiba').value = "";
+                document.getElementById('megoldas').value = "";
+                document.getElementById('ido').value = "";
+                document.getElementById('prioritas').checked = false;
+                fileInput.value = "";
+                setTimeout(() => status.innerText = "", 3000);
+            }
+        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
+        btn.disabled = false;
+    }
+
+    async function loadTasks() {
+        document.getElementById('openTasksContainer').innerHTML = "Adatok betöltése...";
+        document.getElementById('closedTasksContainer').innerHTML = "Adatok betöltése...";
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
+            const result = await res.json();
+            
+            if(result.status === "success") {
+                let openTasks = [];
+                let closedTasks = [];
+                
+                result.data.forEach(task => {
+                    if (task.statusz === "Nyitott") openTasks.push(task);
+                    else closedTasks.push(task);
+                });
+
+                // ÚJ: Sorbarendezés - Sürgős (Prioritás = Igen) elemek kerüljenek előre!
+                openTasks.sort((a, b) => {
+                    if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
+                    if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
+                    return 0; // A dátum szerinti rendezés megmarad
+                });
+
+                let openHtml = "";
+                openTasks.forEach(task => openHtml += generateTaskCard(task));
+                document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
+
+                let closedHtml = "";
+                closedTasks.forEach(task => closedHtml += generateTaskCard(task));
+                document.getElementById('closedTasksContainer').innerHTML = closedHtml || "Nincs lezárt feladat.";
+            }
+        } catch(e) {
+            document.getElementById('openTasksContainer').innerHTML = "Hiba a betöltéskor.";
+            document.getElementById('closedTasksContainer').innerHTML = "Hiba a betöltéskor.";
+        }
+    }
+
+function generateTaskCard(task) {
+        const dateObj = new Date(task.idopont);
+        const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+        const isPriority = task.prioritas === "Igen";
+        
+        let kepHtml = "";
+        if (task.kepek) {
+            const urls = task.kepek.split(",");
+            kepHtml += `<div class="img-container">`;
+            urls.forEach(url => {
+                url = url.trim();
+                if(url) {
+                    // Kinyerjük a fájl egyedi ID-jét a linkből
+                    const fileIdMatch = url.match(/id=([^&]+)/);
+                    let thumbUrl = url;
+                    
+                    // Ha megvan az ID, generálunk egy Google Thumbnail (bélyegkép) linket
+                    if (fileIdMatch && fileIdMatch[1]) {
+                        // A sz=w400 paraméter 400px széles előnézetet kér a Google-től
+                        thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400`;
+                    }
+                    
+                    // A kis kép (src) a bélyegkép lesz, kattintásra viszont az eredeti URL nyílik meg
+                    kepHtml += `<img src="${thumbUrl}" onclick="window.open('${url}', '_blank')" alt="Hiba fotó" loading="lazy" onerror="this.src='https://via.placeholder.com/120?text=Kép+hiba'">`;
+                }
+            });
+            kepHtml += `</div>`;
+        }
+
+        if(task.statusz === "Nyitott") {
+            return `
+            <div class="task-card ${isPriority ? 'priority' : ''}">
+                <div class="task-header">
+                    <span>${formattedDate}</span> 
+                    <div>
+                        ${isPriority ? '<span class="badge priority">🔥 Sürgős</span>' : ''}
+                        <span class="badge">Nyitott</span>
+                    </div>
+                </div>
+                <div class="task-title">${task.gep}</div>
+                <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
+                ${kepHtml}
+                <div style="font-size:12px; color:#666; margin-bottom:10px;">Beküldte: ${task.felhasznalo}</div>
+                
+                <div style="background:#eee; padding:10px; border-radius:6px;">
+                    <input type="text" id="megoldas_${task.id}" placeholder="Megoldás beírása..." style="padding:8px; font-size:14px;">
+                    <input type="number" id="ido_${task.id}" step="0.5" placeholder="Idő (óra)" style="padding:8px; font-size:14px;">
+                    <button onclick="closeTask('${task.id}')" style="padding:10px; background:#28a745; margin-top:5px; color:white; font-weight:bold; border:none; border-radius:4px;">Jegy lezárása</button>
+                </div>
+            </div>`;
+        } else {
+            return `
+            <div class="task-card closed">
+                <div class="task-header"><span>${formattedDate}</span> <span class="badge closed">Lezárt</span></div>
+                <div class="task-title">${task.gep}</div>
+                <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
+                ${kepHtml}
+                <div style="margin-bottom:5px; color:#28a745;"><b>Megoldás:</b> ${task.megoldas} (${task.ido} óra)</div>
+                <div style="font-size:12px; color:#666;">Lezárta: ${task.felhasznalo}</div>
+            </div>`;
+        }
+    }
+
+    async function closeTask(taskId) {
+        const megoldas = document.getElementById(`megoldas_${taskId}`).value;
+        const ido = document.getElementById(`ido_${taskId}`).value;
+        if(!megoldas) { alert("Kérlek írd be a megoldást a lezáráshoz!"); return; }
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: taskId, megoldas: megoldas, ido: ido }) });
+            const result = await res.json();
+            if(result.status === "success") { loadTasks(); }
+        } catch(e) { alert("Hiba a lezárás során."); }
+    }
+
+    async function updatePassword() {
+        const regi = document.getElementById('regiJelszo').value;
+        const uj = document.getElementById('ujJelszo').value;
+        const status = document.getElementById('profilStatus');
+        if (!regi || !uj) { status.style.color="red"; status.innerText="Töltsd ki mindkét mezőt!"; return; }
+
+        const btn = document.getElementById('btnProfil');
+        btn.disabled = true; status.style.color="#0056b3"; status.innerText="Feldolgozás...";
+
+        try {
+            const regiHash = await hashPassword(regi);
+            const ujHash = await hashPassword(uj);
+            const nev = localStorage.getItem("activeUser");
+
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "changePassword", nev: nev, regiJelszo: regiHash, ujJelszo: ujHash }) });
+            const result = await res.json();
+            
+            if (result.status === "success") {
+                status.style.color = "green"; status.innerText = "✅ " + result.message;
+                document.getElementById('regiJelszo').value = ""; document.getElementById('ujJelszo').value = "";
+            } else { status.style.color = "red"; status.innerText = "❌ " + result.message; }
+        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba!"; } 
+        finally { btn.disabled = false; }
+    }
+</script>
+</body>
+</html>
