@@ -80,8 +80,12 @@
         <textarea id="megoldas" rows="2" placeholder="Megoldás (Hagyd üresen, ha csak feladatot adsz ki!)"></textarea>
         <input type="number" id="ido" step="0.5" placeholder="Ráfordított idő (óra) - Opcionális">
         
-        <input type="file" id="kep" accept="image/*" capture="environment" multiple onchange="mutatKepekSzamat(this)">
-        <div id="kepDarab" style="font-size: 13px; color: #666; margin-bottom: 10px; font-weight: bold;">Nincs kép kiválasztva (akár többet is kijelölhetsz)</div>
+        <button type="button" onclick="document.getElementById('kepInput').click()" style="background: #17a2b8; margin-bottom: 5px;">📸 Fénykép készítése</button>
+        <input type="file" id="kepInput" accept="image/*" capture="environment" style="display:none;" onchange="feldolgozUjKep(this)">
+        
+        <div id="kepElonezet" style="display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; min-height: 64px; padding: 5px; border: 1px dashed #ccc; border-radius: 6px; align-items: center;">
+            <span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>
+        </div>
         
         <button onclick="submitTask()" id="btnSubmit">Rögzítés és Beküldés</button>
         <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
@@ -111,6 +115,9 @@
     // IDE MÁSOLD BE A GOOGLE APPS SCRIPT WEB APP URL-CÍMÉT!
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyt0h6H9NWUQo-AddZ2AGulc2jv4213U8_gKZIlwkNSfdo11-9xMgbA0_i7leJtY7O/exec"; 
     // =========================================================================
+
+    // Képek memóriája
+    let feltoltendoKepek = [];
 
     // --- Saját gépadatbázis (Valós ipari struktúra) ---
     const gepAdatbazis = {
@@ -180,11 +187,28 @@
         }
     }
 
-    function mutatKepekSzamat(input) {
-        const szoveg = input.files.length > 0 
-            ? `📸 ${input.files.length} db kép kiválasztva` 
-            : "Nincs kép kiválasztva (akár többet is kijelölhetsz)";
-        document.getElementById('kepDarab').innerText = szoveg;
+    async function feldolgozUjKep(input) {
+        if (input.files.length === 0) return;
+        const elonezet = document.getElementById('kepElonezet');
+        const uresSzoveg = document.getElementById('uresKepSzoveg');
+        
+        if (uresSzoveg) uresSzoveg.style.display = 'none';
+
+        for (let file of input.files) {
+            let tomoritett = await compressImage(file);
+            feltoltendoKepek.push(tomoritett);
+            
+            let img = document.createElement('img');
+            img.src = "data:image/jpeg;base64," + tomoritett.base64;
+            img.style.width = "60px";
+            img.style.height = "60px";
+            img.style.objectFit = "cover";
+            img.style.borderRadius = "4px";
+            img.style.border = "1px solid #ddd";
+            elonezet.appendChild(img);
+        }
+        
+        input.value = ""; 
     }
 
     async function hashPassword(password) {
@@ -266,14 +290,8 @@
             prioritas: document.getElementById('prioritas').checked,
             megoldas: document.getElementById('megoldas').value,
             ido: document.getElementById('ido').value,
-            kepek: []
+            kepek: feltoltendoKepek // A memóriából olvassuk ki a képeket
         };
-
-        const fileInput = document.getElementById('kep');
-        if (fileInput.files.length > 0) {
-            let promises = Array.from(fileInput.files).map(file => compressImage(file));
-            payload.kepek = await Promise.all(promises);
-        }
 
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -284,8 +302,11 @@
                 document.getElementById('megoldas').value = "";
                 document.getElementById('ido').value = "";
                 document.getElementById('prioritas').checked = false;
-                fileInput.value = "";
-                document.getElementById('kepDarab').innerText = "Nincs kép kiválasztva (akár többet is kijelölhetsz)";
+                
+                // Képek törlése a memóriából rögzítés után
+                feltoltendoKepek = [];
+                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>';
+                
                 setTimeout(() => status.innerText = "", 3000);
             }
         } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
