@@ -1,1 +1,273 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ipari CMMS - Élő Dashboard</title>
+    
+    <style>
+        /* SÖTÉT IPARI TÉMA (Fali monitorhoz optimalizálva) */
+        :root {
+            --bg-dark: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            
+            --pri-info: #0ea5e9;
+            --pri-normal: #10b981;
+            --pri-high: #f59e0b;
+            --pri-crit: #ef4444;
+            --pri-prog: #8b5cf6;
+        }
 
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0; overflow-x: hidden; }
+        
+        /* Felső státuszsáv */
+        .top-bar { background: var(--surface); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+        .title-group { display: flex; align-items: center; gap: 20px; }
+        .title-group h1 { margin: 0; font-size: 24px; color: var(--text-main); letter-spacing: 1px; text-transform: uppercase; }
+        .live-badge { background: #10b981; color: #022c22; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; animation: blink 2s infinite; }
+        
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Óra és frissítés infó */
+        .time-group { text-align: right; }
+        .clock { font-size: 24px; font-weight: bold; letter-spacing: 2px; }
+        .refresh-info { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+
+        /* KPI / Statisztika Sáv */
+        .kpi-bar { display: flex; gap: 15px; padding: 20px 30px; background: var(--bg-dark); overflow-x: auto; }
+        .kpi-card { flex: 1; min-width: 150px; background: var(--surface); border-radius: 8px; padding: 15px; text-align: center; border: 1px solid var(--border); border-bottom: 4px solid var(--border); }
+        .kpi-card h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-card .val { font-size: 32px; font-weight: bold; }
+        
+        .kpi-card.crit { border-bottom-color: var(--pri-crit); }
+        .kpi-card.crit .val { color: var(--pri-crit); }
+        .kpi-card.prog { border-bottom-color: var(--pri-prog); }
+        .kpi-card.prog .val { color: var(--pri-prog); }
+
+        /* Feladat Rács */
+        .dashboard-container { padding: 0 30px 30px 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        
+        /* Kártya Dizájn */
+        .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; transition: transform 0.2s; border-left: 6px solid var(--pri-normal); }
+        
+        .card.Informatív { border-left-color: var(--pri-info); }
+        .card.Magas { border-left-color: var(--pri-high); }
+        .card.Termelésleállás { border-left-color: var(--pri-crit); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+        .card.Folyamatban { border-left-color: var(--pri-prog); background: #1e1b4b; /* Sötétlila háttér, ha dolgoznak rajta */ }
+
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .machine-name { font-size: 18px; font-weight: bold; color: #e2e8f0; margin-bottom: 8px; }
+        .issue-desc { font-size: 16px; color: #cbd5e1; line-height: 1.4; margin-bottom: 15px; }
+        
+        .badge { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-info { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid var(--pri-info); }
+        .badge-normal { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid var(--pri-normal); }
+        .badge-high { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--pri-high); }
+        .badge-crit { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--pri-crit); animation: pulse-border 2s infinite; }
+        
+        @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .meta-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 15px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
+        
+        /* Folyamatban sáv a kártyán belül */
+        .in-progress-bar { background: rgba(139, 92, 246, 0.2); border: 1px solid var(--pri-prog); color: #a78bfa; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .in-progress-bar span { font-size: 18px; animation: spin 3s linear infinite; }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Frissítés folyamatjelző (Kék csík felül) */
+        #progressBar { position: absolute; bottom: -2px; left: 0; height: 2px; background: var(--pri-info); width: 0%; transition: width 1s linear; }
+
+        /* Mobilos nézet finomhangolása */
+        @media (max-width: 768px) {
+            .top-bar { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
+            .time-group { text-align: left; }
+            .kpi-bar { padding: 15px; }
+            .dashboard-container { padding: 0 15px 15px 15px; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="title-group">
+            <h1>🛠️ CMMS Dashboard</h1>
+            <div class="live-badge">ÉLŐ</div>
+        </div>
+        <div class="time-group">
+            <div class="clock" id="clockDisplay">00:00:00</div>
+            <div class="refresh-info">Következő frissítés: <span id="countdownDisplay">60</span>mp</div>
+        </div>
+        <div id="progressBar"></div>
+    </div>
+
+    <div class="kpi-bar">
+        <div class="kpi-card crit">
+            <h3>Termelésleállás</h3>
+            <div class="val" id="kpiCrit">0</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Sürgős (Magas)</h3>
+            <div class="val" style="color: var(--pri-high);" id="kpiHigh">0</div>
+        </div>
+        <div class="kpi-card prog">
+            <h3>Folyamatban lévő</h3>
+            <div class="val" id="kpiProg">0</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Összes Nyitott</h3>
+            <div class="val" style="color: var(--pri-info);" id="kpiTotal">0</div>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="grid" id="taskGrid">
+            <h2 style="grid-column: 1/-1; text-align: center; color: var(--text-muted); margin-top: 50px;">Adatok betöltése...</h2>
+        </div>
+    </div>
+
+<script>
+    // =========================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6H08vJvSOTq1oG-s5L0o6uE_49R9GgG8lC2G7R1Fw9_xH/exec"; 
+    // IDE MÁSOLD BE A SAJÁT WEB ALKALMAZÁS LINKJÉT!
+    // =========================================================================
+
+    const REFRESH_INTERVAL_SEC = 60; // 60 másodpercenként frissít
+    let timer = REFRESH_INTERVAL_SEC;
+    
+    // Óra futtatása
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clockDisplay').innerText = now.toLocaleTimeString('hu-HU');
+    }, 1000);
+
+    // Visszaszámláló és ProgressBar futtatása
+    setInterval(() => {
+        timer--;
+        if (timer <= 0) {
+            timer = REFRESH_INTERVAL_SEC;
+            fetchDashboardData();
+        }
+        document.getElementById('countdownDisplay').innerText = timer;
+        const widthPct = ((REFRESH_INTERVAL_SEC - timer) / REFRESH_INTERVAL_SEC) * 100;
+        document.getElementById('progressBar').style.width = widthPct + "%";
+    }, 1000);
+
+    // Kezdeti betöltés
+    window.onload = fetchDashboardData;
+
+    async function fetchDashboardData() {
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
+            const result = await res.json();
+            
+            if(result.status === "success") {
+                processAndRender(result.data);
+            } else {
+                document.getElementById('taskGrid').innerHTML = `<h2 style="grid-column: 1/-1; color: var(--pri-crit); text-align: center;">Hiba az adatok betöltésekor: ${result.message}</h2>`;
+            }
+        } catch (e) {
+            console.error("Hálózati hiba:", e);
+        }
+    }
+
+    function processAndRender(allTasks) {
+        // 1. Kiszűrjük a lezártakat (Csak Nyitott és Folyamatban kell)
+        let activeTasks = allTasks.filter(t => t.statusz !== "Lezárt");
+
+        // 2. Régi adatok egységesítése
+        activeTasks.forEach(task => {
+            if(task.prioritas === "Igen") task.prioritas = "Magas prioritás";
+            if(task.prioritas === "Nem") task.prioritas = "Normál";
+        });
+
+        // 3. Rendezzük sorba: 
+        // 1. Folyamatban lévők legyenek legelöl
+        // 2. Utána prioritás szerint (Leállás -> Magas -> Normál -> Info)
+        // 3. Utána a legrégebbi feladat legyen elől
+        const prioWeight = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Informatív": 1 };
+        
+        activeTasks.sort((a, b) => {
+            if (a.statusz === "Folyamatban" && b.statusz !== "Folyamatban") return -1;
+            if (a.statusz !== "Folyamatban" && b.statusz === "Folyamatban") return 1;
+            
+            let prioDiff = (prioWeight[b.prioritas] || 0) - (prioWeight[a.prioritas] || 0);
+            if (prioDiff !== 0) return prioDiff;
+            
+            return new Date(a.idopont) - new Date(b.idopont);
+        });
+
+        // KPI Számolás
+        let cCrit = 0, cHigh = 0, cProg = 0;
+        activeTasks.forEach(t => {
+            if(t.prioritas.includes("Leállás")) cCrit++;
+            if(t.prioritas.includes("Magas")) cHigh++;
+            if(t.statusz === "Folyamatban") cProg++;
+        });
+
+        document.getElementById('kpiCrit').innerText = cCrit;
+        document.getElementById('kpiHigh').innerText = cHigh;
+        document.getElementById('kpiProg').innerText = cProg;
+        document.getElementById('kpiTotal').innerText = activeTasks.length;
+
+        // Renderelés
+        const grid = document.getElementById('taskGrid');
+        
+        if (activeTasks.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;">
+                                <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+                                <h2 style="color: var(--pri-normal);">Minden gép üzemel! Nincs aktív feladat.</h2>
+                              </div>`;
+            return;
+        }
+
+        let html = "";
+        activeTasks.forEach(task => {
+            const dateObj = new Date(task.idopont);
+            const timeStr = dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+            const dateStr = dateObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+            
+            const prioShort = task.prioritas.replace(" prioritás", "").replace("ással járó", "");
+            
+            let badgeClass = "badge-normal";
+            let edgeClass = "";
+            
+            if(task.prioritas.includes("Leállás")) { badgeClass = "badge-crit"; edgeClass = "Termelésleállás"; }
+            else if(task.prioritas.includes("Magas")) { badgeClass = "badge-high"; edgeClass = "Magas"; }
+            else if(task.prioritas === "Informatív") { badgeClass = "badge-info"; edgeClass = "Informatív"; }
+            
+            if (task.statusz === "Folyamatban") edgeClass = "Folyamatban";
+
+            let inProgressHtml = "";
+            if (task.statusz === "Folyamatban") {
+                inProgressHtml = `<div class="in-progress-bar"><span>⚙️</span> <b>${task.felelos}</b> éppen dolgozik rajta</div>`;
+            }
+
+            html += `
+            <div class="card ${edgeClass}">
+                <div class="card-header">
+                    <span class="badge ${badgeClass}">${prioShort}</span>
+                    <span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span>
+                </div>
+                <div class="machine-name">${task.gep}</div>
+                ${inProgressHtml}
+                <div class="issue-desc">${task.hiba}</div>
+                
+                <div class="meta-footer">
+                    <div>Beküldte: <b>${task.felhasznalo}</b></div>
+                    <div style="color: var(--text-muted);">Azonosító: ${task.id}</div>
+                </div>
+            </div>`;
+        });
+        
+        grid.innerHTML = html;
+    }
+</script>
+</body>
+</html>
