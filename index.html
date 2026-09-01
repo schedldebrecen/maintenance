@@ -33,30 +33,22 @@
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin-top: 10px; margin-bottom: 10px; }
         .img-container img { max-width: 120px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
         
-        /* Szűrő panel dizájn */
         .filter-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ccc; }
         .filter-panel h4 { margin: 0 0 10px 0; font-size: 14px; color: #333; }
-        .date-row { display: flex; gap: 10px; }
-        .date-row input { margin: 0; padding: 8px; font-size: 14px; }
 
         .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #e9ecef; border-radius: 6px; margin-bottom: 10px; }
 
-        /* --- ASZTALI OPTIMALIZÁLÁS (Nagy képernyők) --- */
         @media (min-width: 768px) {
             body { display: flex; justify-content: center; background: #e2e8f0; }
             #loginView, #appView { max-width: 1200px; width: 100%; margin-top: 20px; }
             .nav { justify-content: center; }
             .nav button { max-width: 200px; }
-            
-            /* Rácsos elrendezés a feladatoknak */
             #openTasksContainer, #closedTasksContainer, #shiftLogsContainer {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
                 gap: 15px;
             }
             .task-card { margin-bottom: 0; }
-            
-            /* Rácsos elrendezés a rögzítés űrlaphoz */
             .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
             .form-full { grid-column: span 2; }
         }
@@ -83,20 +75,19 @@
         <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
         <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
         <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
-        <button onclick="switchTab('profilCserelo', this)">Profil / Beállítások</button>
+        <button onclick="switchTab('profilCserelo', this)">Profil</button>
     </div>
 
+    <!-- ÚJ HIBA RÖGZÍTÉSE NÉZET -->
     <div id="ujHiba" class="view active box">
         <h3>Új hiba vagy feladat kiadása</h3>
         <div class="form-grid">
             <select id="kategoria" onchange="frissitGepek()">
                 <option value="">Válassz kategóriát / csarnokot...</option>
             </select>
-            
             <select id="gep">
                 <option value="">Előbb válassz kategóriát...</option>
             </select>
-
             <input type="text" id="hiba" class="form-full" placeholder="Hiba rövid leírása (Kötelező)">
             
             <div class="form-full" style="margin: 5px 0; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #ffcccc;">
@@ -121,6 +112,7 @@
         <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
     </div>
 
+    <!-- MŰSZAKÁTADÁS NÉZET -->
     <div id="muszakatadasView" class="view box">
         <h3>Műszakátadás Naplózása</h3>
         <select id="muszakTipus">
@@ -136,24 +128,32 @@
         <div id="shiftLogsContainer">Betöltés...</div>
     </div>
 
+    <!-- NYITOTT FELADATOK NÉZET -->
     <div id="nyitottFeladatok" class="view box">
         <h3>Elvégzendő Feladatok</h3>
         <div id="openTasksContainer">Betöltés...</div>
     </div>
 
+    <!-- LEZÁRT FELADATOK (ÚJ, HIERARCHIKUS NÉZET) -->
     <div id="lezartFeladatok" class="view box">
         <h3>Lezárt Feladatok</h3>
         <div class="filter-panel">
-            <h4>🔍 Gyorskeresés és Szűrés</h4>
-            <input type="text" id="filterGep" placeholder="Keresés gép vagy hiba alapján..." onkeyup="renderClosedTasks()" style="margin-bottom:10px; padding:8px;">
-            <div class="date-row">
-                <input type="date" id="filterDatumTol" onchange="renderClosedTasks()">
-                <input type="date" id="filterDatumIg" onchange="renderClosedTasks()">
+            <h4>📂 Válassz kategóriát és gépet a megtekintéshez</h4>
+            <div class="form-grid">
+                <select id="szuroKategoria" onchange="frissitSzuroGepek()">
+                    <option value="">Válassz kategóriát / csarnokot...</option>
+                </select>
+                <select id="szuroGep" onchange="renderClosedTasks()">
+                    <option value="">Összes gép a kategóriában...</option>
+                </select>
             </div>
         </div>
-        <div id="closedTasksContainer">Betöltés...</div>
+        <div id="closedTasksContainer" style="text-align:center; padding:20px; color:#666;">
+            Kérlek válassz egy kategóriát a fenti listából!
+        </div>
     </div>
 
+    <!-- PROFIL ÉS BEÁLLÍTÁSOK -->
     <div id="profilCserelo" class="view box">
         <h3>Profil és Beállítások</h3>
         
@@ -187,14 +187,13 @@
     let globalOpenTasks = [];
     let globalClosedTasks = [];
     
-    // --- Értesítések globális változói ---
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    // Munkahely koordinátái (Debrecen ipari terület nagyságrendileg)
+    // Munkahely koordinátái (Debrecen ipari terület)
     const WORK_LAT = 47.53;
     const WORK_LNG = 21.62;
-    const GEOFENCE_RADIUS_METERS = 3000; // 3 km-es sugár a munkahely körül
+    const GEOFENCE_RADIUS_METERS = 3000;
 
     const gepAdatbazis = {
         "Production - Line 1": [
@@ -233,9 +232,13 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         const katSelect = document.getElementById('kategoria');
-        for (let kat in gepAdatbazis) { katSelect.add(new Option(kat, kat)); }
+        const szuroKatSelect = document.getElementById('szuroKategoria');
         
-        // Gomb színezés (checkbox slider hack az értesítéshez)
+        for (let kat in gepAdatbazis) { 
+            katSelect.add(new Option(kat, kat)); 
+            szuroKatSelect.add(new Option(kat, kat)); // Feltöltjük a szűrő kategóriáit is
+        }
+        
         const toggle = document.getElementById('notifToggle');
         const slider = document.getElementById('notifSlider');
         toggle.addEventListener('change', (e) => {
@@ -243,11 +246,23 @@
         });
     });
 
+    // Rögzítésnél lévő gép frissítő
     function frissitGepek() {
         const kat = document.getElementById('kategoria').value;
         const gepSelect = document.getElementById('gep');
         gepSelect.innerHTML = '<option value="">Válassz gépet...</option>';
         if (kat && gepAdatbazis[kat]) { gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep))); }
+    }
+
+    // Lezárt nézetnél lévő gép frissítő
+    function frissitSzuroGepek() {
+        const kat = document.getElementById('szuroKategoria').value;
+        const gepSelect = document.getElementById('szuroGep');
+        gepSelect.innerHTML = '<option value="">Összes gép a kategóriában...</option>';
+        if (kat && gepAdatbazis[kat]) { 
+            gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep))); 
+        }
+        renderClosedTasks(); // Újraszűrjük a listát a kategória alapján
     }
 
     async function feldolgozUjKep(input) {
@@ -282,7 +297,6 @@
             document.getElementById('loginView').style.display = 'none';
             document.getElementById('appView').style.display = 'block';
             
-            // Értesítés állapot visszaállítása
             if(localStorage.getItem("notificationsEnabled") === "true") {
                 document.getElementById('notifToggle').checked = true;
                 document.getElementById('notifSlider').style.backgroundColor = "#28a745";
@@ -369,12 +383,13 @@
                 feltoltendoKepek = [];
                 document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>';
                 setTimeout(() => status.innerText = "", 3000);
+            } else {
+                status.style.color = "red"; status.innerText = "❌ Hiba: " + result.message;
             }
-        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
+        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba történt."; }
         btn.disabled = false;
     }
 
-    // --- MŰSZAKÁTADÁS LOGIKA ---
     async function submitShiftLog() {
         const tipus = document.getElementById('muszakTipus').value;
         const szoveg = document.getElementById('muszakSzoveg').value;
@@ -395,13 +410,21 @@
                 }) 
             });
             const result = await res.json();
+            
             if(result.status === "success") {
                 status.style.color = "green"; status.innerText = "✅ Műszaknapló rögzítve!";
                 document.getElementById('muszakSzoveg').value = "";
                 setTimeout(() => status.innerText = "", 3000);
                 loadShiftLogs(); 
+            } else {
+                // ITT KIÍRJA, HA PL. HIÁNYZIK A MUNKALAP A GOOGLE TÁBLÁZATBÓL
+                status.style.color = "red"; 
+                status.innerText = "❌ Hiba: " + (result.message || "Szerver hiba");
             }
-        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
+        } catch(e) { 
+            status.style.color = "red"; 
+            status.innerText = "❌ Hálózati hiba."; 
+        }
         btn.disabled = false;
     }
 
@@ -426,6 +449,8 @@
                     </div>`;
                 });
                 container.innerHTML = html;
+            } else if (result.status === "error") {
+                container.innerHTML = `<span style="color:red;">Hiba: ${result.message}</span>`;
             } else {
                 container.innerHTML = "Még nincsenek naplóbejegyzések.";
             }
@@ -434,11 +459,12 @@
         }
     }
 
-    // --- FELADAT LEKÉRDEZÉS ÉS SZŰRÉS LOGIKA ---
     async function loadTasks() {
-        document.getElementById('openTasksContainer').innerHTML = "Adatok betöltése...";
-        document.getElementById('closedTasksContainer').innerHTML = "Adatok betöltése...";
-
+        const openContainer = document.getElementById('openTasksContainer');
+        const closedContainer = document.getElementById('closedTasksContainer');
+        
+        if (openContainer.innerHTML === "") openContainer.innerHTML = "Adatok betöltése...";
+        
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
             const result = await res.json();
@@ -459,14 +485,12 @@
                 });
 
                 renderOpenTasks();
-                renderClosedTasks();
+                renderClosedTasks(); // Ezt meghívjuk, hogy a lezártak is frissüljenek
                 
-                // Update known count for notification logic
                 lastKnownTaskCount = globalOpenTasks.length;
             }
         } catch(e) {
-            document.getElementById('openTasksContainer').innerHTML = "Hiba a betöltéskor.";
-            document.getElementById('closedTasksContainer').innerHTML = "Hiba a betöltéskor.";
+            openContainer.innerHTML = "Hiba a betöltéskor.";
         }
     }
 
@@ -476,30 +500,34 @@
         document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
     }
 
-    function toLocalISOString(dateObj) {
-        const y = dateObj.getFullYear();
-        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const d = String(dateObj.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    }
-
+    // --- ÚJ LOGIKA A LEZÁRT FELADATOK HIERARCHIKUS SZŰRÉSÉHEZ ---
     function renderClosedTasks() {
-        const szuroGep = document.getElementById('filterGep').value.toLowerCase();
-        const szuroTol = document.getElementById('filterDatumTol').value;
-        const szuroIg = document.getElementById('filterDatumIg').value;
+        const szuroKat = document.getElementById('szuroKategoria').value;
+        const szuroGep = document.getElementById('szuroGep').value;
+        const container = document.getElementById('closedTasksContainer');
+
+        if (!szuroKat) {
+            container.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Kérlek válassz egy kategóriát a fenti listából!</div>`;
+            return;
+        }
 
         let filtered = globalClosedTasks.filter(task => {
-            let matchText = task.gep.toLowerCase().includes(szuroGep) || task.hiba.toLowerCase().includes(szuroGep);
-            let taskDateStr = toLocalISOString(new Date(task.idopont));
-            let matchTol = szuroTol ? (taskDateStr >= szuroTol) : true;
-            let matchIg = szuroIg ? (taskDateStr <= szuroIg) : true;
-
-            return matchText && matchTol && matchIg;
+            // A gép neve így van elmentve: "Kategória - Gépnév"
+            if (szuroGep) {
+                return task.gep === (szuroKat + " - " + szuroGep);
+            } else {
+                return task.gep.startsWith(szuroKat + " - ") || task.gep === szuroKat;
+            }
         });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Nincs lezárt feladat a kiválasztott szűrés alapján.</div>`;
+            return;
+        }
 
         let closedHtml = "";
         filtered.forEach(task => closedHtml += generateTaskCard(task));
-        document.getElementById('closedTasksContainer').innerHTML = closedHtml || "Nincs a szűrésnek megfelelő feladat.";
+        container.innerHTML = closedHtml;
     }
 
     function generateTaskCard(task) {
@@ -661,7 +689,6 @@
         finally { btn.disabled = false; }
     }
 
-    // --- ÉRTESÍTÉSEK ÉS GPS GEOFENCING ---
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
         var R = 6371; 
         var dLat = (lat2-lat1) * (Math.PI/180);
@@ -716,7 +743,6 @@
                         checkLocationAndNotify();
                     }
                     
-                    // Ha a nyitott feladatok fülön van, csendben frissítse a globális változókat
                     globalOpenTasks = result.data.filter(t => t.statusz === "Nyitott").sort((a, b) => {
                         if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
                         if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
@@ -726,7 +752,7 @@
                     lastKnownTaskCount = currentOpenCount;
                 }
             } catch (e) { console.log("Háttérlekérdezés hiba"); }
-        }, 120000); // 2 percenként
+        }, 120000); 
     }
 
     function checkLocationAndNotify() {
@@ -739,8 +765,6 @@
             const distance = getDistanceFromLatLonInKm(position.coords.latitude, position.coords.longitude, WORK_LAT, WORK_LNG) * 1000;
             if (distance <= GEOFENCE_RADIUS_METERS) {
                 sendPushNotification("Új hibajegy érkezett!");
-            } else {
-                console.log("Új hiba, de nem vagy a munkahelyeden.");
             }
         }, () => {
             sendPushNotification("Új hibajegy érkezett! (Helyzet ismeretlen)");
