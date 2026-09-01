@@ -3,189 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Karbantartás Kezelő</title>
+    <title>Ipari CMMS Rendszer</title>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 10px; color: #333; }
-        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; background: #0056b3; color: white; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        button:disabled { background: #999; }
+        /* IPARI CMMS DIZÁJN TÉMA */
+        :root {
+            --bg-color: #f1f5f9;
+            --surface: #ffffff;
+            --primary: #1e293b;
+            --primary-hover: #334155;
+            --accent: #0284c7;
+            --accent-hover: #0369a1;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            
+            --pri-info: #0ea5e9;
+            --pri-normal: #10b981;
+            --pri-high: #f59e0b;
+            --pri-crit: #ef4444;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
         
-        .nav { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .nav button { margin: 0; background: #e0e0e0; color: #333; font-size: 14px; padding: 10px; white-space: nowrap; flex: 1; }
-        .nav button.active { background: #0056b3; color: white; }
+        /* Felső navigációs sáv */
+        .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+        .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
+        .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .container { padding: 15px; max-width: 1400px; margin: 0 auto; }
+        
+        .box { background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid var(--border); }
+        h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; font-size: 18px; }
+        
+        /* Űrlap elemek */
+        input, select, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 15px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
+        button { width: 100%; background: var(--accent); color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 15px; transition: 0.2s; }
+        button:hover { background: var(--accent-hover); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn-secondary { background: var(--text-muted); }
+        .btn-secondary:hover { background: #475569; }
+        .btn-export { background: #10b981; width: auto; padding: 8px 15px; font-size: 13px; margin: 0; }
+        
+        /* Navigáció */
+        .nav { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .nav button { margin: 0; background: transparent; color: var(--text-muted); font-size: 14px; padding: 10px 15px; white-space: nowrap; flex: 1; border: 1px solid transparent; }
+        .nav button.active { background: var(--bg-color); color: var(--accent); border-color: var(--border); font-weight: bold; }
         
         .view { display: none; }
-        .view.active { display: block; }
+        .view.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         #appView { display: none; }
         
-        .task-card { border-left: 5px solid #0056b3; background: #fafafa; padding: 15px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column;}
-        .task-card.closed { border-left-color: #28a745; }
-        .task-card.priority { border-left-color: #dc3545; background: #fff5f5; }
-        
-        .task-header { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 8px; }
-        .task-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; }
-        .badge { background: #ffc107; color: #000; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .badge.closed { background: #28a745; color: white; }
-        .badge.priority { background: #dc3545; color: white; }
-        
-        .img-container { display: flex; gap: 10px; overflow-x: auto; margin-top: 10px; margin-bottom: 10px; }
-        .img-container img { max-width: 120px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
-        
-        .filter-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ccc; }
-        .filter-panel h4 { margin: 0 0 10px 0; font-size: 14px; color: #333; }
+        /* Kártyák (Feladatok) */
+        .task-card { background: var(--surface); padding: 15px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; flex-direction: column; border: 1px solid var(--border); border-left: 5px solid var(--pri-normal); }
+        .task-card.Informatív { border-left-color: var(--pri-info); }
+        .task-card.Magas { border-left-color: var(--pri-high); }
+        .task-card.Termelésleállás { border-left-color: var(--pri-crit); }
+        .task-card.closed { opacity: 0.85; border-left-color: var(--text-muted) !important; }
 
-        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #e9ecef; border-radius: 6px; margin-bottom: 10px; }
+        .task-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+        .task-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; color: var(--primary); }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-info { background: var(--pri-info); }
+        .badge-normal { background: var(--pri-normal); }
+        .badge-high { background: var(--pri-high); }
+        .badge-crit { background: var(--pri-crit); animation: pulse 2s infinite; }
+        .badge-closed { background: var(--text-muted); }
+        
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .img-container { display: flex; gap: 10px; overflow-x: auto; margin: 10px 0; padding-bottom: 5px; }
+        .img-container img { max-width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+        
+        .filter-panel { background: #f8fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .filter-header h4 { margin: 0; font-size: 14px; color: var(--primary); }
+        
+        /* Statisztika KPI kártyák */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .kpi-card h4 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; text-transform: uppercase; }
+        .kpi-card .value { font-size: 28px; font-weight: bold; color: var(--primary); }
+        .kpi-card.alert .value { color: var(--pri-crit); }
+
+        /* Reszponzív Grid elrendezések */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        
+        /* Teljes szélesség a műszaknaplónak */
+        .full-width-list { display: flex; flex-direction: column; gap: 15px; }
 
         @media (min-width: 768px) {
-            body { display: flex; justify-content: center; background: #e2e8f0; }
-            #loginView, #appView { max-width: 1200px; width: 100%; margin-top: 20px; }
-            .nav { justify-content: center; }
-            .nav button { max-width: 200px; }
-            #openTasksContainer, #closedTasksContainer, #shiftLogsContainer {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                gap: 15px;
-            }
-            .task-card { margin-bottom: 0; }
-            .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+            .form-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
             .form-full { grid-column: span 2; }
+            .filter-panel .form-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div id="loginView" class="box active">
-    <h2 style="text-align: center; color: #0056b3;">🛠️ CMMS Belépés</h2>
-    <input type="text" id="loginNev" placeholder="Név (pl. Admin)">
-    <input type="password" id="loginJelszo" placeholder="PIN kód">
-    <button onclick="login()">Belépés</button>
-    <div id="loginStatus" style="color:red; margin-top:10px; text-align:center; font-weight:bold;"></div>
+<div id="loginView" class="container active view" style="max-width: 400px; margin-top: 10vh;">
+    <div class="box">
+        <h2 style="text-align: center; color: var(--primary); margin-bottom: 20px;">⚙️ Ipari CMMS</h2>
+        <input type="text" id="loginNev" placeholder="Felhasználónév (pl. Admin)">
+        <input type="password" id="loginJelszo" placeholder="PIN kód">
+        <button onclick="login()">Rendszerbe lépés</button>
+        <div id="loginStatus" style="color:var(--pri-crit); margin-top:10px; text-align:center; font-weight:bold;"></div>
+    </div>
 </div>
 
 <div id="appView">
-    <div class="box" style="padding: 10px 20px; display:flex; justify-content:space-between; align-items:center;">
-        <div>Szia, <b id="currentUserText"></b>!</div>
-        <button onclick="logout()" style="width:auto; padding:8px 15px; background:#dc3545; margin:0;">Kilépés</button>
+    <div class="topbar">
+        <h2>⚙️ Karbantartás</h2>
+        <div class="user-info">
+            <span id="currentUserText"></span>
+            <button class="btn-logout" onclick="logout()">Kilépés</button>
+        </div>
     </div>
 
-    <div class="nav">
-        <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
-        <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
-        <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
-        <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
-        <button onclick="switchTab('profilCserelo', this)">Profil</button>
-    </div>
+    <div class="container">
+        <div class="nav">
+            <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
+            <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
+            <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
+            <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszaknapló</button>
+            <button onclick="switchTab('statisztikaView', this); loadTasks();">📊 Statisztika</button>
+            <button onclick="switchTab('profilCserelo', this)">Profil</button>
+        </div>
 
-    <div id="ujHiba" class="view active box">
-        <h3>Új hiba vagy feladat kiadása</h3>
-        <div class="form-grid">
-            <select id="kategoria" onchange="frissitGepek()">
-                <option value="">Válassz kategóriát / csarnokot...</option>
-            </select>
-            <select id="gep">
-                <option value="">Előbb válassz kategóriát...</option>
-            </select>
-            <input type="text" id="hiba" class="form-full" placeholder="Hiba rövid leírása (Kötelező)">
+        <!-- ÚJ HIBA RÖGZÍTÉSE -->
+        <div id="ujHiba" class="view active box">
+            <h3>Új hiba vagy feladat kiadása</h3>
+            <div class="form-grid">
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Kategória / Csarnok</label>
+                    <select id="kategoria" onchange="frissitGepek()"><option value="">Válassz...</option></select>
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Gép megnevezése</label>
+                    <select id="gep"><option value="">Előbb válassz kategóriát...</option></select>
+                </div>
+                
+                <div class="form-full">
+                    <label style="font-size:12px; color:var(--text-muted);">Hiba leírása</label>
+                    <input type="text" id="hiba" placeholder="Rövid, lényegretörő leírás">
+                </div>
+                
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Prioritás szintje</label>
+                    <select id="prioritasLegordulo" style="font-weight:bold;">
+                        <option value="Informatív">ℹ️ Informatív (Észrevétel)</option>
+                        <option value="Normál" selected>✅ Normál (Tervezhető)</option>
+                        <option value="Magas prioritás">⚠️ Magas prioritás (Sürgős)</option>
+                        <option value="Termelésleállás" style="color:red;">🚨 Termelésleállással járó</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Ráfordított idő (óra)</label>
+                    <input type="number" id="ido" step="0.5" placeholder="Csak ha egyből megoldod">
+                </div>
+
+                <div class="form-full">
+                    <label style="font-size:12px; color:var(--text-muted);">Megoldás (Azonnali elhárítás esetén)</label>
+                    <textarea id="megoldas" rows="2" placeholder="Hagyd üresen, ha csak rögzíted a hibát..."></textarea>
+                </div>
+            </div>
             
-            <div class="form-full" style="margin: 5px 0; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #ffcccc;">
-                <label style="display: flex; align-items: center; gap: 10px; font-weight: bold; color: #dc3545; cursor: pointer;">
-                    <input type="checkbox" id="prioritas" style="width: 20px; height: 20px; margin: 0;">
-                    Magas prioritás / Sürgős!
+            <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
+                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📸 Fotó csatolása</button>
+                <input type="file" id="kepInput" accept="image/*" capture="environment" style="display:none;" onchange="feldolgozUjKep(this)">
+                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;">
+                    <span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép csatolva.</span>
+                </div>
+            </div>
+            
+            <button onclick="submitTask()" id="btnSubmit">Beküldés a rendszerbe</button>
+            <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
+        </div>
+
+        <!-- MŰSZAKÁTADÁS -->
+        <div id="muszakatadasView" class="view box">
+            <h3>Műszaknapló</h3>
+            <div class="form-grid">
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Műszak típusa</label>
+                    <select id="muszakTipus">
+                        <option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option>
+                        <option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option>
+                        <option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option>
+                    </select>
+                </div>
+                <div class="form-full">
+                    <textarea id="muszakSzoveg" rows="3" placeholder="Fontos információk a következő műszaknak..."></textarea>
+                </div>
+            </div>
+            <button onclick="submitShiftLog()" id="btnShiftLog">Napló bejegyzés mentése</button>
+            <div id="shiftLogStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
+
+            <div class="filter-panel" style="margin-top:25px;">
+                <div class="filter-header">
+                    <h4>Korábbi bejegyzések</h4>
+                    <button class="btn-export" onclick="exportShiftLogs()">📥 Export CSV</button>
+                </div>
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <input type="text" id="szuroMuszakUser" placeholder="Szűrés íróra vagy szövegre..." onkeyup="filterShiftLogs()">
+                    <select id="szuroMuszakTipus" onchange="filterShiftLogs()">
+                        <option value="">Összes műszak</option>
+                        <option value="Délelőtt">Csak Délelőtt</option>
+                        <option value="Délután">Csak Délután</option>
+                        <option value="Éjszaka">Csak Éjszaka</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Teljes szélességű megjelenítés -->
+            <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
+        </div>
+
+        <!-- NYITOTT FELADATOK -->
+        <div id="nyitottFeladatok" class="view box">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="border:none; margin:0; padding:0;">Nyitott Feladatok</h3>
+                <button class="btn-export" onclick="exportTasks(globalOpenTasks, 'Nyitott_Hibak.csv')">📥 Export CSV</button>
+            </div>
+            <div id="openTasksContainer" class="grid-cards">Betöltés...</div>
+        </div>
+
+        <!-- LEZÁRT FELADATOK -->
+        <div id="lezartFeladatok" class="view box">
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h4>Szűrés és Keresés</h4>
+                    <button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 Export CSV</button>
+                </div>
+                <div class="form-grid">
+                    <select id="szuroKategoria" onchange="frissitSzuroGepek()">
+                        <option value="">Minden csarnok / kategória...</option>
+                    </select>
+                    <select id="szuroGep" onchange="renderClosedTasks()">
+                        <option value="">Összes gép...</option>
+                    </select>
+                    <input type="date" id="filterDatumTol" onchange="renderClosedTasks()" title="Kezdő dátum">
+                    <input type="date" id="filterDatumIg" onchange="renderClosedTasks()" title="Záró dátum">
+                </div>
+            </div>
+            <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
+        </div>
+
+        <!-- STATISZTIKA NÉZET -->
+        <div id="statisztikaView" class="view box">
+            <h3>Üzemeltetési Statisztikák</h3>
+            
+            <div class="kpi-grid">
+                <div class="kpi-card alert">
+                    <h4>Aktív Termelésleállás</h4>
+                    <div class="value" id="statLeallas">0</div>
+                </div>
+                <div class="kpi-card">
+                    <h4>Összes Nyitott Hiba</h4>
+                    <div class="value" id="statNyitott">0</div>
+                </div>
+                <div class="kpi-card">
+                    <h4>Heti Átlag (Megoldott)</h4>
+                    <div class="value" id="statHetiAtlag">0</div>
+                </div>
+                <div class="kpi-card">
+                    <h4>Lezártak Downtime (Óra)</h4>
+                    <div class="value" id="statDowntime">0</div>
+                </div>
+            </div>
+
+            <div style="background:var(--bg-color); padding:15px; border-radius:6px; margin-top:20px;">
+                <h4 style="margin:0 0 10px 0; color:var(--primary);">Nyitott hibák prioritás szerint</h4>
+                <div style="display:flex; justify-content:space-between; max-width:500px;">
+                    <div>ℹ️ Info: <b id="statInfo">0</b></div>
+                    <div>✅ Normál: <b id="statNorm">0</b></div>
+                    <div>⚠️ Magas: <b id="statMagas">0</b></div>
+                    <div style="color:var(--pri-crit);">🚨 Leállás: <b id="statCrit">0</b></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFIL -->
+        <div id="profilCserelo" class="view box">
+            <h3>Profil és Beállítások</h3>
+            <div class="settings-row">
+                <div>
+                    <strong>Push Értesítések</strong><br>
+                    <small>Új hibák jelzése a munkahelyi zónában</small>
+                </div>
+                <label style="position:relative; display:inline-block; width:44px; height:24px;">
+                    <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" style="opacity:0; width:0; height:0;">
+                    <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#cbd5e1; transition:.3s; border-radius:34px;" id="notifSlider"></span>
                 </label>
             </div>
+            <div id="notifStatusText" style="font-size:12px; color:var(--accent); margin-bottom:20px;"></div>
 
-            <textarea id="megoldas" class="form-full" rows="2" placeholder="Megoldás (Hagyd üresen, ha csak feladatot adsz ki!)"></textarea>
-            <input type="number" id="ido" class="form-full" step="0.5" placeholder="Ráfordított idő (óra) - Opcionális">
+            <h4 style="border-top:1px solid var(--border); padding-top:15px; margin-top:20px;">Biztonság</h4>
+            <input type="password" id="regiJelszo" placeholder="Jelenlegi PIN kód">
+            <input type="password" id="ujJelszo" placeholder="Új PIN kód">
+            <button onclick="updatePassword()" class="btn-secondary">PIN Módosítása</button>
+            <div id="profilStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
         </div>
-        
-        <button type="button" onclick="document.getElementById('kepInput').click()" style="background: #17a2b8; margin-bottom: 5px; margin-top: 15px;">📸 Fénykép készítése</button>
-        <input type="file" id="kepInput" accept="image/*" capture="environment" style="display:none;" onchange="feldolgozUjKep(this)">
-        
-        <div id="kepElonezet" style="display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; min-height: 64px; padding: 5px; border: 1px dashed #ccc; border-radius: 6px; align-items: center;">
-            <span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>
-        </div>
-        
-        <button onclick="submitTask()" id="btnSubmit">Rögzítés és Beküldés</button>
-        <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
-    </div>
-
-    <!-- MŰSZAKÁTADÁS NÉZET -->
-    <div id="muszakatadasView" class="view box">
-        <h3>Műszakátadás Naplózása</h3>
-        <select id="muszakTipus">
-            <option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option>
-            <option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option>
-            <option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option>
-        </select>
-        <textarea id="muszakSzoveg" rows="4" placeholder="Mi történt a műszakban? Milyen fontos infót kell átadni a következő kollégának?"></textarea>
-        <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
-        <div id="shiftLogStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
-
-        <h4 style="margin-top:20px; border-top:1px solid #ccc; padding-top:15px;">Korábbi Műszaknaplók</h4>
-        <div id="shiftLogsContainer">Betöltés...</div>
-    </div>
-
-    <div id="nyitottFeladatok" class="view box">
-        <h3>Elvégzendő Feladatok</h3>
-        <div id="openTasksContainer">Betöltés...</div>
-    </div>
-
-    <!-- LEZÁRT FELADATOK NÉZET (BŐVÍTETT SZŰRÉSSEL) -->
-    <div id="lezartFeladatok" class="view box">
-        <h3>Lezárt Feladatok</h3>
-        <div class="filter-panel">
-            <h4>🔍 Keresés és Dátum szűrés</h4>
-            <div class="form-grid">
-                <select id="szuroKategoria" onchange="frissitSzuroGepek()" class="form-full">
-                    <option value="">Minden kategória / csarnok...</option>
-                </select>
-                <select id="szuroGep" onchange="renderClosedTasks()" class="form-full">
-                    <option value="">Összes gép a kategóriában...</option>
-                </select>
-                
-                <input type="date" id="filterDatumTol" onchange="renderClosedTasks()" title="Kezdő dátum (Tól)">
-                <input type="date" id="filterDatumIg" onchange="renderClosedTasks()" title="Záró dátum (Ig)">
-            </div>
-        </div>
-        <div id="closedTasksContainer" style="text-align:center; padding:20px; color:#666;">
-            Adatok betöltése...
-        </div>
-    </div>
-
-    <div id="profilCserelo" class="view box">
-        <h3>Profil és Beállítások</h3>
-        
-        <div class="settings-row">
-            <div>
-                <strong>Új feladat értesítések</strong><br>
-                <small style="color:#666;">Csak akkor jelezzen, ha munkahelyen vagyok (Debrecen)</small>
-            </div>
-            <label style="position:relative; display:inline-block; width:50px; height:24px;">
-                <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" style="opacity:0; width:0; height:0;">
-                <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.4s; border-radius:34px;" id="notifSlider"></span>
-            </label>
-        </div>
-        <div id="notifStatusText" style="font-size:12px; color:#0056b3; margin-bottom:20px;"></div>
-
-        <h4 style="border-top:1px solid #ccc; padding-top:15px;">PIN kód módosítása</h4>
-        <input type="password" id="regiJelszo" placeholder="Jelenlegi PIN kód">
-        <input type="password" id="ujJelszo" placeholder="Új PIN kód">
-        <button onclick="updatePassword()" id="btnProfil">Módosítás mentése</button>
-        <div id="profilStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
     </div>
 </div>
 
 <script>
     // =========================================================================
-    // IDE MÁSOLD BE A LEGUJABB GOOGLE APPS SCRIPT WEB APP URL-CÍMÉT!
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6H08vJvSOTq1oG-s5L0o6uE_49R9GgG8lC2G7R1Fw9_xH/exec"; 
+    // IDE MÁSOLD A SAJÁTOD!
     // =========================================================================
 
     let feltoltendoKepek = [];
     let globalOpenTasks = [];
     let globalClosedTasks = [];
+    let globalShiftLogs = [];
     
     let lastKnownTaskCount = 0;
     let notifInterval = null;
@@ -240,7 +376,7 @@
         const toggle = document.getElementById('notifToggle');
         const slider = document.getElementById('notifSlider');
         toggle.addEventListener('change', (e) => {
-            slider.style.backgroundColor = e.target.checked ? "#28a745" : "#ccc";
+            slider.style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1";
         });
     });
 
@@ -261,24 +397,6 @@
         renderClosedTasks();
     }
 
-    async function feldolgozUjKep(input) {
-        if (input.files.length === 0) return;
-        const elonezet = document.getElementById('kepElonezet');
-        const uresSzoveg = document.getElementById('uresKepSzoveg');
-        if (uresSzoveg) uresSzoveg.style.display = 'none';
-
-        for (let file of input.files) {
-            let tomoritett = await compressImage(file);
-            feltoltendoKepek.push(tomoritett);
-            let img = document.createElement('img');
-            img.src = "data:image/jpeg;base64," + tomoritett.base64;
-            img.style.width = "60px"; img.style.height = "60px"; img.style.objectFit = "cover";
-            img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd";
-            elonezet.appendChild(img);
-        }
-        input.value = ""; 
-    }
-
     async function hashPassword(password) {
         const msgBuffer = new TextEncoder().encode(password);
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -295,7 +413,7 @@
             
             if(localStorage.getItem("notificationsEnabled") === "true") {
                 document.getElementById('notifToggle').checked = true;
-                document.getElementById('notifSlider').style.backgroundColor = "#28a745";
+                document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)";
                 startPolling();
             }
         }
@@ -344,24 +462,42 @@
         });
     }
 
+    async function feldolgozUjKep(input) {
+        if (input.files.length === 0) return;
+        const elonezet = document.getElementById('kepElonezet');
+        document.getElementById('uresKepSzoveg').style.display = 'none';
+
+        for (let file of input.files) {
+            let tomoritett = await compressImage(file);
+            feltoltendoKepek.push(tomoritett);
+            let img = document.createElement('img');
+            img.src = "data:image/jpeg;base64," + tomoritett.base64;
+            img.style.width = "40px"; img.style.height = "40px"; img.style.objectFit = "cover";
+            img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd";
+            elonezet.appendChild(img);
+        }
+        input.value = ""; 
+    }
+
     async function submitTask() {
         const kategoria = document.getElementById('kategoria').value;
         const gepVal = document.getElementById('gep').value;
         const hibaMezo = document.getElementById('hiba').value;
+        const prioritasVal = document.getElementById('prioritasLegordulo').value;
         
-        if (!kategoria || !gepVal) { alert("Kérlek válassz kategóriát és gépet is!"); return; }
+        if (!kategoria || !gepVal) { alert("Kérlek válassz kategóriát és gépet!"); return; }
         if (!hibaMezo) { alert("A hiba leírása kötelező!"); return; }
 
         const btn = document.getElementById('btnSubmit');
         const status = document.getElementById('taskStatus');
-        btn.disabled = true; status.style.color = "#0056b3"; status.innerText = "Feldolgozás és küldés...";
+        btn.disabled = true; status.style.color = "var(--accent)"; status.innerText = "Feldolgozás és küldés...";
 
         let payload = {
             action: "addTask",
             felhasznalo: localStorage.getItem("activeUser"),
             gep: kategoria + " - " + gepVal, 
             hiba: hibaMezo,
-            prioritas: document.getElementById('prioritas').checked,
+            prioritas: prioritasVal, 
             megoldas: document.getElementById('megoldas').value,
             ido: document.getElementById('ido').value,
             kepek: feltoltendoKepek
@@ -371,30 +507,28 @@
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             const result = await res.json();
             if(result.status === "success") {
-                status.style.color = "green"; status.innerText = "✅ Rögzítve!";
+                status.style.color = "var(--pri-normal)"; status.innerText = "✅ Sikeresen rögzítve!";
                 document.getElementById('hiba').value = "";
                 document.getElementById('megoldas').value = "";
                 document.getElementById('ido').value = "";
-                document.getElementById('prioritas').checked = false;
+                document.getElementById('prioritasLegordulo').value = "Normál";
                 feltoltendoKepek = [];
-                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók...</span>';
+                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép csatolva.</span>';
                 setTimeout(() => status.innerText = "", 3000);
-            } else {
-                status.style.color = "red"; status.innerText = "❌ Hiba: " + result.message;
-            }
-        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba történt."; }
+            } else { status.style.color = "var(--pri-crit)"; status.innerText = "❌ Hiba: " + result.message; }
+        } catch(e) { status.style.color = "var(--pri-crit)"; status.innerText = "❌ Hálózati hiba."; }
         btn.disabled = false;
     }
 
-    // --- MŰSZAKÁTADÁS MENTÉSE ÉS LEKÉRDEZÉSE ---
+    // --- MŰSZAKNAPLÓ LOGIKA ---
     async function submitShiftLog() {
         const tipus = document.getElementById('muszakTipus').value;
         const szoveg = document.getElementById('muszakSzoveg').value;
-        if(!szoveg) { alert("A műszaknapló szövege nem lehet üres!"); return; }
+        if(!szoveg) { alert("Üres naplót nem lehet beküldeni!"); return; }
 
         const btn = document.getElementById('btnShiftLog');
         const status = document.getElementById('shiftLogStatus');
-        btn.disabled = true; status.style.color = "#0056b3"; status.innerText = "Mentés folyamatban...";
+        btn.disabled = true; status.style.color = "var(--accent)"; status.innerText = "Mentés...";
 
         try {
             const res = await fetch(SCRIPT_URL, { 
@@ -402,112 +536,100 @@
                 body: JSON.stringify({ action: "addShiftLog", felhasznalo: localStorage.getItem("activeUser"), muszak: tipus, szoveg: szoveg }) 
             });
             const result = await res.json();
-            
             if(result.status === "success") {
-                status.style.color = "green"; status.innerText = "✅ Műszaknapló rögzítve!";
+                status.style.color = "var(--pri-normal)"; status.innerText = "✅ Mentve!";
                 document.getElementById('muszakSzoveg').value = "";
                 setTimeout(() => status.innerText = "", 3000);
                 loadShiftLogs(); 
-            } else {
-                status.style.color = "red"; status.innerText = "❌ Hiba: " + result.message;
             }
-        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba."; }
+        } catch(e) { status.style.color = "var(--pri-crit)"; status.innerText = "❌ Hálózati hiba."; }
         btn.disabled = false;
     }
 
     async function loadShiftLogs() {
         const container = document.getElementById('shiftLogsContainer');
-        container.innerHTML = "Naplók betöltése...";
-        
+        container.innerHTML = "Adatok betöltése...";
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) });
             const result = await res.json();
-            
-            if(result.status === "success" && result.data.length > 0) {
-                let html = "";
-                result.data.forEach(log => {
-                    const dateObj = new Date(log.idopont);
-                    const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
-                    
-                    // XSS elkerülése / idézőjelek kezelése
-                    const safeSzoveg = log.szoveg.replace(/"/g, '&quot;'); 
+            if(result.status === "success") {
+                globalShiftLogs = result.data;
+                renderShiftLogs(globalShiftLogs);
+            } else { container.innerHTML = "Hiba: " + result.message; }
+        } catch(e) { container.innerHTML = "Hálózati hiba."; }
+    }
 
-                    html += `
-                    <div class="task-card">
-                        <div class="task-header"><span>${formattedDate}</span> <span class="badge" style="background:#17a2b8; color:white;">${log.muszak}</span></div>
-                        <div id="logDisp_${log.id}" style="margin-bottom:10px;">${log.szoveg.replace(/\n/g, '<br>')}</div>
-                        
-                        <div id="logEditDiv_${log.id}" style="display:none; margin-bottom:10px;">
-                            <textarea id="logInput_${log.id}" rows="3" style="width:100%; font-size:14px; padding:8px;">${safeSzoveg}</textarea>
-                            <div style="display:flex; gap:10px; margin-top:5px;">
-                                <button onclick="saveEditLog('${log.id}', '${log.oldTimestamp}', '${log.felhasznalo}')" style="background:#28a745; margin:0; padding:8px; width:50%;">Mentés</button>
-                                <button onclick="toggleEditLog('${log.id}')" style="background:#6c757d; margin:0; padding:8px; width:50%;">Mégse</button>
-                            </div>
-                        </div>
+    function renderShiftLogs(dataArr) {
+        const container = document.getElementById('shiftLogsContainer');
+        if(dataArr.length === 0) { container.innerHTML = "Nincs találat."; return; }
+        
+        let html = "";
+        dataArr.forEach(log => {
+            const dateObj = new Date(log.idopont);
+            const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+            const safeSzoveg = log.szoveg.replace(/"/g, '&quot;'); 
 
-                        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                            <div style="font-size:12px; color:#666;">Naplózta: <b>${log.felhasznalo}</b></div>
-                            <button id="logEditBtn_${log.id}" onclick="toggleEditLog('${log.id}')" style="width:auto; margin:0; padding:4px 8px; font-size:12px; background:#ffc107; color:black;">Módosítás</button>
-                        </div>
-                    </div>`;
-                });
-                container.innerHTML = html;
-            } else {
-                container.innerHTML = "Még nincsenek naplóbejegyzések.";
-            }
-        } catch(e) {
-            container.innerHTML = "Hiba a betöltéskor.";
-        }
+            html += `
+            <div class="task-card">
+                <div class="task-header"><span>${formattedDate}</span> <span class="badge badge-info">${log.muszak}</span></div>
+                <div id="logDisp_${log.id}" style="margin-bottom:10px; font-size:15px; line-height:1.5;">${log.szoveg.replace(/\n/g, '<br>')}</div>
+                
+                <div id="logEditDiv_${log.id}" style="display:none; margin-bottom:10px;">
+                    <textarea id="logInput_${log.id}" rows="4" style="width:100%; font-size:14px; padding:8px;">${safeSzoveg}</textarea>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <button onclick="saveEditLog('${log.id}', '${log.oldTimestamp}', '${log.felhasznalo}')" style="background:var(--pri-normal);">Mentés</button>
+                        <button onclick="toggleEditLog('${log.id}')" class="btn-secondary">Mégse</button>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div style="font-size:12px; color:var(--text-muted);">Írta: <b>${log.felhasznalo}</b></div>
+                    <button id="logEditBtn_${log.id}" onclick="toggleEditLog('${log.id}')" style="width:auto; padding:4px 10px; font-size:12px; background:var(--text-muted); margin:0;">Szerkesztés</button>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function filterShiftLogs() {
+        const szovegSzuro = document.getElementById('szuroMuszakUser').value.toLowerCase();
+        const tipusSzuro = document.getElementById('szuroMuszakTipus').value;
+        
+        const filtered = globalShiftLogs.filter(log => {
+            const matchText = log.felhasznalo.toLowerCase().includes(szovegSzuro) || log.szoveg.toLowerCase().includes(szovegSzuro);
+            const matchTipus = tipusSzuro ? log.muszak.includes(tipusSzuro) : true;
+            return matchText && matchTipus;
+        });
+        renderShiftLogs(filtered);
     }
 
     function toggleEditLog(id) {
         const disp = document.getElementById(`logDisp_${id}`);
         const editDiv = document.getElementById(`logEditDiv_${id}`);
         const btn = document.getElementById(`logEditBtn_${id}`);
-
         if(editDiv.style.display === "none") {
-            editDiv.style.display = "block";
-            disp.style.display = "none";
-            btn.style.display = "none";
+            editDiv.style.display = "block"; disp.style.display = "none"; btn.style.display = "none";
         } else {
-            editDiv.style.display = "none";
-            disp.style.display = "block";
-            btn.style.display = "block";
+            editDiv.style.display = "none"; disp.style.display = "block"; btn.style.display = "block";
         }
     }
 
     async function saveEditLog(id, oldTimestamp, oldFelhasznalo) {
         const newVal = document.getElementById(`logInput_${id}`).value;
-        if(!newVal) { alert("A bejegyzés nem lehet teljesen üres!"); return; }
-
-        const currentUser = localStorage.getItem("activeUser");
-        
+        if(!newVal) return;
         try {
             const res = await fetch(SCRIPT_URL, { 
                 method: "POST", 
-                body: JSON.stringify({ 
-                    action: "editShiftLog", 
-                    id: id, 
-                    oldTimestamp: oldTimestamp, 
-                    oldFelhasznalo: oldFelhasznalo, 
-                    ujSzoveg: newVal, 
-                    szerkeszto: currentUser 
-                }) 
+                body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: oldTimestamp, oldFelhasznalo: oldFelhasznalo, ujSzoveg: newVal, szerkeszto: localStorage.getItem("activeUser") }) 
             });
             const result = await res.json();
-            if(result.status === "success") {
-                loadShiftLogs(); // Újratöltjük a felületet a mentés után
-            } else {
-                alert("Hiba: " + result.message);
-            }
-        } catch(e) {
-            alert("Hálózati hiba mentés közben.");
-        }
+            if(result.status === "success") loadShiftLogs();
+        } catch(e) { alert("Hiba a mentésnél."); }
     }
 
+    // --- FELADATOK & STATISZTIKA ---
     async function loadTasks() {
         const openContainer = document.getElementById('openTasksContainer');
-        if (openContainer.innerHTML === "") openContainer.innerHTML = "Adatok betöltése...";
+        if (openContainer.innerHTML === "") openContainer.innerHTML = "Betöltés...";
         
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
@@ -518,23 +640,33 @@
                 globalClosedTasks = [];
                 
                 result.data.forEach(task => {
+                    // Régi adatok kompatibilitása (Igen/Nem -> Magas/Normál)
+                    if(task.prioritas === "Igen") task.prioritas = "Magas prioritás";
+                    if(task.prioritas === "Nem") task.prioritas = "Normál";
+
                     if (task.statusz === "Nyitott") globalOpenTasks.push(task);
                     else globalClosedTasks.push(task);
                 });
 
-                globalOpenTasks.sort((a, b) => {
-                    if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
-                    if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
-                    return 0;
-                });
+                // Prioritás szerinti rendezés (Leállás -> Magas -> Normál -> Info)
+                const prioWeight = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Informatív": 1 };
+                globalOpenTasks.sort((a, b) => (prioWeight[b.prioritas] || 0) - (prioWeight[a.prioritas] || 0));
 
                 renderOpenTasks();
                 renderClosedTasks();
+                calculateStatistics();
+                
                 lastKnownTaskCount = globalOpenTasks.length;
             }
-        } catch(e) {
-            openContainer.innerHTML = "Hiba a betöltéskor.";
-        }
+        } catch(e) {}
+    }
+
+    // Segédfüggvény a badge CSS osztályhoz
+    function getBadgeClass(prio) {
+        if(prio === "Termelésleállás") return "badge-crit";
+        if(prio === "Magas prioritás") return "badge-high";
+        if(prio === "Informatív") return "badge-info";
+        return "badge-normal";
     }
 
     function renderOpenTasks() {
@@ -543,38 +675,30 @@
         document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
     }
 
-    function toLocalISOString(dateObj) {
-        const y = dateObj.getFullYear();
-        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const d = String(dateObj.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    }
-
-    // --- BŐVÍTETT SZŰRÉS: DÁTUM + MINDEN KATEGÓRIA OPCIÓ ---
-    function renderClosedTasks() {
+    function getFilteredClosedTasks() {
         const szuroKat = document.getElementById('szuroKategoria').value;
         const szuroGep = document.getElementById('szuroGep').value;
         const szuroTol = document.getElementById('filterDatumTol').value;
         const szuroIg = document.getElementById('filterDatumIg').value;
-        const container = document.getElementById('closedTasksContainer');
 
-        let filtered = globalClosedTasks.filter(task => {
-            // Ha nincs kiválasztva kategória, akkor engedjen át mindent
+        return globalClosedTasks.filter(task => {
             let matchKat = szuroKat ? (task.gep.startsWith(szuroKat + " - ") || task.gep === szuroKat) : true;
-            
-            // Ha van gép kiválasztva (és kategória is), csak azt engedjük át
             let matchGep = szuroGep ? (task.gep === (szuroKat + " - " + szuroGep)) : true;
             
-            // Dátumszűrés logic
-            let taskDateStr = toLocalISOString(new Date(task.idopont));
+            let taskDateStr = task.idopont.substring(0, 10); // ISO kezdet
             let matchTol = szuroTol ? (taskDateStr >= szuroTol) : true;
             let matchIg = szuroIg ? (taskDateStr <= szuroIg) : true;
 
             return matchKat && matchGep && matchTol && matchIg;
         });
+    }
+
+    function renderClosedTasks() {
+        const container = document.getElementById('closedTasksContainer');
+        const filtered = getFilteredClosedTasks();
 
         if (filtered.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Nincs a szűrésnek megfelelő lezárt feladat.</div>`;
+            container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-muted);">Nincs a szűrésnek megfelelő feladat.</div>`;
             return;
         }
 
@@ -586,196 +710,205 @@
     function generateTaskCard(task) {
         const dateObj = new Date(task.idopont);
         const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
-        const isPriority = task.prioritas === "Igen";
         
+        const prioShort = task.prioritas.replace(" prioritás", "").replace("ással járó", "");
+        const badgeClass = task.statusz === "Lezárt" ? "badge-closed" : getBadgeClass(task.prioritas);
+        
+        // Fő kártya class kinyerése a bal oldali csík színezéshez
+        const cardEdgeClass = task.statusz === "Lezárt" ? "closed" : (task.prioritas.includes("Leállás") ? "Termelésleállás" : (task.prioritas.includes("Magas") ? "Magas" : (task.prioritas === "Informatív" ? "Informatív" : "")));
+
         let kepHtml = "";
         if (task.kepek) {
             const urls = task.kepek.split(",");
             kepHtml += `<div class="img-container">`;
             urls.forEach(url => {
-                url = url.trim();
-                if(url) {
+                if(url.trim()) {
                     const fileIdMatch = url.match(/id=([^&]+)/);
-                    let thumbUrl = url;
-                    if (fileIdMatch && fileIdMatch[1]) {
-                        thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400`;
-                    }
-                    kepHtml += `<img src="${thumbUrl}" onclick="window.open('${url}', '_blank')" alt="Hiba fotó" loading="lazy" onerror="this.src='https://via.placeholder.com/120?text=Kép+hiba'">`;
+                    let thumbUrl = fileIdMatch ? `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400` : url;
+                    kepHtml += `<img src="${thumbUrl}" onclick="window.open('${url.trim()}', '_blank')">`;
                 }
             });
             kepHtml += `</div>`;
         }
 
-        const appendFormHtml = `
-            <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
-                <button onclick="toggleAppendForm('${task.id}')" style="background: #6c757d; padding: 6px 10px; font-size: 13px; width: auto; margin:0;">+ Kiegészítés (Infó/Kép)</button>
-                <div id="appendForm_${task.id}" style="display: none; margin-top: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 6px;">
-                    <textarea id="extraText_${task.id}" rows="2" placeholder="Utólagos megjegyzés vagy megoldás leírása..."></textarea>
-                    <input type="file" id="extraKep_${task.id}" accept="image/*" capture="environment" multiple style="font-size: 14px; padding: 8px;">
-                    <button id="btnExtra_${task.id}" onclick="sendExtraInfo('${task.id}')" style="background: #17a2b8; padding: 10px; font-size: 14px; margin-top: 5px;">Hozzáadás mentése</button>
+        const appendHtml = `
+            <div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px;">
+                <button onclick="toggleAppendForm('${task.id}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; width: auto; margin:0;">+ Infó</button>
+                <div id="appendForm_${task.id}" style="display: none; margin-top: 10px; padding: 10px; background: white; border: 1px solid var(--border); border-radius: 4px;">
+                    <textarea id="extraText_${task.id}" rows="2" placeholder="Megjegyzés..."></textarea>
+                    <input type="file" id="extraKep_${task.id}" accept="image/*" capture="environment" multiple style="font-size: 13px;">
+                    <button onclick="sendExtraInfo('${task.id}')" style="padding: 8px; font-size: 13px;">Hozzáadás</button>
                 </div>
             </div>`;
 
         if(task.statusz === "Nyitott") {
             return `
-            <div class="task-card ${isPriority ? 'priority' : ''}">
+            <div class="task-card ${cardEdgeClass}">
                 <div class="task-header">
                     <span>${formattedDate}</span> 
-                    <div>
-                        ${isPriority ? '<span class="badge priority">🔥 Sürgős</span>' : ''}
-                        <span class="badge">Nyitott</span>
-                    </div>
+                    <span class="badge ${badgeClass}">${prioShort}</span>
                 </div>
                 <div class="task-title">${task.gep}</div>
-                <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
+                <div style="margin-bottom:5px; font-size:14px;">${task.hiba}</div>
                 ${kepHtml}
-                <div style="font-size:12px; color:#666; margin-bottom:10px;">Beküldte: <b>${task.felhasznalo}</b></div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Beküldte: <b>${task.felhasznalo}</b></div>
                 
-                <div style="background:#eee; padding:10px; border-radius:6px; flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">
-                    <input type="text" id="megoldas_${task.id}" placeholder="Megoldás beírása..." style="padding:8px; font-size:14px;">
-                    <input type="number" id="ido_${task.id}" step="0.5" placeholder="Idő (óra)" style="padding:8px; font-size:14px;">
-                    <button onclick="closeTask('${task.id}')" style="padding:10px; background:#28a745; margin-top:5px; color:white; font-weight:bold; border:none; border-radius:4px;">Jegy lezárása</button>
+                <div style="background:var(--bg-color); padding:10px; border-radius:4px; margin-top:auto;">
+                    <input type="text" id="megoldas_${task.id}" placeholder="Megoldás..." style="padding:6px; font-size:13px; margin-bottom:5px;">
+                    <input type="number" id="ido_${task.id}" step="0.5" placeholder="Idő (óra)" style="padding:6px; font-size:13px;">
+                    <button onclick="closeTask('${task.id}')" style="padding:8px; background:var(--pri-normal); font-size:13px;">Jegy lezárása</button>
                 </div>
-                ${appendFormHtml}
+                ${appendHtml}
             </div>`;
         } else {
-            const formzottMegoldas = (task.megoldas || "").replace(/\n/g, '<br>');
+            const safeSol = (task.megoldas || "").replace(/\n/g, '<br>');
             return `
             <div class="task-card closed">
-                <div class="task-header"><span>${formattedDate}</span> <span class="badge closed">Lezárt</span></div>
-                <div class="task-title">${task.gep}</div>
-                <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
+                <div class="task-header"><span>${formattedDate}</span> <span class="badge badge-closed">Lezárt</span></div>
+                <div class="task-title" style="color:var(--text-muted);">${task.gep}</div>
+                <div style="margin-bottom:5px; font-size:14px;">${task.hiba}</div>
                 ${kepHtml}
-                <div style="margin-bottom:10px; color:#28a745;"><b>Megoldás:</b><br> ${formzottMegoldas} (${task.ido} óra)</div>
+                <div style="margin-bottom:10px; color:var(--pri-normal); font-size:14px;"><b>Megoldás:</b><br>${safeSol} (${task.ido} óra)</div>
                 
-                <div style="font-size:12px; color:#444; background: #e9ecef; padding: 8px; border-radius: 4px; margin-top:auto;">
-                    <div><b>Beküldte:</b> ${task.felhasznalo}</div>
-                    <div style="margin-top:4px;"><b>Lezárta:</b> ${task.lezarta || "Ismeretlen"}</div>
+                <div style="font-size:11px; color:var(--text-muted); background: var(--bg-color); padding: 8px; border-radius: 4px; margin-top:auto;">
+                    <div>Beküldte: ${task.felhasznalo}</div>
+                    <div>Lezárta: ${task.lezarta}</div>
                 </div>
-                ${appendFormHtml}
+                ${appendHtml}
             </div>`;
         }
     }
 
-    function toggleAppendForm(taskId) {
-        const form = document.getElementById(`appendForm_${taskId}`);
-        form.style.display = form.style.display === "none" ? "block" : "none";
+    function toggleAppendForm(id) {
+        const el = document.getElementById(`appendForm_${id}`);
+        el.style.display = el.style.display === "none" ? "block" : "none";
     }
+    
+    async function sendExtraInfo(id) {
+        const textVal = document.getElementById(`extraText_${id}`).value;
+        const fileInput = document.getElementById(`extraKep_${id}`);
+        if (!textVal && fileInput.files.length === 0) return;
 
-    async function sendExtraInfo(taskId) {
-        const textVal = document.getElementById(`extraText_${taskId}`).value;
-        const fileInput = document.getElementById(`extraKep_${taskId}`);
-
-        if (!textVal && fileInput.files.length === 0) {
-            alert("Kérlek írj be szöveget, vagy csatolj képet a kiegészítéshez!");
-            return;
-        }
-
-        const btn = document.getElementById(`btnExtra_${taskId}`);
-        btn.disabled = true;
-        btn.innerText = "Feltöltés és mentés...";
-
-        let payload = {
-            action: "appendInfo",
-            id: taskId,
-            felhasznalo: localStorage.getItem("activeUser"),
-            szoveg: textVal,
-            kepek: []
-        };
-
+        let payload = { action: "appendInfo", id: id, felhasznalo: localStorage.getItem("activeUser"), szoveg: textVal, kepek: [] };
         if (fileInput.files.length > 0) {
-            let promises = Array.from(fileInput.files).map(file => compressImage(file));
-            payload.kepek = await Promise.all(promises);
+            payload.kepek = await Promise.all(Array.from(fileInput.files).map(f => compressImage(f)));
         }
-
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             const result = await res.json();
-            if(result.status === "success") {
-                alert("Kiegészítés sikeresen elmentve!");
-                loadTasks(); 
-            }
-        } catch(e) {
-            alert("Hiba történt!");
-            btn.disabled = false;
-            btn.innerText = "Hozzáadás mentése";
-        }
+            if(result.status === "success") { loadTasks(); }
+        } catch(e) { alert("Hiba!"); }
     }
 
-    async function closeTask(taskId) {
-        const megoldas = document.getElementById(`megoldas_${taskId}`).value;
-        const ido = document.getElementById(`ido_${taskId}`).value;
-        if(!megoldas) { alert("Kérlek írd be a megoldást a lezáráshoz!"); return; }
+    async function closeTask(id) {
+        const megoldas = document.getElementById(`megoldas_${id}`).value;
+        const ido = document.getElementById(`ido_${id}`).value;
+        if(!megoldas) { alert("Megoldás kötelező!"); return; }
 
         try {
             const res = await fetch(SCRIPT_URL, { 
                 method: "POST", 
-                body: JSON.stringify({ action: "closeTask", id: taskId, megoldas: megoldas, ido: ido, lezarta: localStorage.getItem("activeUser") }) 
+                body: JSON.stringify({ action: "closeTask", id: id, megoldas: megoldas, ido: ido, lezarta: localStorage.getItem("activeUser") }) 
             });
             const result = await res.json();
             if(result.status === "success") { loadTasks(); }
-        } catch(e) { alert("Hiba a lezárás során."); }
+        } catch(e) {}
     }
 
-    async function updatePassword() {
-        const regi = document.getElementById('regiJelszo').value;
-        const uj = document.getElementById('ujJelszo').value;
-        const status = document.getElementById('profilStatus');
-        if (!regi || !uj) { status.style.color="red"; status.innerText="Töltsd ki mindkét mezőt!"; return; }
+    // --- STATISZTIKA SZÁMOLÁSA ---
+    function calculateStatistics() {
+        let openCrit = 0, openHigh = 0, openNorm = 0, openInfo = 0;
+        
+        globalOpenTasks.forEach(t => {
+            if(t.prioritas.includes("Leállás")) openCrit++;
+            else if(t.prioritas.includes("Magas")) openHigh++;
+            else if(t.prioritas === "Informatív") openInfo++;
+            else openNorm++;
+        });
 
-        const btn = document.getElementById('btnProfil');
-        btn.disabled = true; status.style.color="#0056b3"; status.innerText="Feldolgozás...";
+        document.getElementById('statNyitott').innerText = globalOpenTasks.length;
+        document.getElementById('statLeallas').innerText = openCrit;
+        document.getElementById('statCrit').innerText = openCrit;
+        document.getElementById('statMagas').innerText = openHigh;
+        document.getElementById('statNorm').innerText = openNorm;
+        document.getElementById('statInfo').innerText = openInfo;
 
-        try {
-            const regiHash = await hashPassword(regi);
-            const ujHash = await hashPassword(uj);
-            const nev = localStorage.getItem("activeUser");
+        // Downtime számolás (összes lezárt feladat ido mezeje)
+        let totalDowntime = 0;
+        globalClosedTasks.forEach(t => {
+            let parsed = parseFloat(t.ido);
+            if(!isNaN(parsed)) totalDowntime += parsed;
+        });
+        document.getElementById('statDowntime').innerText = totalDowntime;
 
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "changePassword", nev: nev, regiJelszo: regiHash, ujJelszo: ujHash }) });
-            const result = await res.json();
-            
-            if (result.status === "success") {
-                status.style.color = "green"; status.innerText = "✅ " + result.message;
-                document.getElementById('regiJelszo').value = ""; document.getElementById('ujJelszo').value = "";
-            } else { status.style.color = "red"; status.innerText = "❌ " + result.message; }
-        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba!"; } 
-        finally { btn.disabled = false; }
+        // Heti átlag lezárt hibák
+        if(globalClosedTasks.length > 0) {
+            let dates = globalClosedTasks.map(t => new Date(t.idopont).getTime());
+            let minD = Math.min(...dates);
+            let maxD = Math.max(...dates);
+            let diffDays = (maxD - minD) / (1000 * 3600 * 24);
+            let weeks = diffDays / 7;
+            if(weeks < 1) weeks = 1; // Ha rövidebb mint 1 hét, osszuk 1-el
+            let avg = globalClosedTasks.length / weeks;
+            document.getElementById('statHetiAtlag').innerText = avg.toFixed(1);
+        }
     }
 
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-        var R = 6371; 
-        var dLat = (lat2-lat1) * (Math.PI/180);
-        var dLon = (lon2-lon1) * (Math.PI/180); 
-        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2); 
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-        return R * c; 
+    // --- EXPORT CSV LOGIKA ---
+    function downloadCSV(csv, filename) {
+        let blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
+    function exportTasks(dataArray, filename) {
+        if(dataArray.length === 0) { alert("Nincs exportálható adat."); return; }
+        let headers = ["ID", "Időpont", "Státusz", "Prioritás", "Gép", "Hiba", "Beküldő", "Megoldás", "Idő", "Lezárta"];
+        let csv = headers.join(";") + "\n";
+        
+        dataArray.forEach(t => {
+            let row = [
+                t.id, t.idopont, t.statusz, t.prioritas, t.gep, 
+                String(t.hiba).replace(/"/g, '""').replace(/\n/g, ' '), t.felhasznalo, 
+                String(t.megoldas || "").replace(/"/g, '""').replace(/\n/g, ' '), 
+                t.ido || "", t.lezarta || ""
+            ];
+            csv += row.map(cell => `"${cell}"`).join(";") + "\n";
+        });
+        downloadCSV(csv, filename);
+    }
+
+    function exportShiftLogs() {
+        if(globalShiftLogs.length === 0) { alert("Nincs adat."); return; }
+        let headers = ["Időpont", "Műszak", "Író", "Szöveg"];
+        let csv = headers.join(";") + "\n";
+        globalShiftLogs.forEach(l => {
+            let row = [ l.idopont, l.muszak, l.felhasznalo, String(l.szoveg).replace(/"/g, '""').replace(/\n/g, ' ') ];
+            csv += row.map(cell => `"${cell}"`).join(";") + "\n";
+        });
+        downloadCSV(csv, 'Muszaknaplo.csv');
+    }
+
+    // Értesítések (GPS) - Változatlan, csak háttér működés
     function toggleNotifications() {
         const isEnabled = document.getElementById('notifToggle').checked;
         const statusText = document.getElementById('notifStatusText');
-        
         if (isEnabled) {
-            if (!("Notification" in window)) {
-                alert("A böngésződ nem támogatja az asztali értesítéseket!");
-                document.getElementById('notifToggle').checked = false;
-                return;
-            }
-            Notification.requestPermission().then(perm => {
-                if(perm === "granted") {
+            Notification.requestPermission().then(p => {
+                if(p === "granted") {
                     localStorage.setItem("notificationsEnabled", "true");
-                    statusText.innerText = "✅ Értesítések bekapcsolva. Hagyd megnyitva az oldalt!";
+                    statusText.innerText = "Értesítések aktívak.";
                     startPolling();
-                } else {
-                    alert("Kérlek engedélyezd a böngészőben az értesítéseket!");
-                    document.getElementById('notifToggle').checked = false;
-                }
+                } else { document.getElementById('notifToggle').checked = false; }
             });
         } else {
             localStorage.setItem("notificationsEnabled", "false");
-            statusText.innerText = "❌ Értesítések kikapcsolva.";
+            statusText.innerText = "Kikapcsolva.";
             if(notifInterval) clearInterval(notifInterval);
         }
     }
@@ -785,50 +918,41 @@
         notifInterval = setInterval(async () => {
             try {
                 const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
-                const result = await res.json();
-                
-                if(result.status === "success") {
-                    const currentOpenCount = result.data.filter(t => t.statusz === "Nyitott").length;
-                    if(lastKnownTaskCount > 0 && currentOpenCount > lastKnownTaskCount) {
-                        checkLocationAndNotify();
+                const r = await res.json();
+                if(r.status === "success") {
+                    const currentOpen = r.data.filter(t => t.statusz === "Nyitott").length;
+                    if(lastKnownTaskCount > 0 && currentOpen > lastKnownTaskCount) {
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition((pos) => {
+                                const dist = getDistanceFromLatLonInKm(pos.coords.latitude, pos.coords.longitude, WORK_LAT, WORK_LNG) * 1000;
+                                if (dist <= GEOFENCE_RADIUS_METERS && Notification.permission === "granted") {
+                                    new Notification("CMMS: Új hibajegy érkezett!");
+                                }
+                            });
+                        }
                     }
-                    globalOpenTasks = result.data.filter(t => t.statusz === "Nyitott").sort((a, b) => {
-                        if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
-                        if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
-                        return 0;
-                    });
-                    lastKnownTaskCount = currentOpenCount;
+                    lastKnownTaskCount = currentOpen;
                 }
             } catch (e) {}
         }, 120000); 
     }
 
-    function checkLocationAndNotify() {
-        if (!navigator.geolocation) {
-            sendPushNotification("Új hibajegy érkezett!"); 
-            return;
-        }
-        navigator.geolocation.getCurrentPosition((position) => {
-            const distance = getDistanceFromLatLonInKm(position.coords.latitude, position.coords.longitude, WORK_LAT, WORK_LNG) * 1000;
-            if (distance <= GEOFENCE_RADIUS_METERS) {
-                sendPushNotification("Új hibajegy érkezett!");
-            }
-        }, () => {
-            sendPushNotification("Új hibajegy érkezett! (Helyzet ismeretlen)");
-        }, { timeout: 10000 });
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        var R = 6371, dLat = (lat2-lat1)*(Math.PI/180), dLon = (lon2-lon1)*(Math.PI/180); 
+        var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*(Math.PI/180))*Math.cos(lat2*(Math.PI/180))*Math.sin(dLon/2)*Math.sin(dLon/2); 
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
     }
 
-    function sendPushNotification(bodyText) {
-        if (Notification.permission === "granted") {
-            const notif = new Notification("CMMS Figyelmeztetés", {
-                body: bodyText,
-                icon: "https://cdn-icons-png.flaticon.com/512/758/758444.png"
-            });
-            notif.onclick = function() {
-                window.focus();
-                loadTasks();
-            };
-        }
+    async function updatePassword() {
+        const regi = document.getElementById('regiJelszo').value, uj = document.getElementById('ujJelszo').value;
+        const status = document.getElementById('profilStatus');
+        if (!regi || !uj) { status.style.color="var(--pri-crit)"; status.innerText="Töltsd ki!"; return; }
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "changePassword", nev: localStorage.getItem("activeUser"), regiJelszo: await hashPassword(regi), ujJelszo: await hashPassword(uj) }) });
+            const result = await res.json();
+            if (result.status === "success") { status.style.color = "var(--pri-normal)"; status.innerText = "Sikeres."; } 
+            else { status.style.color = "var(--pri-crit)"; status.innerText = result.message; }
+        } catch(e) {}
     }
 </script>
 </body>
