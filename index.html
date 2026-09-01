@@ -33,6 +33,7 @@
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin-top: 10px; margin-bottom: 10px; }
         .img-container img { max-width: 120px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
         
+        /* Szűrő panel dizájn */
         .filter-panel { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ccc; }
         .filter-panel h4 { margin: 0 0 10px 0; font-size: 14px; color: #333; }
         .date-row { display: flex; gap: 10px; }
@@ -40,12 +41,13 @@
 
         .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #e9ecef; border-radius: 6px; margin-bottom: 10px; }
 
-        /* --- ASZTALI OPTIMALIZÁLÁS --- */
+        /* --- ASZTALI OPTIMALIZÁLÁS (Nagy képernyők) --- */
         @media (min-width: 768px) {
             body { display: flex; justify-content: center; background: #e2e8f0; }
             #loginView, #appView { max-width: 1200px; width: 100%; margin-top: 20px; }
             .nav { justify-content: center; }
             .nav button { max-width: 200px; }
+            
             /* Rácsos elrendezés a feladatoknak */
             #openTasksContainer, #closedTasksContainer, #shiftLogsContainer {
                 display: grid;
@@ -53,6 +55,8 @@
                 gap: 15px;
             }
             .task-card { margin-bottom: 0; }
+            
+            /* Rácsos elrendezés a rögzítés űrlaphoz */
             .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
             .form-full { grid-column: span 2; }
         }
@@ -78,7 +82,7 @@
         <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
         <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
         <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
-        <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszakátadás</button>
+        <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
         <button onclick="switchTab('profilCserelo', this)">Profil / Beállítások</button>
     </div>
 
@@ -88,9 +92,11 @@
             <select id="kategoria" onchange="frissitGepek()">
                 <option value="">Válassz kategóriát / csarnokot...</option>
             </select>
+            
             <select id="gep">
                 <option value="">Előbb válassz kategóriát...</option>
             </select>
+
             <input type="text" id="hiba" class="form-full" placeholder="Hiba rövid leírása (Kötelező)">
             
             <div class="form-full" style="margin: 5px 0; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #ffcccc;">
@@ -104,7 +110,7 @@
             <input type="number" id="ido" class="form-full" step="0.5" placeholder="Ráfordított idő (óra) - Opcionális">
         </div>
         
-        <button type="button" onclick="document.getElementById('kepInput').click()" style="background: #17a2b8; margin-bottom: 5px;">📸 Fénykép készítése</button>
+        <button type="button" onclick="document.getElementById('kepInput').click()" style="background: #17a2b8; margin-bottom: 5px; margin-top: 15px;">📸 Fénykép készítése</button>
         <input type="file" id="kepInput" accept="image/*" capture="environment" style="display:none;" onchange="feldolgozUjKep(this)">
         
         <div id="kepElonezet" style="display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; min-height: 64px; padding: 5px; border: 1px dashed #ccc; border-radius: 6px; align-items: center;">
@@ -115,7 +121,6 @@
         <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
     </div>
 
-    <!-- --- ÚJ: Műszakátadás Nézet --- -->
     <div id="muszakatadasView" class="view box">
         <h3>Műszakátadás Naplózása</h3>
         <select id="muszakTipus">
@@ -152,7 +157,6 @@
     <div id="profilCserelo" class="view box">
         <h3>Profil és Beállítások</h3>
         
-        <!-- --- ÚJ: Értesítés beállítások --- -->
         <div class="settings-row">
             <div>
                 <strong>Új feladat értesítések</strong><br>
@@ -187,7 +191,7 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    // Munkahely koordinátái (Debrecen, ipari park nagyságrendi koordináta)
+    // Munkahely koordinátái (Debrecen ipari terület nagyságrendileg)
     const WORK_LAT = 47.53;
     const WORK_LNG = 21.62;
     const GEOFENCE_RADIUS_METERS = 3000; // 3 km-es sugár a munkahely körül
@@ -231,7 +235,7 @@
         const katSelect = document.getElementById('kategoria');
         for (let kat in gepAdatbazis) { katSelect.add(new Option(kat, kat)); }
         
-        // Gomb színezés (checkbox slider hack)
+        // Gomb színezés (checkbox slider hack az értesítéshez)
         const toggle = document.getElementById('notifToggle');
         const slider = document.getElementById('notifSlider');
         toggle.addEventListener('change', (e) => {
@@ -244,6 +248,24 @@
         const gepSelect = document.getElementById('gep');
         gepSelect.innerHTML = '<option value="">Válassz gépet...</option>';
         if (kat && gepAdatbazis[kat]) { gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep))); }
+    }
+
+    async function feldolgozUjKep(input) {
+        if (input.files.length === 0) return;
+        const elonezet = document.getElementById('kepElonezet');
+        const uresSzoveg = document.getElementById('uresKepSzoveg');
+        if (uresSzoveg) uresSzoveg.style.display = 'none';
+
+        for (let file of input.files) {
+            let tomoritett = await compressImage(file);
+            feltoltendoKepek.push(tomoritett);
+            let img = document.createElement('img');
+            img.src = "data:image/jpeg;base64," + tomoritett.base64;
+            img.style.width = "60px"; img.style.height = "60px"; img.style.objectFit = "cover";
+            img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd";
+            elonezet.appendChild(img);
+        }
+        input.value = ""; 
     }
 
     async function hashPassword(password) {
@@ -276,11 +298,83 @@
         btn.classList.add('active');
     }
 
-    // --- (A login, logout, compressImage, submitTask függvények változatlanok maradtak a korábbiak alapján, helytakarékosság miatt itt most csak az értesítések és műszakátadás logikát fejtem ki, a többit hagyd meg, ahogy eddig volt!) ---
+    async function login() {
+        const nev = document.getElementById('loginNev').value;
+        const nyersJelszo = document.getElementById('loginJelszo').value;
+        const status = document.getElementById('loginStatus');
+        status.innerText = "Ellenőrzés...";
 
-    // [Ide jön a login(), logout(), compressImage(), feldolgozUjKep(), submitTask() változatlan formában]
+        try {
+            const titkositottJelszo = await hashPassword(nyersJelszo);
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: nev, jelszo: titkositottJelszo }) });
+            const result = await res.json();
+            
+            if(result.status === "success") { localStorage.setItem("activeUser", nev); location.reload(); } 
+            else { status.innerText = result.message; }
+        } catch(e) { status.innerText = "Hálózati hiba!"; }
+    }
 
-    // --- ÚJ: Műszakátadás logika ---
+    function logout() { localStorage.removeItem("activeUser"); location.reload(); }
+
+    async function compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const scaleSize = 1024 / img.width;
+                    canvas.width = 1024; canvas.height = img.height * scaleSize;
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve({ base64: canvas.toDataURL('image/jpeg', 0.7).split(',')[1], tipus: 'image/jpeg' });
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function submitTask() {
+        const kategoria = document.getElementById('kategoria').value;
+        const gepVal = document.getElementById('gep').value;
+        const hibaMezo = document.getElementById('hiba').value;
+        
+        if (!kategoria || !gepVal) { alert("Kérlek válassz kategóriát és gépet is!"); return; }
+        if (!hibaMezo) { alert("A hiba leírása kötelező!"); return; }
+
+        const btn = document.getElementById('btnSubmit');
+        const status = document.getElementById('taskStatus');
+        btn.disabled = true; status.style.color = "#0056b3"; status.innerText = "Képek feldolgozása és küldés...";
+
+        let payload = {
+            action: "addTask",
+            felhasznalo: localStorage.getItem("activeUser"),
+            gep: kategoria + " - " + gepVal, 
+            hiba: hibaMezo,
+            prioritas: document.getElementById('prioritas').checked,
+            megoldas: document.getElementById('megoldas').value,
+            ido: document.getElementById('ido').value,
+            kepek: feltoltendoKepek
+        };
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+            const result = await res.json();
+            if(result.status === "success") {
+                status.style.color = "green"; status.innerText = "✅ Rögzítve!";
+                document.getElementById('hiba').value = "";
+                document.getElementById('megoldas').value = "";
+                document.getElementById('ido').value = "";
+                document.getElementById('prioritas').checked = false;
+                feltoltendoKepek = [];
+                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>';
+                setTimeout(() => status.innerText = "", 3000);
+            }
+        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
+        btn.disabled = false;
+    }
+
+    // --- MŰSZAKÁTADÁS LOGIKA ---
     async function submitShiftLog() {
         const tipus = document.getElementById('muszakTipus').value;
         const szoveg = document.getElementById('muszakSzoveg').value;
@@ -305,7 +399,7 @@
                 status.style.color = "green"; status.innerText = "✅ Műszaknapló rögzítve!";
                 document.getElementById('muszakSzoveg').value = "";
                 setTimeout(() => status.innerText = "", 3000);
-                loadShiftLogs(); // Lista frissítése
+                loadShiftLogs(); 
             }
         } catch(e) { status.style.color = "red"; status.innerText = "❌ Hiba történt."; }
         btn.disabled = false;
@@ -316,7 +410,6 @@
         container.innerHTML = "Naplók betöltése...";
         
         try {
-            // Ez a getShiftLogs egy új végpont a Google Apps Scriptben!
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) });
             const result = await res.json();
             
@@ -341,18 +434,243 @@
         }
     }
 
-    // --- ÚJ: Értesítések és GPS Geofencing ---
-    
-    // Távolság számítás (Haversine formula)
+    // --- FELADAT LEKÉRDEZÉS ÉS SZŰRÉS LOGIKA ---
+    async function loadTasks() {
+        document.getElementById('openTasksContainer').innerHTML = "Adatok betöltése...";
+        document.getElementById('closedTasksContainer').innerHTML = "Adatok betöltése...";
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
+            const result = await res.json();
+            
+            if(result.status === "success") {
+                globalOpenTasks = [];
+                globalClosedTasks = [];
+                
+                result.data.forEach(task => {
+                    if (task.statusz === "Nyitott") globalOpenTasks.push(task);
+                    else globalClosedTasks.push(task);
+                });
+
+                globalOpenTasks.sort((a, b) => {
+                    if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
+                    if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
+                    return 0;
+                });
+
+                renderOpenTasks();
+                renderClosedTasks();
+                
+                // Update known count for notification logic
+                lastKnownTaskCount = globalOpenTasks.length;
+            }
+        } catch(e) {
+            document.getElementById('openTasksContainer').innerHTML = "Hiba a betöltéskor.";
+            document.getElementById('closedTasksContainer').innerHTML = "Hiba a betöltéskor.";
+        }
+    }
+
+    function renderOpenTasks() {
+        let openHtml = "";
+        globalOpenTasks.forEach(task => openHtml += generateTaskCard(task));
+        document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
+    }
+
+    function toLocalISOString(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function renderClosedTasks() {
+        const szuroGep = document.getElementById('filterGep').value.toLowerCase();
+        const szuroTol = document.getElementById('filterDatumTol').value;
+        const szuroIg = document.getElementById('filterDatumIg').value;
+
+        let filtered = globalClosedTasks.filter(task => {
+            let matchText = task.gep.toLowerCase().includes(szuroGep) || task.hiba.toLowerCase().includes(szuroGep);
+            let taskDateStr = toLocalISOString(new Date(task.idopont));
+            let matchTol = szuroTol ? (taskDateStr >= szuroTol) : true;
+            let matchIg = szuroIg ? (taskDateStr <= szuroIg) : true;
+
+            return matchText && matchTol && matchIg;
+        });
+
+        let closedHtml = "";
+        filtered.forEach(task => closedHtml += generateTaskCard(task));
+        document.getElementById('closedTasksContainer').innerHTML = closedHtml || "Nincs a szűrésnek megfelelő feladat.";
+    }
+
+    function generateTaskCard(task) {
+        const dateObj = new Date(task.idopont);
+        const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+        const isPriority = task.prioritas === "Igen";
+        
+        let kepHtml = "";
+        if (task.kepek) {
+            const urls = task.kepek.split(",");
+            kepHtml += `<div class="img-container">`;
+            urls.forEach(url => {
+                url = url.trim();
+                if(url) {
+                    const fileIdMatch = url.match(/id=([^&]+)/);
+                    let thumbUrl = url;
+                    if (fileIdMatch && fileIdMatch[1]) {
+                        thumbUrl = `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w400`;
+                    }
+                    kepHtml += `<img src="${thumbUrl}" onclick="window.open('${url}', '_blank')" alt="Hiba fotó" loading="lazy" onerror="this.src='https://via.placeholder.com/120?text=Kép+hiba'">`;
+                }
+            });
+            kepHtml += `</div>`;
+        }
+
+        const appendFormHtml = `
+            <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                <button onclick="toggleAppendForm('${task.id}')" style="background: #6c757d; padding: 6px 10px; font-size: 13px; width: auto; margin:0;">+ Kiegészítés (Infó/Kép)</button>
+                <div id="appendForm_${task.id}" style="display: none; margin-top: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 6px;">
+                    <textarea id="extraText_${task.id}" rows="2" placeholder="Utólagos megjegyzés vagy megoldás leírása..."></textarea>
+                    <input type="file" id="extraKep_${task.id}" accept="image/*" capture="environment" multiple style="font-size: 14px; padding: 8px;">
+                    <button id="btnExtra_${task.id}" onclick="sendExtraInfo('${task.id}')" style="background: #17a2b8; padding: 10px; font-size: 14px; margin-top: 5px;">Hozzáadás mentése</button>
+                </div>
+            </div>`;
+
+        if(task.statusz === "Nyitott") {
+            return `
+            <div class="task-card ${isPriority ? 'priority' : ''}">
+                <div class="task-header">
+                    <span>${formattedDate}</span> 
+                    <div>
+                        ${isPriority ? '<span class="badge priority">🔥 Sürgős</span>' : ''}
+                        <span class="badge">Nyitott</span>
+                    </div>
+                </div>
+                <div class="task-title">${task.gep}</div>
+                <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
+                ${kepHtml}
+                <div style="font-size:12px; color:#666; margin-bottom:10px;">Beküldte: <b>${task.felhasznalo}</b></div>
+                
+                <div style="background:#eee; padding:10px; border-radius:6px; flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">
+                    <input type="text" id="megoldas_${task.id}" placeholder="Megoldás beírása..." style="padding:8px; font-size:14px;">
+                    <input type="number" id="ido_${task.id}" step="0.5" placeholder="Idő (óra)" style="padding:8px; font-size:14px;">
+                    <button onclick="closeTask('${task.id}')" style="padding:10px; background:#28a745; margin-top:5px; color:white; font-weight:bold; border:none; border-radius:4px;">Jegy lezárása</button>
+                </div>
+                ${appendFormHtml}
+            </div>`;
+        } else {
+            const formzottMegoldas = (task.megoldas || "").replace(/\n/g, '<br>');
+            return `
+            <div class="task-card closed">
+                <div class="task-header"><span>${formattedDate}</span> <span class="badge closed">Lezárt</span></div>
+                <div class="task-title">${task.gep}</div>
+                <div style="margin-bottom:5px;"><b>Hiba:</b> ${task.hiba}</div>
+                ${kepHtml}
+                <div style="margin-bottom:10px; color:#28a745;"><b>Megoldás:</b><br> ${formzottMegoldas} (${task.ido} óra)</div>
+                
+                <div style="font-size:12px; color:#444; background: #e9ecef; padding: 8px; border-radius: 4px; margin-top:auto;">
+                    <div><b>Beküldte:</b> ${task.felhasznalo}</div>
+                    <div style="margin-top:4px;"><b>Lezárta:</b> ${task.lezarta || "Ismeretlen"}</div>
+                </div>
+                ${appendFormHtml}
+            </div>`;
+        }
+    }
+
+    function toggleAppendForm(taskId) {
+        const form = document.getElementById(`appendForm_${taskId}`);
+        form.style.display = form.style.display === "none" ? "block" : "none";
+    }
+
+    async function sendExtraInfo(taskId) {
+        const textVal = document.getElementById(`extraText_${taskId}`).value;
+        const fileInput = document.getElementById(`extraKep_${taskId}`);
+
+        if (!textVal && fileInput.files.length === 0) {
+            alert("Kérlek írj be szöveget, vagy csatolj képet a kiegészítéshez!");
+            return;
+        }
+
+        const btn = document.getElementById(`btnExtra_${taskId}`);
+        btn.disabled = true;
+        btn.innerText = "Feltöltés és mentés...";
+
+        let payload = {
+            action: "appendInfo",
+            id: taskId,
+            felhasznalo: localStorage.getItem("activeUser"),
+            szoveg: textVal,
+            kepek: []
+        };
+
+        if (fileInput.files.length > 0) {
+            let promises = Array.from(fileInput.files).map(file => compressImage(file));
+            payload.kepek = await Promise.all(promises);
+        }
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+            const result = await res.json();
+            if(result.status === "success") {
+                alert("Kiegészítés sikeresen elmentve!");
+                loadTasks(); 
+            }
+        } catch(e) {
+            alert("Hiba történt!");
+            btn.disabled = false;
+            btn.innerText = "Hozzáadás mentése";
+        }
+    }
+
+    async function closeTask(taskId) {
+        const megoldas = document.getElementById(`megoldas_${taskId}`).value;
+        const ido = document.getElementById(`ido_${taskId}`).value;
+        if(!megoldas) { alert("Kérlek írd be a megoldást a lezáráshoz!"); return; }
+
+        try {
+            const res = await fetch(SCRIPT_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ action: "closeTask", id: taskId, megoldas: megoldas, ido: ido, lezarta: localStorage.getItem("activeUser") }) 
+            });
+            const result = await res.json();
+            if(result.status === "success") { loadTasks(); }
+        } catch(e) { alert("Hiba a lezárás során."); }
+    }
+
+    async function updatePassword() {
+        const regi = document.getElementById('regiJelszo').value;
+        const uj = document.getElementById('ujJelszo').value;
+        const status = document.getElementById('profilStatus');
+        if (!regi || !uj) { status.style.color="red"; status.innerText="Töltsd ki mindkét mezőt!"; return; }
+
+        const btn = document.getElementById('btnProfil');
+        btn.disabled = true; status.style.color="#0056b3"; status.innerText="Feldolgozás...";
+
+        try {
+            const regiHash = await hashPassword(regi);
+            const ujHash = await hashPassword(uj);
+            const nev = localStorage.getItem("activeUser");
+
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "changePassword", nev: nev, regiJelszo: regiHash, ujJelszo: ujHash }) });
+            const result = await res.json();
+            
+            if (result.status === "success") {
+                status.style.color = "green"; status.innerText = "✅ " + result.message;
+                document.getElementById('regiJelszo').value = ""; document.getElementById('ujJelszo').value = "";
+            } else { status.style.color = "red"; status.innerText = "❌ " + result.message; }
+        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba!"; } 
+        finally { btn.disabled = false; }
+    }
+
+    // --- ÉRTESÍTÉSEK ÉS GPS GEOFENCING ---
     function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-        var R = 6371; // Föld sugara km-ben
+        var R = 6371; 
         var dLat = (lat2-lat1) * (Math.PI/180);
         var dLon = (lon2-lon1) * (Math.PI/180); 
         var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                 Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
                 Math.sin(dLon/2) * Math.sin(dLon/2); 
         var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-        return R * c; // Távolság km-ben
+        return R * c; 
     }
 
     function toggleNotifications() {
@@ -360,10 +678,16 @@
         const statusText = document.getElementById('notifStatusText');
         
         if (isEnabled) {
+            if (!("Notification" in window)) {
+                alert("A böngésződ nem támogatja az asztali értesítéseket!");
+                document.getElementById('notifToggle').checked = false;
+                return;
+            }
+            
             Notification.requestPermission().then(perm => {
                 if(perm === "granted") {
                     localStorage.setItem("notificationsEnabled", "true");
-                    statusText.innerText = "✅ Értesítések engedélyezve. A böngészőt nyitva kell hagyni a háttérben!";
+                    statusText.innerText = "✅ Értesítések bekapcsolva. Hagyd megnyitva az oldalt!";
                     startPolling();
                 } else {
                     alert("Kérlek engedélyezd a böngészőben az értesítéseket!");
@@ -380,7 +704,6 @@
     function startPolling() {
         if(notifInterval) clearInterval(notifInterval);
         
-        // Óránként vagy percenként kérdezze le a feladatokat. Jelenleg 2 percenként (120000 ms).
         notifInterval = setInterval(async () => {
             try {
                 const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
@@ -389,19 +712,26 @@
                 if(result.status === "success") {
                     const currentOpenCount = result.data.filter(t => t.statusz === "Nyitott").length;
                     
-                    // Ha több a nyitott feladat, mint legutóbb, valaki új jegyet rögzített
                     if(lastKnownTaskCount > 0 && currentOpenCount > lastKnownTaskCount) {
                         checkLocationAndNotify();
                     }
+                    
+                    // Ha a nyitott feladatok fülön van, csendben frissítse a globális változókat
+                    globalOpenTasks = result.data.filter(t => t.statusz === "Nyitott").sort((a, b) => {
+                        if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
+                        if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
+                        return 0;
+                    });
+                    
                     lastKnownTaskCount = currentOpenCount;
                 }
             } catch (e) { console.log("Háttérlekérdezés hiba"); }
-        }, 120000); 
+        }, 120000); // 2 percenként
     }
 
     function checkLocationAndNotify() {
         if (!navigator.geolocation) {
-            sendPushNotification("Új hibajegy érkezett!"); // Nincs GPS, simán küldjük
+            sendPushNotification("Új hibajegy érkezett!"); 
             return;
         }
 
@@ -410,24 +740,25 @@
             if (distance <= GEOFENCE_RADIUS_METERS) {
                 sendPushNotification("Új hibajegy érkezett!");
             } else {
-                console.log("Új hiba, de nem a munkahelyen vagy.");
+                console.log("Új hiba, de nem vagy a munkahelyeden.");
             }
         }, () => {
-            // Hiba esetén (pl. GPS letiltva) is küldjük ki
             sendPushNotification("Új hibajegy érkezett! (Helyzet ismeretlen)");
         }, { timeout: 10000 });
     }
 
     function sendPushNotification(bodyText) {
         if (Notification.permission === "granted") {
-            new Notification("CMMS Figyelmeztetés", {
+            const notif = new Notification("CMMS Figyelmeztetés", {
                 body: bodyText,
                 icon: "https://cdn-icons-png.flaticon.com/512/758/758444.png"
             });
+            notif.onclick = function() {
+                window.focus();
+                loadTasks();
+            };
         }
     }
-
-    // Ide jönnek a maradék loadTasks(), renderOpenTasks(), closeTask(), stb. függvények amik az eredetiben is benne voltak...
 </script>
 </body>
 </html>
