@@ -78,7 +78,6 @@
         <button onclick="switchTab('profilCserelo', this)">Profil</button>
     </div>
 
-    <!-- ÚJ HIBA RÖGZÍTÉSE NÉZET -->
     <div id="ujHiba" class="view active box">
         <h3>Új hiba vagy feladat kiadása</h3>
         <div class="form-grid">
@@ -128,32 +127,33 @@
         <div id="shiftLogsContainer">Betöltés...</div>
     </div>
 
-    <!-- NYITOTT FELADATOK NÉZET -->
     <div id="nyitottFeladatok" class="view box">
         <h3>Elvégzendő Feladatok</h3>
         <div id="openTasksContainer">Betöltés...</div>
     </div>
 
-    <!-- LEZÁRT FELADATOK (ÚJ, HIERARCHIKUS NÉZET) -->
+    <!-- LEZÁRT FELADATOK NÉZET (BŐVÍTETT SZŰRÉSSEL) -->
     <div id="lezartFeladatok" class="view box">
         <h3>Lezárt Feladatok</h3>
         <div class="filter-panel">
-            <h4>📂 Válassz kategóriát és gépet a megtekintéshez</h4>
+            <h4>🔍 Keresés és Dátum szűrés</h4>
             <div class="form-grid">
-                <select id="szuroKategoria" onchange="frissitSzuroGepek()">
-                    <option value="">Válassz kategóriát / csarnokot...</option>
+                <select id="szuroKategoria" onchange="frissitSzuroGepek()" class="form-full">
+                    <option value="">Minden kategória / csarnok...</option>
                 </select>
-                <select id="szuroGep" onchange="renderClosedTasks()">
+                <select id="szuroGep" onchange="renderClosedTasks()" class="form-full">
                     <option value="">Összes gép a kategóriában...</option>
                 </select>
+                
+                <input type="date" id="filterDatumTol" onchange="renderClosedTasks()" title="Kezdő dátum (Tól)">
+                <input type="date" id="filterDatumIg" onchange="renderClosedTasks()" title="Záró dátum (Ig)">
             </div>
         </div>
         <div id="closedTasksContainer" style="text-align:center; padding:20px; color:#666;">
-            Kérlek válassz egy kategóriát a fenti listából!
+            Adatok betöltése...
         </div>
     </div>
 
-    <!-- PROFIL ÉS BEÁLLÍTÁSOK -->
     <div id="profilCserelo" class="view box">
         <h3>Profil és Beállítások</h3>
         
@@ -189,8 +189,6 @@
     
     let lastKnownTaskCount = 0;
     let notifInterval = null;
-    
-    // Munkahely koordinátái (Debrecen ipari terület)
     const WORK_LAT = 47.53;
     const WORK_LNG = 21.62;
     const GEOFENCE_RADIUS_METERS = 3000;
@@ -236,7 +234,7 @@
         
         for (let kat in gepAdatbazis) { 
             katSelect.add(new Option(kat, kat)); 
-            szuroKatSelect.add(new Option(kat, kat)); // Feltöltjük a szűrő kategóriáit is
+            szuroKatSelect.add(new Option(kat, kat)); 
         }
         
         const toggle = document.getElementById('notifToggle');
@@ -246,7 +244,6 @@
         });
     });
 
-    // Rögzítésnél lévő gép frissítő
     function frissitGepek() {
         const kat = document.getElementById('kategoria').value;
         const gepSelect = document.getElementById('gep');
@@ -254,7 +251,6 @@
         if (kat && gepAdatbazis[kat]) { gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep))); }
     }
 
-    // Lezárt nézetnél lévő gép frissítő
     function frissitSzuroGepek() {
         const kat = document.getElementById('szuroKategoria').value;
         const gepSelect = document.getElementById('szuroGep');
@@ -262,7 +258,7 @@
         if (kat && gepAdatbazis[kat]) { 
             gepAdatbazis[kat].forEach(gep => gepSelect.add(new Option(gep, gep))); 
         }
-        renderClosedTasks(); // Újraszűrjük a listát a kategória alapján
+        renderClosedTasks();
     }
 
     async function feldolgozUjKep(input) {
@@ -358,7 +354,7 @@
 
         const btn = document.getElementById('btnSubmit');
         const status = document.getElementById('taskStatus');
-        btn.disabled = true; status.style.color = "#0056b3"; status.innerText = "Képek feldolgozása és küldés...";
+        btn.disabled = true; status.style.color = "#0056b3"; status.innerText = "Feldolgozás és küldés...";
 
         let payload = {
             action: "addTask",
@@ -381,7 +377,7 @@
                 document.getElementById('ido').value = "";
                 document.getElementById('prioritas').checked = false;
                 feltoltendoKepek = [];
-                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók... (Kattints a gombra többször is)</span>';
+                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #999; font-size: 13px; width:100%; text-align:center;">Ide kerülnek a fotók...</span>';
                 setTimeout(() => status.innerText = "", 3000);
             } else {
                 status.style.color = "red"; status.innerText = "❌ Hiba: " + result.message;
@@ -390,6 +386,7 @@
         btn.disabled = false;
     }
 
+    // --- MŰSZAKÁTADÁS MENTÉSE ÉS LEKÉRDEZÉSE ---
     async function submitShiftLog() {
         const tipus = document.getElementById('muszakTipus').value;
         const szoveg = document.getElementById('muszakSzoveg').value;
@@ -402,12 +399,7 @@
         try {
             const res = await fetch(SCRIPT_URL, { 
                 method: "POST", 
-                body: JSON.stringify({ 
-                    action: "addShiftLog", 
-                    felhasznalo: localStorage.getItem("activeUser"),
-                    muszak: tipus,
-                    szoveg: szoveg
-                }) 
+                body: JSON.stringify({ action: "addShiftLog", felhasznalo: localStorage.getItem("activeUser"), muszak: tipus, szoveg: szoveg }) 
             });
             const result = await res.json();
             
@@ -417,14 +409,9 @@
                 setTimeout(() => status.innerText = "", 3000);
                 loadShiftLogs(); 
             } else {
-                // ITT KIÍRJA, HA PL. HIÁNYZIK A MUNKALAP A GOOGLE TÁBLÁZATBÓL
-                status.style.color = "red"; 
-                status.innerText = "❌ Hiba: " + (result.message || "Szerver hiba");
+                status.style.color = "red"; status.innerText = "❌ Hiba: " + result.message;
             }
-        } catch(e) { 
-            status.style.color = "red"; 
-            status.innerText = "❌ Hálózati hiba."; 
-        }
+        } catch(e) { status.style.color = "red"; status.innerText = "❌ Hálózati hiba."; }
         btn.disabled = false;
     }
 
@@ -441,16 +428,30 @@
                 result.data.forEach(log => {
                     const dateObj = new Date(log.idopont);
                     const formattedDate = dateObj.toLocaleDateString('hu-HU') + " " + dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+                    
+                    // XSS elkerülése / idézőjelek kezelése
+                    const safeSzoveg = log.szoveg.replace(/"/g, '&quot;'); 
+
                     html += `
                     <div class="task-card">
                         <div class="task-header"><span>${formattedDate}</span> <span class="badge" style="background:#17a2b8; color:white;">${log.muszak}</span></div>
-                        <div style="margin-bottom:10px;">${log.szoveg.replace(/\n/g, '<br>')}</div>
-                        <div style="font-size:12px; color:#666;">Naplózta: <b>${log.felhasznalo}</b></div>
+                        <div id="logDisp_${log.id}" style="margin-bottom:10px;">${log.szoveg.replace(/\n/g, '<br>')}</div>
+                        
+                        <div id="logEditDiv_${log.id}" style="display:none; margin-bottom:10px;">
+                            <textarea id="logInput_${log.id}" rows="3" style="width:100%; font-size:14px; padding:8px;">${safeSzoveg}</textarea>
+                            <div style="display:flex; gap:10px; margin-top:5px;">
+                                <button onclick="saveEditLog('${log.id}', '${log.oldTimestamp}', '${log.felhasznalo}')" style="background:#28a745; margin:0; padding:8px; width:50%;">Mentés</button>
+                                <button onclick="toggleEditLog('${log.id}')" style="background:#6c757d; margin:0; padding:8px; width:50%;">Mégse</button>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                            <div style="font-size:12px; color:#666;">Naplózta: <b>${log.felhasznalo}</b></div>
+                            <button id="logEditBtn_${log.id}" onclick="toggleEditLog('${log.id}')" style="width:auto; margin:0; padding:4px 8px; font-size:12px; background:#ffc107; color:black;">Módosítás</button>
+                        </div>
                     </div>`;
                 });
                 container.innerHTML = html;
-            } else if (result.status === "error") {
-                container.innerHTML = `<span style="color:red;">Hiba: ${result.message}</span>`;
             } else {
                 container.innerHTML = "Még nincsenek naplóbejegyzések.";
             }
@@ -459,10 +460,53 @@
         }
     }
 
+    function toggleEditLog(id) {
+        const disp = document.getElementById(`logDisp_${id}`);
+        const editDiv = document.getElementById(`logEditDiv_${id}`);
+        const btn = document.getElementById(`logEditBtn_${id}`);
+
+        if(editDiv.style.display === "none") {
+            editDiv.style.display = "block";
+            disp.style.display = "none";
+            btn.style.display = "none";
+        } else {
+            editDiv.style.display = "none";
+            disp.style.display = "block";
+            btn.style.display = "block";
+        }
+    }
+
+    async function saveEditLog(id, oldTimestamp, oldFelhasznalo) {
+        const newVal = document.getElementById(`logInput_${id}`).value;
+        if(!newVal) { alert("A bejegyzés nem lehet teljesen üres!"); return; }
+
+        const currentUser = localStorage.getItem("activeUser");
+        
+        try {
+            const res = await fetch(SCRIPT_URL, { 
+                method: "POST", 
+                body: JSON.stringify({ 
+                    action: "editShiftLog", 
+                    id: id, 
+                    oldTimestamp: oldTimestamp, 
+                    oldFelhasznalo: oldFelhasznalo, 
+                    ujSzoveg: newVal, 
+                    szerkeszto: currentUser 
+                }) 
+            });
+            const result = await res.json();
+            if(result.status === "success") {
+                loadShiftLogs(); // Újratöltjük a felületet a mentés után
+            } else {
+                alert("Hiba: " + result.message);
+            }
+        } catch(e) {
+            alert("Hálózati hiba mentés közben.");
+        }
+    }
+
     async function loadTasks() {
         const openContainer = document.getElementById('openTasksContainer');
-        const closedContainer = document.getElementById('closedTasksContainer');
-        
         if (openContainer.innerHTML === "") openContainer.innerHTML = "Adatok betöltése...";
         
         try {
@@ -485,8 +529,7 @@
                 });
 
                 renderOpenTasks();
-                renderClosedTasks(); // Ezt meghívjuk, hogy a lezártak is frissüljenek
-                
+                renderClosedTasks();
                 lastKnownTaskCount = globalOpenTasks.length;
             }
         } catch(e) {
@@ -500,28 +543,38 @@
         document.getElementById('openTasksContainer').innerHTML = openHtml || "Nincs nyitott feladat.";
     }
 
-    // --- ÚJ LOGIKA A LEZÁRT FELADATOK HIERARCHIKUS SZŰRÉSÉHEZ ---
+    function toLocalISOString(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // --- BŐVÍTETT SZŰRÉS: DÁTUM + MINDEN KATEGÓRIA OPCIÓ ---
     function renderClosedTasks() {
         const szuroKat = document.getElementById('szuroKategoria').value;
         const szuroGep = document.getElementById('szuroGep').value;
+        const szuroTol = document.getElementById('filterDatumTol').value;
+        const szuroIg = document.getElementById('filterDatumIg').value;
         const container = document.getElementById('closedTasksContainer');
 
-        if (!szuroKat) {
-            container.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Kérlek válassz egy kategóriát a fenti listából!</div>`;
-            return;
-        }
-
         let filtered = globalClosedTasks.filter(task => {
-            // A gép neve így van elmentve: "Kategória - Gépnév"
-            if (szuroGep) {
-                return task.gep === (szuroKat + " - " + szuroGep);
-            } else {
-                return task.gep.startsWith(szuroKat + " - ") || task.gep === szuroKat;
-            }
+            // Ha nincs kiválasztva kategória, akkor engedjen át mindent
+            let matchKat = szuroKat ? (task.gep.startsWith(szuroKat + " - ") || task.gep === szuroKat) : true;
+            
+            // Ha van gép kiválasztva (és kategória is), csak azt engedjük át
+            let matchGep = szuroGep ? (task.gep === (szuroKat + " - " + szuroGep)) : true;
+            
+            // Dátumszűrés logic
+            let taskDateStr = toLocalISOString(new Date(task.idopont));
+            let matchTol = szuroTol ? (taskDateStr >= szuroTol) : true;
+            let matchIg = szuroIg ? (taskDateStr <= szuroIg) : true;
+
+            return matchKat && matchGep && matchTol && matchIg;
         });
 
         if (filtered.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Nincs lezárt feladat a kiválasztott szűrés alapján.</div>`;
+            container.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">Nincs a szűrésnek megfelelő lezárt feladat.</div>`;
             return;
         }
 
@@ -710,7 +763,6 @@
                 document.getElementById('notifToggle').checked = false;
                 return;
             }
-            
             Notification.requestPermission().then(perm => {
                 if(perm === "granted") {
                     localStorage.setItem("notificationsEnabled", "true");
@@ -730,7 +782,6 @@
 
     function startPolling() {
         if(notifInterval) clearInterval(notifInterval);
-        
         notifInterval = setInterval(async () => {
             try {
                 const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
@@ -738,20 +789,17 @@
                 
                 if(result.status === "success") {
                     const currentOpenCount = result.data.filter(t => t.statusz === "Nyitott").length;
-                    
                     if(lastKnownTaskCount > 0 && currentOpenCount > lastKnownTaskCount) {
                         checkLocationAndNotify();
                     }
-                    
                     globalOpenTasks = result.data.filter(t => t.statusz === "Nyitott").sort((a, b) => {
                         if (a.prioritas === "Igen" && b.prioritas !== "Igen") return -1;
                         if (a.prioritas !== "Igen" && b.prioritas === "Igen") return 1;
                         return 0;
                     });
-                    
                     lastKnownTaskCount = currentOpenCount;
                 }
-            } catch (e) { console.log("Háttérlekérdezés hiba"); }
+            } catch (e) {}
         }, 120000); 
     }
 
@@ -760,7 +808,6 @@
             sendPushNotification("Új hibajegy érkezett!"); 
             return;
         }
-
         navigator.geolocation.getCurrentPosition((position) => {
             const distance = getDistanceFromLatLonInKm(position.coords.latitude, position.coords.longitude, WORK_LAT, WORK_LNG) * 1000;
             if (distance <= GEOFENCE_RADIUS_METERS) {
