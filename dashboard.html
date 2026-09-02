@@ -40,6 +40,7 @@
         
         .section-title { grid-column: 1/-1; font-size: 20px; color: var(--text-muted); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px; margin-bottom: 5px; display:flex; align-items:center; gap: 10px; }
         
+        /* === KÁRTYA TELJES KERETTEL === */
         .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 2px solid var(--pri-normal); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: scale(1.02); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
         
@@ -307,10 +308,11 @@
             details += `<div style="background: rgba(139, 92, 246, 0.2); padding:10px; border-radius:6px; color:#a78bfa; margin-top:10px; border:1px solid var(--pri-prog);">👷 <b>${task.felelos}</b> dolgozik rajta</div>`;
         }
 
+        // JAVÍTVA A CHECKLIST DIZÁJN SÖTÉT MÓDBAN!
         if (task.checklist) {
             let items = task.checklist.split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:8px;">${i}</li>`).join('');
-            details += `<div style="background:#f8fafc; border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:20px;">
-                            <strong style="color:var(--primary); display:block; margin-bottom:10px; font-size:18px;">📝 Ellenőrzőlista:</strong>
+            details += `<div style="background: rgba(0, 0, 0, 0.2); border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:20px;">
+                            <strong style="color:var(--text-main); display:block; margin-bottom:10px; font-size:18px;">📝 Ellenőrzőlista:</strong>
                             <ul style="padding-left:20px; color:var(--text-main); margin:0;">${items}</ul>
                         </div>`;
         }
