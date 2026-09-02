@@ -121,33 +121,18 @@
             <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
             <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
             <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
-            <button onclick="switchTab('statisztikaView', this); loadTasks();">📊 Statisztika</button>
+            <button onclick="switchTab('statisztikaView', this); loadTasks();">📊 Stat</button>
             <button id="navAdminTab" onclick="switchTab('adminIsmetlodoView', this); loadRecurringTasks();" style="display:none; color: var(--pri-crit);">🔁 Ismétlődő</button>
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
 
-        <!-- ÚJ HIBA RÖGZÍTÉSE -->
         <div id="ujHiba" class="view active box">
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
+                <div><select id="kategoria" onchange="frissitGepek()"><option value="">Válassz csarnokot...</option></select></div>
+                <div><select id="gep"><option value="">Előbb válassz kategóriát...</option></select></div>
+                <div class="form-full"><input type="text" id="hiba" placeholder="Hiba rövid leírása"></div>
                 <div>
-                    <label style="font-size:12px; color:var(--text-muted);">Kategória / Csarnok</label>
-                    <select id="kategoria" onchange="frissitGepek()">
-                        <option value="">Válassz csarnokot...</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:12px; color:var(--text-muted);">Gép megnevezése</label>
-                    <select id="gep">
-                        <option value="">Előbb válassz kategóriát...</option>
-                    </select>
-                </div>
-                <div class="form-full">
-                    <label style="font-size:12px; color:var(--text-muted);">Hiba rövid leírása</label>
-                    <input type="text" id="hiba" placeholder="Hiba rövid leírása">
-                </div>
-                <div>
-                    <label style="font-size:12px; color:var(--text-muted);">Prioritás</label>
                     <select id="prioritasLegordulo" style="font-weight:bold;">
                         <option value="Informatív">ℹ️ Informatív</option>
                         <option value="Normál" selected>✅ Normál</option>
@@ -155,61 +140,34 @@
                         <option value="Termelésleállás" style="color:red;">🚨 Termelésleállással járó</option>
                     </select>
                 </div>
-                <div>
-                    <label style="font-size:12px; color:var(--text-muted);">Ráfordított idő (opcionális)</label>
-                    <input type="number" id="ido" step="0.5" placeholder="Csak azonnali megoldásnál">
-                </div>
-                <div class="form-full">
-                    <label style="font-size:12px; color:var(--text-muted);">Megoldás (Azonnali elhárítás esetén)</label>
-                    <textarea id="megoldas" rows="2" placeholder="Megoldás..."></textarea>
-                </div>
+                <div><input type="number" id="ido" step="0.5" placeholder="Ráfordított idő (opcionális)"></div>
+                <div class="form-full"><textarea id="megoldas" rows="2" placeholder="Megoldás (Azonnali elhárítás esetén)"></textarea></div>
             </div>
             <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
                 <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📸 Fotó csatolása</button>
                 <input type="file" id="kepInput" accept="image/*" capture="environment" style="display:none;" onchange="feldolgozUjKep(this)">
-                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;">
-                    <span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép csatolva.</span>
-                </div>
+                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;"><span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép.</span></div>
             </div>
             <button onclick="submitTask()" id="btnSubmit">Beküldés a rendszerbe</button>
             <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
         </div>
 
-        <!-- ISMÉTLŐDŐ FELADATOK (ADMIN) -->
         <div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
             <h3 style="color: var(--pri-crit);">🔁 Ismétlődő Feladatok (Tervezett Karbantartás)</h3>
             <div class="filter-panel">
                 <h4>Új beállítása</h4>
                 <div class="form-grid">
+                    <div><select id="ismKategoria" onchange="frissitIsmGepek()"><option value="">Válassz csarnokot...</option></select></div>
+                    <div><select id="ismGep"><option value="">Előbb válassz kategóriát...</option></select></div>
+                    <div class="form-full"><input type="text" id="ismHiba" placeholder="Feladat rövid neve (pl. Gép zsírzása)"></div>
+                    <div class="form-full"><textarea id="ismChecklist" rows="3" placeholder="📝 Ellenőrzőlista (soronként egy feladat)..."></textarea></div>
                     <div>
-                        <label style="font-size:12px; color:var(--text-muted);">Kategória / Csarnok</label>
-                        <select id="ismKategoria" onchange="frissitIsmGepek()">
-                            <option value="">Válassz csarnokot...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size:12px; color:var(--text-muted);">Gép megnevezése</label>
-                        <select id="ismGep">
-                            <option value="">Előbb válassz kategóriát...</option>
-                        </select>
-                    </div>
-                    <div class="form-full">
-                        <label style="font-size:12px; color:var(--text-muted);">Feladat rövid neve</label>
-                        <input type="text" id="ismHiba" placeholder="Feladat rövid neve (pl. Gép zsírzása)">
-                    </div>
-                    <div class="form-full">
-                        <label style="font-size:12px; color:var(--text-muted);">Ellenőrzőlista (Opcionális)</label>
-                        <textarea id="ismChecklist" rows="3" placeholder="📝 Ellenőrzőlista / Részletes teendők (soronként egy feladat)..."></textarea>
-                    </div>
-                    <div>
-                        <label style="font-size:12px; color:var(--text-muted);">Prioritás</label>
                         <select id="ismPrioritas">
                             <option value="Normál" selected>✅ Normál</option>
                             <option value="Magas prioritás">⚠️ Magas (Sürgős)</option>
                         </select>
                     </div>
                     <div>
-                        <label style="font-size:12px; color:var(--text-muted);">Gyakoriság</label>
                         <select id="ismTipus" style="font-weight:bold; color:var(--primary);">
                             <option value="Napi">🔄 Napi (Minden nap)</option>
                             <option value="Heti - Hétfő">📅 Heti - Hétfő</option>
@@ -226,7 +184,6 @@
                         </select>
                     </div>
                     <div class="form-full">
-                        <!-- ÚJ MEZŐ: Kezdő dátum -->
                         <label style="font-size:12px; color:var(--text-muted);">Kezdés / Első generálás dátuma (Ha üres, azonnal indítja)</label>
                         <input type="date" id="ismKezdoDatum" title="Ettől a naptól kezdve kezdi el figyelni a szabályt">
                     </div>
@@ -234,32 +191,23 @@
                 <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit);">Beállítás mentése</button>
                 <div id="ismStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
             </div>
-
             <h4>Aktív Ismétlődő Feladatok</h4>
             <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
         </div>
 
-        <!-- MŰSZAKÁTADÁS -->
         <div id="muszakatadasView" class="view box">
             <div id="shiftLogInputSection">
                 <h3>Műszaknapló írása</h3>
                 <div class="form-grid">
                     <div>
-                        <label style="font-size:12px; color:var(--text-muted);">Műszak típusa</label>
                         <select id="muszakTipus">
                             <option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option>
                             <option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option>
                             <option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option>
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:12px; color:var(--text-muted);">Melyik napra vonatkozik?</label>
-                        <input type="date" id="muszakDatum" title="Melyik napra vonatkozik?">
-                    </div>
-                    <div class="form-full">
-                        <label style="font-size:12px; color:var(--text-muted);">Napló szövege</label>
-                        <textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea>
-                    </div>
+                    <div><input type="date" id="muszakDatum" title="Melyik napra vonatkozik?"></div>
+                    <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
                 </div>
                 <button onclick="submitShiftLog()" id="btnShiftLog">Napló bejegyzés mentése</button>
                 <div id="shiftLogStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
@@ -285,7 +233,6 @@
             <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
         </div>
 
-        <!-- NYITOTT FELADATOK -->
         <div id="nyitottFeladatok" class="view box">
             <div class="filter-panel">
                 <div class="filter-header">
@@ -303,7 +250,6 @@
             <div id="openTasksContainer" class="grid-cards">Betöltés...</div>
         </div>
 
-        <!-- LEZÁRT FELADATOK -->
         <div id="lezartFeladatok" class="view box">
             <div class="filter-panel">
                 <div class="filter-header">
@@ -325,46 +271,20 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA -->
         <div id="statisztikaView" class="view box">
             <h3>Üzemeltetési Statisztikák</h3>
             <div class="kpi-grid">
-                <div class="kpi-card alert">
-                    <h4>Aktív Leállás</h4>
-                    <div class="value" id="statLeallas">0</div>
-                </div>
-                <div class="kpi-card">
-                    <h4>Nyitott Hiba</h4>
-                    <div class="value" id="statNyitott">0</div>
-                </div>
-                <div class="kpi-card">
-                    <h4>Heti Átlag</h4>
-                    <div class="value" id="statHetiAtlag">0</div>
-                </div>
-                <div class="kpi-card">
-                    <h4>Downtime (Óra)</h4>
-                    <div class="value" id="statDowntime">0</div>
-                </div>
-            </div>
-            <div style="background:var(--bg-color); padding:15px; border-radius:6px; margin-top:20px;">
-                <h4 style="margin:0 0 10px 0; color:var(--primary);">Nyitott hibák prioritás szerint</h4>
-                <div style="display:flex; justify-content:space-between; max-width:500px;">
-                    <div>ℹ️ Info: <b id="statInfo">0</b></div>
-                    <div>✅ Normál: <b id="statNorm">0</b></div>
-                    <div>⚠️ Magas: <b id="statMagas">0</b></div>
-                    <div style="color:var(--pri-crit);">🚨 Leállás: <b id="statCrit">0</b></div>
-                </div>
+                <div class="kpi-card alert"><h4>Aktív Leállás</h4><div class="value" id="statLeallas">0</div></div>
+                <div class="kpi-card"><h4>Nyitott Hiba</h4><div class="value" id="statNyitott">0</div></div>
+                <div class="kpi-card"><h4>Heti Átlag</h4><div class="value" id="statHetiAtlag">0</div></div>
+                <div class="kpi-card"><h4>Downtime (Óra)</h4><div class="value" id="statDowntime">0</div></div>
             </div>
         </div>
 
-        <!-- PROFIL -->
         <div id="profilCserelo" class="view box">
             <h3>Profil és Beállítások</h3>
             <div class="settings-row">
-                <div>
-                    <strong>Push Értesítések</strong><br>
-                    <small>Új hibák jelzése a munkahelyi zónában</small>
-                </div>
+                <div><strong>Push Értesítések</strong><br><small>Új hibák jelzése a munkahelyi zónában</small></div>
                 <label style="position:relative; display:inline-block; width:44px; height:24px;">
                     <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" style="opacity:0; width:0; height:0;">
                     <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#cbd5e1; transition:.3s; border-radius:34px;" id="notifSlider"></span>
@@ -380,9 +300,7 @@
 </div>
 
 <script>
-    // =========================================================================
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
-    // =========================================================================
 
     let feltoltendoKepek = [];
     let globalOpenTasks = [];
@@ -391,9 +309,7 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    const WORK_LAT = 47.53;
-    const WORK_LNG = 21.62;
-    const GEOFENCE_RADIUS_METERS = 3000;
+    const WORK_LAT = 47.53; const WORK_LNG = 21.62; const GEOFENCE_RADIUS_METERS = 3000;
 
     const gepAdatbazis = {
         "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "WGS1 - Wheel gauging - IEF Werner", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ],
@@ -414,57 +330,17 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        const katSelect = document.getElementById('kategoria');
-        const szuroKatSelect = document.getElementById('szuroKategoria');
-        const ismKatSelect = document.getElementById('ismKategoria');
-        
-        for (let kat in gepAdatbazis) { 
-            katSelect.add(new Option(kat, kat)); 
-            szuroKatSelect.add(new Option(kat, kat)); 
-            ismKatSelect.add(new Option(kat, kat)); 
-        }
-        
-        document.getElementById('notifToggle').addEventListener('change', (e) => { 
-            document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; 
-        });
+        const katSelect = document.getElementById('kategoria'); const szuroKatSelect = document.getElementById('szuroKategoria'); const ismKatSelect = document.getElementById('ismKategoria');
+        for (let kat in gepAdatbazis) { katSelect.add(new Option(kat, kat)); szuroKatSelect.add(new Option(kat, kat)); ismKatSelect.add(new Option(kat, kat)); }
+        document.getElementById('notifToggle').addEventListener('change', (e) => { document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; });
         document.getElementById('muszakDatum').value = toLocalISOString(new Date());
     });
 
-    function frissitGepek() { 
-        const k = document.getElementById('kategoria').value;
-        const s = document.getElementById('gep'); 
-        s.innerHTML = '<option value="">Válassz gépet...</option>'; 
-        if (k && gepAdatbazis[k]) {
-            if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-"));
-            else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
-        }
-    }
+    function frissitGepek() { const k = document.getElementById('kategoria').value; const s = document.getElementById('gep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-")); else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } }
+    function frissitSzuroGepek() { const k = document.getElementById('szuroKategoria').value; const s = document.getElementById('szuroGep'); s.innerHTML = '<option value="">Összes gép...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-")); else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } renderClosedTasks(); }
+    function frissitIsmGepek() { const k = document.getElementById('ismKategoria').value; const s = document.getElementById('ismGep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-")); else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } }
 
-    function frissitSzuroGepek() { 
-        const k = document.getElementById('szuroKategoria').value;
-        const s = document.getElementById('szuroGep'); 
-        s.innerHTML = '<option value="">Összes gép...</option>'; 
-        if (k && gepAdatbazis[k]) {
-            if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-"));
-            else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
-        }
-        renderClosedTasks(); 
-    }
-
-    function frissitIsmGepek() { 
-        const k = document.getElementById('ismKategoria').value;
-        const s = document.getElementById('ismGep'); 
-        s.innerHTML = '<option value="">Válassz gépet...</option>'; 
-        if (k && gepAdatbazis[k]) {
-            if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-"));
-            else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
-        }
-    }
-
-    async function hashPassword(p) { 
-        const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); 
-        return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); 
-    }
+    async function hashPassword(p) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
 
     window.onload = function() {
         const savedUser = localStorage.getItem("activeUser");
@@ -472,459 +348,204 @@
             document.getElementById('currentUserText').innerText = savedUser;
             const role = localStorage.getItem("activeRole") || "production";
             document.getElementById('currentUserRole').innerText = role;
-            
-            if (role !== "maintenance" && role !== "admin") {
-                document.getElementById('shiftLogInputSection').style.display = "none";
-            }
-            if (role === "admin") {
-                document.getElementById('navAdminTab').style.display = "block";
-            }
-
-            document.getElementById('loginView').style.display = 'none'; 
-            document.getElementById('appView').style.display = 'block';
-            
-            if(localStorage.getItem("notificationsEnabled") === "true") { 
-                document.getElementById('notifToggle').checked = true; 
-                document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; 
-                startPolling(); 
-            }
+            if (role !== "maintenance" && role !== "admin") document.getElementById('shiftLogInputSection').style.display = "none";
+            if (role === "admin") document.getElementById('navAdminTab').style.display = "block";
+            document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
+            if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
         }
     };
 
-    function switchTab(tId, btn) { 
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); 
-        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active')); 
-        document.getElementById(tId).classList.add('active'); 
-        btn.classList.add('active'); 
-    }
+    function switchTab(tId, btn) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active')); document.getElementById(tId).classList.add('active'); btn.classList.add('active'); }
 
     async function login() {
-        const n = document.getElementById('loginNev').value;
-        const j = document.getElementById('loginJelszo').value; 
-        document.getElementById('loginStatus').innerText = "Ellenőrzés...";
-        
+        const n = document.getElementById('loginNev').value, j = document.getElementById('loginJelszo').value; document.getElementById('loginStatus').innerText = "Ellenőrzés...";
         try {
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
-            const r = await res.json();
-            if(r.status === "success") { 
-                localStorage.setItem("activeUser", n); 
-                localStorage.setItem("activeRole", r.role || "production"); 
-                location.reload(); 
-            } else {
-                document.getElementById('loginStatus').innerText = r.message;
-            }
-        } catch(e) { 
-            document.getElementById('loginStatus').innerText = "Hálózati hiba!"; 
-        }
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); const r = await res.json();
+            if(r.status === "success") { localStorage.setItem("activeUser", n); localStorage.setItem("activeRole", r.role || "production"); location.reload(); } else document.getElementById('loginStatus').innerText = r.message;
+        } catch(e) { document.getElementById('loginStatus').innerText = "Hálózati hiba!"; }
     }
 
-    function logout() { 
-        localStorage.removeItem("activeUser"); 
-        localStorage.removeItem("activeRole"); 
-        location.reload(); 
-    }
+    function logout() { localStorage.removeItem("activeUser"); localStorage.removeItem("activeRole"); location.reload(); }
 
     async function compressImage(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = (e) => { 
-                const img = new Image(); 
-                img.onload = () => { 
-                    const canvas = document.createElement('canvas'); 
-                    const scale = 1024 / img.width; 
-                    canvas.width = 1024; 
-                    canvas.height = img.height * scale; 
-                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); 
-                    resolve({ base64: canvas.toDataURL('image/jpeg', 0.7).split(',')[1], tipus: 'image/jpeg' }); 
-                }; 
-                img.src = e.target.result; 
-            };
-            reader.readAsDataURL(file);
+            reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const scale = 1024 / img.width; canvas.width = 1024; canvas.height = img.height * scale; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve({ base64: canvas.toDataURL('image/jpeg', 0.7).split(',')[1], tipus: 'image/jpeg' }); }; img.src = e.target.result; }; reader.readAsDataURL(file);
         });
     }
 
     async function feldolgozUjKep(input) {
         if (input.files.length === 0) return;
-        const el = document.getElementById('kepElonezet'); 
-        document.getElementById('uresKepSzoveg').style.display = 'none';
-        
-        for (let file of input.files) {
-            let t = await compressImage(file); 
-            feltoltendoKepek.push(t); 
-            let img = document.createElement('img'); 
-            img.src = "data:image/jpeg;base64," + t.base64; 
-            img.style.width = "40px"; 
-            img.style.height = "40px"; 
-            img.style.objectFit = "cover"; 
-            img.style.borderRadius = "4px"; 
-            img.style.border = "1px solid #ddd"; 
-            el.appendChild(img);
-        } 
-        input.value = ""; 
+        const el = document.getElementById('kepElonezet'); document.getElementById('uresKepSzoveg').style.display = 'none';
+        for (let file of input.files) { let t = await compressImage(file); feltoltendoKepek.push(t); let img = document.createElement('img'); img.src = "data:image/jpeg;base64," + t.base64; img.style.width = "40px"; img.style.height = "40px"; img.style.objectFit = "cover"; img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd"; el.appendChild(img); } input.value = ""; 
     }
 
     async function submitTask() {
-        const k = document.getElementById('kategoria').value;
-        const g = document.getElementById('gep').value;
-        const h = document.getElementById('hiba').value;
-        
-        if (!k || !g) { alert("Válassz kategóriát és gépet!"); return; } 
-        if (!h) { alert("A hiba leírása kötelező!"); return; }
-        
-        const btn = document.getElementById('btnSubmit');
-        const stat = document.getElementById('taskStatus'); 
-        btn.disabled = true; 
-        stat.style.color = "var(--accent)"; 
-        stat.innerText = "Küldés...";
-        
+        const k = document.getElementById('kategoria').value, g = document.getElementById('gep').value, h = document.getElementById('hiba').value;
+        if (!k || !g) { alert("Válassz kategóriát és gépet!"); return; } if (!h) { alert("A hiba leírása kötelező!"); return; }
+        const btn = document.getElementById('btnSubmit'), stat = document.getElementById('taskStatus'); btn.disabled = true; stat.style.color = "var(--accent)"; stat.innerText = "Küldés...";
         const gepMentve = (g === "-") ? k : k + " - " + g;
-
-        let payload = { 
-            action: "addTask", 
-            felhasznalo: localStorage.getItem("activeUser"), 
-            gep: gepMentve, 
-            hiba: h, 
-            prioritas: document.getElementById('prioritasLegordulo').value, 
-            megoldas: document.getElementById('megoldas').value, 
-            ido: document.getElementById('ido').value, 
-            kepek: feltoltendoKepek 
-        };
-        
+        let payload = { action: "addTask", felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, prioritas: document.getElementById('prioritasLegordulo').value, megoldas: document.getElementById('megoldas').value, ido: document.getElementById('ido').value, kepek: feltoltendoKepek };
         try {
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
-                stat.style.color = "var(--pri-normal)"; 
-                stat.innerText = "✅ Rögzítve!";
-                document.getElementById('hiba').value = ""; 
-                document.getElementById('megoldas').value = ""; 
-                document.getElementById('ido').value = ""; 
-                feltoltendoKepek = []; 
-                document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép.</span>'; 
-                setTimeout(() => stat.innerText = "", 3000);
+                stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve!";
+                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; feltoltendoKepek = []; document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép.</span>'; setTimeout(() => stat.innerText = "", 3000);
             }
-        } catch(e) { 
-            stat.style.color = "var(--pri-crit)"; 
-            stat.innerText = "Hiba történt."; 
-        } 
-        btn.disabled = false;
+        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
     }
 
     async function addRecurringTask() {
-        const k = document.getElementById('ismKategoria').value;
-        const g = document.getElementById('ismGep').value;
-        const h = document.getElementById('ismHiba').value;
-        const cl = document.getElementById('ismChecklist').value;
-        const kd = document.getElementById('ismKezdoDatum').value; // ÚJ MEZŐ
-        
+        const k = document.getElementById('ismKategoria').value, g = document.getElementById('ismGep').value, h = document.getElementById('ismHiba').value, cl = document.getElementById('ismChecklist').value, kd = document.getElementById('ismKezdoDatum').value;
         if (!k || !g || !h) { alert("A kategória, gép és feladat neve kötelező!"); return; }
-        
-        const btn = document.getElementById('btnIsmSubmit');
-        const stat = document.getElementById('ismStatus'); 
-        btn.disabled = true; 
-        stat.style.color = "var(--accent)"; 
-        stat.innerText = "Mentés...";
-        
+        const btn = document.getElementById('btnIsmSubmit'), stat = document.getElementById('ismStatus'); btn.disabled = true; stat.style.color = "var(--accent)"; stat.innerText = "Mentés...";
         const gepMentve = (g === "-") ? k : k + " - " + g;
-
-        let p = { 
-            action: "addRecurringTask", 
-            felhasznalo: localStorage.getItem("activeUser"), 
-            gep: gepMentve, 
-            hiba: h, 
-            prioritas: document.getElementById('ismPrioritas').value, 
-            ismTipus: document.getElementById('ismTipus').value, 
-            checklist: cl,
-            kezdoDatum: kd
-        };
-        
+        let p = { action: "addRecurringTask", felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, prioritas: document.getElementById('ismPrioritas').value, ismTipus: document.getElementById('ismTipus').value, checklist: cl, kezdoDatum: kd };
         try {
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) });
-            if((await r.json()).status === "success") { 
-                stat.style.color = "var(--pri-normal)"; 
-                stat.innerText = "✅ Mentve!"; 
-                document.getElementById('ismHiba').value = ""; 
-                document.getElementById('ismChecklist').value = ""; 
-                document.getElementById('ismKezdoDatum').value = "";
-                loadRecurringTasks(); 
-                setTimeout(() => stat.innerText = "", 3000); 
-            }
-        } catch(e) { 
-            stat.style.color = "var(--pri-crit)"; 
-            stat.innerText = "Hálózati hiba."; 
-        } 
-        btn.disabled = false;
+            if((await r.json()).status === "success") { stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Mentve!"; document.getElementById('ismHiba').value = ""; document.getElementById('ismChecklist').value = ""; document.getElementById('ismKezdoDatum').value = ""; loadRecurringTasks(); setTimeout(() => stat.innerText = "", 3000); }
+        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hálózati hiba."; } btn.disabled = false;
     }
 
     async function loadRecurringTasks() {
-        const c = document.getElementById('recurringTasksContainer'); 
-        c.innerHTML = "Betöltés...";
+        const c = document.getElementById('recurringTasksContainer'); c.innerHTML = "Betöltés...";
         try {
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getRecurringTasks" }) }); 
-            const r = await res.json();
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getRecurringTasks" }) }); const r = await res.json();
             if(r.status === "success") {
                 if(r.data.length === 0) { c.innerHTML = "Nincs beállítva ismétlődő feladat."; return; }
                 let h = "";
                 r.data.forEach(t => {
                     let clHtml = t.checklist ? `<div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"><b>📝 Checklist:</b><br>${t.checklist.replace(/\n/g, '<br>')}</div>` : '';
-                    let kezdoHtml = t.kezdoDatum ? `<div style="font-size:12px; color:var(--pri-high); margin-bottom:5px;">⏳ Kezdés: ${t.kezdoDatum.substring(0,10)}</div>` : "";
-                    
-                    h += `
-                    <div class="task-card" style="border-left-color: var(--pri-crit);">
-                        <div class="task-header">
-                            <span class="badge badge-info">${t.ismTipus}</span> 
-                            <span class="badge badge-high">${t.prioritas}</span>
-                        </div>
-                        <div class="task-title">${t.gep}</div>
-                        ${kezdoHtml}
-                        <div style="margin-bottom:10px;">${t.hiba}</div>
-                        ${clHtml}
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <small style="color:var(--text-muted)">Létrehozta: ${t.letrehozo}</small>
-                            <button onclick="deleteRecurringTask('${t.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">Törlés</button>
-                        </div>
-                    </div>`;
-                }); 
-                c.innerHTML = h;
+                    let kezdoHtml = t.kezdoDatum ? `<div style="font-size:12px; color:var(--pri-high); margin-bottom:5px;">⏳ Kezdés: ${String(t.kezdoDatum).substring(0,10)}</div>` : "";
+                    h += `<div class="task-card" style="border-left-color: var(--pri-crit);"><div class="task-header"><span class="badge badge-info">${t.ismTipus}</span> <span class="badge badge-high">${t.prioritas}</span></div><div class="task-title">${t.gep}</div>${kezdoHtml}<div style="margin-bottom:10px;">${t.hiba}</div>${clHtml}<div style="display:flex; justify-content:space-between; align-items:center;"><small style="color:var(--text-muted)">Létrehozta: ${t.letrehozo}</small><button onclick="deleteRecurringTask('${t.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">Törlés</button></div></div>`;
+                }); c.innerHTML = h;
             }
         } catch(e) {}
     }
 
     async function deleteRecurringTask(id) {
         if(!confirm("Biztosan törlöd ezt az ismétlődő feladatot?")) return;
-        try { 
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecurringTask", id: id }) }); 
-            if((await res.json()).status === "success") loadRecurringTasks(); 
-        } catch(e) {}
+        try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecurringTask", id: id }) }); if((await res.json()).status === "success") loadRecurringTasks(); } catch(e) {}
     }
 
     async function submitShiftLog() {
-        const sz = document.getElementById('muszakSzoveg').value; 
-        const dt = document.getElementById('muszakDatum').value;
+        const sz = document.getElementById('muszakSzoveg').value; const dt = document.getElementById('muszakDatum').value;
         if(!sz || !dt) { alert("Dátum és szöveg megadása kötelező!"); return; } 
-        
-        const btn = document.getElementById('btnShiftLog'); 
-        const stat = document.getElementById('shiftLogStatus');
-        btn.disabled = true; 
-        stat.style.color = "var(--accent)"; 
-        stat.innerText = "Mentés...";
-        
+        const btn = document.getElementById('btnShiftLog'), stat = document.getElementById('shiftLogStatus'); btn.disabled = true; stat.style.color = "var(--accent)"; stat.innerText = "Mentés...";
         try {
-            const res = await fetch(SCRIPT_URL, { 
-                method: "POST", 
-                body: JSON.stringify({ 
-                    action: "addShiftLog", 
-                    felhasznalo: localStorage.getItem("activeUser"), 
-                    muszak: document.getElementById('muszakTipus').value, 
-                    datum: dt,
-                    szoveg: sz 
-                }) 
-            });
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", felhasznalo: localStorage.getItem("activeUser"), muszak: document.getElementById('muszakTipus').value, datum: dt, szoveg: sz }) });
             const r = await res.json();
-            if(r.status === "success") { 
-                document.getElementById('muszakSzoveg').value = ""; 
-                stat.style.color = "var(--pri-normal)";
-                stat.innerText = "✅ Mentve!";
-                setTimeout(() => stat.innerText = "", 3000);
-                loadShiftLogs(); 
-            } else {
-                stat.style.color = "var(--pri-crit)";
-                stat.innerText = "❌ " + r.message;
-            }
-        } catch(e) {
-            stat.style.color = "var(--pri-crit)";
-            stat.innerText = "❌ Hálózati hiba!";
-        } 
-        btn.disabled = false;
+            if(r.status === "success") { document.getElementById('muszakSzoveg').value = ""; stat.style.color="var(--pri-normal)"; stat.innerText="✅ Mentve!"; setTimeout(()=>stat.innerText="",3000); loadShiftLogs(); }
+            else { stat.style.color="var(--pri-crit)"; stat.innerText="❌ " + r.message; }
+        } catch(e) { stat.style.color="var(--pri-crit)"; stat.innerText="❌ Hálózati hiba!"; } btn.disabled = false;
     }
     
     async function loadShiftLogs() {
-        try { 
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) }); 
-            const r = await res.json(); 
-            if(r.status === "success") { 
-                globalShiftLogs = r.data; 
-                filterShiftLogs(); 
-            } 
-        } catch(e) {}
+        try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) }); const r = await res.json(); if(r.status === "success") { globalShiftLogs = r.data; filterShiftLogs(); } } catch(e) {}
     }
 
     function filterShiftLogs() {
-        const st = document.getElementById('szuroMuszakUser').value.toLowerCase();
-        const tp = document.getElementById('szuroMuszakTipus').value;
-        const dt = document.getElementById('szuroMuszakDatumTol').value;
-        const di = document.getElementById('szuroMuszakDatumIg').value;
-        
+        const st = document.getElementById('szuroMuszakUser').value.toLowerCase(), tp = document.getElementById('szuroMuszakTipus').value, dt = document.getElementById('szuroMuszakDatumTol').value, di = document.getElementById('szuroMuszakDatumIg').value;
         const f = globalShiftLogs.filter(l => { 
-            const dStr = l.datum ? l.datum : l.idopont.substring(0, 10);
-            return (l.felhasznalo.toLowerCase().includes(st) || l.szoveg.toLowerCase().includes(st)) && 
-                   (tp ? l.muszak.includes(tp) : true) && 
-                   (dt ? dStr >= dt : true) && 
-                   (di ? dStr <= di : true); 
+            const dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            return (String(l.felhasznalo).toLowerCase().includes(st) || String(l.szoveg).toLowerCase().includes(st)) && (tp ? String(l.muszak).includes(tp) : true) && (dt ? dStr >= dt : true) && (di ? dStr <= di : true); 
         });
-        
-        const c = document.getElementById('shiftLogsContainer'); 
-        if(f.length === 0) { c.innerHTML = "Nincs találat."; return; }
-        
-        const role = localStorage.getItem("activeRole") || "production"; 
-        let h = "";
-        
+        const c = document.getElementById('shiftLogsContainer'); if(f.length === 0) { c.innerHTML = "Nincs találat."; return; }
+        const role = localStorage.getItem("activeRole") || "production"; let h = "";
         f.forEach(l => {
             const displayDate = l.datum ? new Date(l.datum).toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) : new Date(l.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
             let eBtn = (role==="maintenance" || role==="admin") ? `<button onclick="toggleEditLog('${l.id}')" class="btn-secondary" style="width:auto; padding:4px 10px; font-size:12px; margin:0;">Szerkesztés</button>` : '';
-            
-            h += `
-            <div class="task-card">
-                <div class="task-header">
-                    <span>${displayDate}</span>
-                    <span class="badge badge-info">${l.muszak}</span>
-                </div>
-                <div id="logDisp_${l.id}" style="margin-bottom:10px; font-size:15px;">${l.szoveg.replace(/\n/g, '<br>')}</div>
-                <div id="logEditDiv_${l.id}" style="display:none; margin-bottom:10px;">
-                    <textarea id="logInp_${l.id}" rows="3" style="width:100%;">${l.szoveg.replace(/"/g, '&quot;')}</textarea>
-                    <button onclick="saveEditLog('${l.id}','${l.oldTimestamp}','${l.felhasznalo}')" style="background:var(--pri-normal); margin-top:5px;">Mentés</button>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                    <small>Írta: <b>${l.felhasznalo}</b></small>
-                    ${eBtn}
-                </div>
-            </div>`;
-        }); 
-        c.innerHTML = h;
+            h += `<div class="task-card"><div class="task-header"><span>${displayDate}</span><span class="badge badge-info">${l.muszak}</span></div><div id="logDisp_${l.id}" style="margin-bottom:10px; font-size:15px;">${String(l.szoveg).replace(/\n/g, '<br>')}</div><div id="logEditDiv_${l.id}" style="display:none; margin-bottom:10px;"><textarea id="logInp_${l.id}" rows="3" style="width:100%;">${String(l.szoveg).replace(/"/g, '&quot;')}</textarea><button onclick="saveEditLog('${l.id}','${l.oldTimestamp}','${l.felhasznalo}')" style="background:var(--pri-normal); margin-top:5px;">Mentés</button></div><div style="display:flex; justify-content:space-between; align-items:flex-end;"><small>Írta: <b>${l.felhasznalo}</b></small>${eBtn}</div></div>`;
+        }); c.innerHTML = h;
     }
     
-    function toggleEditLog(id) { 
-        const e = document.getElementById(`logEditDiv_${id}`);
-        const d = document.getElementById(`logDisp_${id}`); 
-        if(e.style.display==="none") {
-            e.style.display="block"; d.style.display="none";
-        } else {
-            e.style.display="none"; d.style.display="block";
-        } 
-    }
+    function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
 
-    async function saveEditLog(id, ot, of) { 
-        const n = document.getElementById(`logInp_${id}`).value; 
-        if(!n) return; 
-        await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ 
-                action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") 
-            }) 
-        }); 
-        loadShiftLogs(); 
-    }
+    async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); loadShiftLogs(); }
 
     async function loadTasks() {
         try {
+            document.getElementById('openTasksContainer').innerHTML = "Betöltés...";
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) }); 
             const r = await res.json();
             if(r.status === "success") {
-                globalOpenTasks = []; 
-                globalClosedTasks = [];
+                globalOpenTasks = []; globalClosedTasks = [];
                 r.data.forEach(t => { 
                     if(t.prioritas==="Igen") t.prioritas="Magas prioritás"; 
                     if(t.prioritas==="Nem") t.prioritas="Normál"; 
                     if(t.statusz!=="Lezárt") globalOpenTasks.push(t); 
                     else globalClosedTasks.push(t); 
                 });
-                
                 const w = {"Termelésleállás":4, "Magas prioritás":3, "Normál":2, "Informatív":1}; 
                 globalOpenTasks.sort((a,b)=> (w[b.prioritas]||0)-(w[a.prioritas]||0));
                 
-                renderOpenTasks(); 
-                renderClosedTasks(); 
-                calcStats(); 
-                lastKnownTaskCount = globalOpenTasks.length;
+                renderOpenTasks(); renderClosedTasks(); calcStats(); lastKnownTaskCount = globalOpenTasks.length;
+            } else {
+                document.getElementById('openTasksContainer').innerHTML = "Hiba a letöltés során: " + r.message;
             }
-        } catch(e) {}
+        } catch(e) {
+            console.error("Hiba a loadTasks-ban:", e);
+            document.getElementById('openTasksContainer').innerHTML = "Hálózati vagy adathiba. Nyomj F12-t a Console fülhöz.";
+        }
     }
 
-    async function startTask(id) { 
-        await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ action: "startTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) 
-        }); 
-        loadTasks(); 
-    }
-
-    async function closeTask(id) { 
-        const m = document.getElementById(`megoldas_${id}`).value;
-        const i = document.getElementById(`ido_${id}`).value; 
-        if(!m) return alert("Megoldás kötelező!"); 
-        await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ action: "closeTask", id: id, megoldas: m, ido: i, lezarta: localStorage.getItem("activeUser") }) 
-        }); 
-        loadTasks(); 
-    }
-
+    async function startTask(id) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) }); loadTasks(); }
+    async function closeTask(id) { const m = document.getElementById(`megoldas_${id}`).value, i = document.getElementById(`ido_${id}`).value; if(!m) return alert("Megoldás kötelező!"); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: id, megoldas: m, ido: i, lezarta: localStorage.getItem("activeUser") }) }); loadTasks(); }
     async function sendExtraInfo(id) {
-        const t = document.getElementById(`extraText_${id}`).value;
-        const fi = document.getElementById(`extraKep_${id}`); 
-        if (!t && fi.files.length === 0) return;
-        
+        const t = document.getElementById(`extraText_${id}`).value, fi = document.getElementById(`extraKep_${id}`); if (!t && fi.files.length === 0) return;
         let p = { action: "appendInfo", id: id, felhasznalo: localStorage.getItem("activeUser"), szoveg: t, kepek: [] };
         if (fi.files.length > 0) p.kepek = await Promise.all(Array.from(fi.files).map(f => compressImage(f)));
-        
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); 
-        loadTasks();
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); loadTasks();
     }
 
     function getFilteredOpenTasks() {
         const ismSzuro = document.getElementById('szuroNyitottIsmetlodo').value;
         return globalOpenTasks.filter(t => {
-            if (ismSzuro === "normal") return !t.id.startsWith("PREV-");
-            if (ismSzuro === "ismetlodo") return t.id.startsWith("PREV-");
+            const isPrev = String(t.id || "").startsWith("PREV-");
+            if (ismSzuro === "normal") return !isPrev;
+            if (ismSzuro === "ismetlodo") return isPrev;
             return true;
         });
     }
 
     function renderOpenTasks() { 
         const f = getFilteredOpenTasks();
-        let h = ""; 
-        f.forEach(t => h += genCard(t)); 
+        let h = ""; f.forEach(t => h += genCard(t)); 
         document.getElementById('openTasksContainer').innerHTML = h || "Nincs a szűrésnek megfelelő nyitott feladat."; 
     }
 
     function getFilteredClosedTasks() {
-        const sk = document.getElementById('szuroKategoria').value;
-        const sg = document.getElementById('szuroGep').value;
-        const st = document.getElementById('filterDatumTol').value;
-        const si = document.getElementById('filterDatumIg').value;
-        const ism = document.getElementById('szuroLezartIsmetlodo').value;
-        
+        const sk = document.getElementById('szuroKategoria').value, sg = document.getElementById('szuroGep').value, st = document.getElementById('filterDatumTol').value, si = document.getElementById('filterDatumIg').value, ism = document.getElementById('szuroLezartIsmetlodo').value;
         return globalClosedTasks.filter(t => { 
-            const d = t.idopont.substring(0, 10); 
+            const d = String(t.idopont || "").substring(0, 10); 
             let gepNev = (sg === "-") ? sk : sk + " - " + sg;
 
-            let matchKat = sk ? (t.gep.startsWith(sk+" - ") || t.gep===sk) : true;
+            let matchKat = sk ? (String(t.gep || "").startsWith(sk+" - ") || t.gep===sk) : true;
             let matchGep = sg ? t.gep===gepNev : true;
             let matchTol = st ? d>=st : true;
             let matchIg = si ? d<=si : true;
             
             let matchIsm = true;
-            if (ism === "normal") matchIsm = !t.id.startsWith("PREV-");
-            if (ism === "ismetlodo") matchIsm = t.id.startsWith("PREV-");
+            const isPrev = String(t.id || "").startsWith("PREV-");
+            if (ism === "normal") matchIsm = !isPrev;
+            if (ism === "ismetlodo") matchIsm = isPrev;
 
             return matchKat && matchGep && matchTol && matchIg && matchIsm; 
         });
     }
 
     function renderClosedTasks() {
-        const f = getFilteredClosedTasks();
-        const c = document.getElementById('closedTasksContainer'); 
+        const f = getFilteredClosedTasks(); const c = document.getElementById('closedTasksContainer'); 
         if(f.length===0){c.innerHTML="<div style='grid-column:1/-1; text-align:center;'>Nincs találat.</div>"; return;} 
-        let h = ""; 
-        f.forEach(t => h += genCard(t)); 
-        c.innerHTML = h;
+        let h = ""; f.forEach(t => h += genCard(t)); c.innerHTML = h;
     }
 
     function genCard(t) {
         const dateStr = new Date(t.idopont).toLocaleString('hu-HU', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
-        const pr = t.prioritas.replace(" prioritás", "").replace("ással járó", "");
+        const pr = String(t.prioritas || "").replace(" prioritás", "").replace("ással járó", "");
         
         let bC = "badge-normal", eC = "";
-        const pLower = t.prioritas.toLowerCase();
+        const pLower = String(t.prioritas || "").toLowerCase();
         
         if(t.statusz==="Lezárt") { 
             bC="badge-closed"; eC="closed"; 
@@ -936,35 +557,17 @@
             if(t.statusz==="Folyamatban") eC="Folyamatban"; 
         }
         
-        let kH = ""; 
-        if (t.kepek) { 
-            kH += `<div class="img-container">`; 
-            t.kepek.split(",").forEach(u => { 
-                if(u.trim()) { 
-                    const m = u.match(/id=([^&]+)/); 
-                    kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${u.trim()}', '_blank')">`; 
-                } 
-            }); 
-            kH += `</div>`; 
-        }
+        let kH = ""; if (t.kepek) { kH += `<div class="img-container">`; String(t.kepek).split(",").forEach(u => { if(u.trim()) { const m = u.match(/id=([^&]+)/); kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${u.trim()}', '_blank')">`; } }); kH += `</div>`; }
         
         let clHtml = "";
         if (t.checklist) {
-            let items = t.checklist.split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join('');
+            let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join('');
             clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`;
         }
 
-        let aH = `
-            <div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px;">
-                <button onclick="document.getElementById('appF_${t.id}').style.display='block'" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button>
-                <div id="appF_${t.id}" style="display:none; margin-top:10px;">
-                    <textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea>
-                    <input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple>
-                    <button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button>
-                </div>
-            </div>`;
+        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px;"><button onclick="document.getElementById('appF_${t.id}').style.display='block'" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button><div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div></div>`;
 
-        let prevIcon = t.id.startsWith("PREV-") ? "🔁 " : "";
+        let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : "";
 
         if(t.statusz!=="Lezárt") {
             let wH = t.statusz==="Folyamatban" ? `<div class="work-in-progress-bar"><span>👷</span> <b>${t.felelos}</b> dolgozik rajta</div>` : `<button class="btn-start" onclick="startTask('${t.id}')" style="margin-bottom:10px;">▶️ Munkát elkezdem</button>`;
@@ -1002,7 +605,7 @@
                 <div style="margin-bottom:5px;">${t.hiba}</div>
                 ${clHtml}
                 ${kH}
-                <div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${(t.megoldas||"").replace(/\n/g, '<br>')} (${t.ido} óra)</div>
+                <div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} (${t.ido} óra)</div>
                 <div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;">
                     <div>Beküldte: ${t.felhasznalo}</div>
                     <div>Lezárta: ${t.lezarta}</div>
@@ -1015,7 +618,7 @@
     function calcStats() {
         let oc=0, oh=0, on=0, oi=0, dt=0; 
         globalOpenTasks.forEach(t=>{
-            const pLower = t.prioritas.toLowerCase();
+            const pLower = String(t.prioritas || "").toLowerCase();
             if(pLower.includes("leállás")) oc++; 
             else if(pLower.includes("magas")) oh++; 
             else if(pLower.includes("informatív")) oi++; 
@@ -1042,12 +645,7 @@
     }
 
     function downloadCSV(csv, fn) { 
-        let a=document.createElement("a"); 
-        a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); 
-        a.download=fn; 
-        document.body.appendChild(a); 
-        a.click(); 
-        document.body.removeChild(a); 
+        let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); a.download=fn; document.body.appendChild(a); a.click(); document.body.removeChild(a); 
     }
 
     function exportTasks(arr, fn) { 
@@ -1063,7 +661,7 @@
         if(globalShiftLogs.length===0) return; 
         let csv=["Időpont","Dátum","Műszak","Író","Szöveg"].join(";")+"\n"; 
         globalShiftLogs.forEach(l=>{
-            csv+=[l.idopont,l.datum||l.idopont.substring(0,10),l.muszak,l.felhasznalo,String(l.szoveg).replace(/"/g,'""').replace(/\n/g,' ')].map(c=>`"${c}"`).join(";")+"\n";
+            csv+=[l.idopont,l.datum||String(l.idopont).substring(0,10),l.muszak,l.felhasznalo,String(l.szoveg).replace(/"/g,'""').replace(/\n/g,' ')].map(c=>`"${c}"`).join(";")+"\n";
         }); 
         downloadCSV(csv,'Muszaknaplo.csv'); 
     }
@@ -1106,57 +704,21 @@
     }
 
     function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2){
-        var R=6371;
-        var dLat=(lat2-lat1)*(Math.PI/180);
-        var dLon=(lon2-lon1)*(Math.PI/180);
+        var R=6371; var dLat=(lat2-lat1)*(Math.PI/180); var dLon=(lon2-lon1)*(Math.PI/180);
         var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*(Math.PI/180))*Math.cos(lat2*(Math.PI/180))*Math.sin(dLon/2)*Math.sin(dLon/2);
         return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
     }
 
     async function saveSettings() {
-        const r=document.getElementById('regiJelszo').value;
-        const u=document.getElementById('ujJelszo').value;
-        const st=document.getElementById('profilStatus');
-        
-        if(!r && !u){ 
-            st.style.color="var(--pri-normal)"; 
-            st.innerText="Mentve!"; 
-            setTimeout(()=>st.innerText="",3000); 
-            return; 
-        }
-        
-        if(!r || !u){ 
-            st.style.color="var(--pri-crit)"; 
-            st.innerText="Mindkét kódot add meg!"; 
-            return; 
-        }
-        
+        const r=document.getElementById('regiJelszo').value; const u=document.getElementById('ujJelszo').value; const st=document.getElementById('profilStatus');
+        if(!r && !u){ st.style.color="var(--pri-normal)"; st.innerText="Mentve!"; setTimeout(()=>st.innerText="",3000); return; }
+        if(!r || !u){ st.style.color="var(--pri-crit)"; st.innerText="Mindkét kódot add meg!"; return; }
         try{ 
-            const res=await fetch(SCRIPT_URL,{
-                method:"POST",
-                body:JSON.stringify({
-                    action:"changePassword",
-                    nev:localStorage.getItem("activeUser"),
-                    regiJelszo:await hashPassword(r),
-                    ujJelszo:await hashPassword(u)
-                })
-            }); 
+            const res=await fetch(SCRIPT_URL,{ method:"POST", body:JSON.stringify({ action:"changePassword", nev:localStorage.getItem("activeUser"), regiJelszo:await hashPassword(r), ujJelszo:await hashPassword(u) }) }); 
             const result=await res.json();
-            
-            if(result.status==="success"){
-                st.style.color="var(--pri-normal)"; 
-                st.innerText="Sikeres módosítás!"; 
-                document.getElementById('regiJelszo').value=""; 
-                document.getElementById('ujJelszo').value=""; 
-                setTimeout(()=>st.innerText="",3000);
-            } else {
-                st.style.color="var(--pri-crit)"; 
-                st.innerText=result.message;
-            }
-        }catch(e){
-            st.style.color="var(--pri-crit)"; 
-            st.innerText="Hiba!";
-        }
+            if(result.status==="success"){ st.style.color="var(--pri-normal)"; st.innerText="Sikeres módosítás!"; document.getElementById('regiJelszo').value=""; document.getElementById('ujJelszo').value=""; setTimeout(()=>st.innerText="",3000); } 
+            else { st.style.color="var(--pri-crit)"; st.innerText=result.message; }
+        }catch(e){ st.style.color="var(--pri-crit)"; st.innerText="Hiba!"; }
     }
 </script>
 </body>
