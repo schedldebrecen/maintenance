@@ -40,13 +40,15 @@
         
         .section-title { grid-column: 1/-1; font-size: 20px; color: var(--text-muted); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px; margin-bottom: 5px; display:flex; align-items:center; gap: 10px; }
         
-        .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-left: 6px solid var(--pri-normal); }
+        /* === KÁRTYA TELJES KERETTEL === */
+        .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 2px solid var(--pri-normal); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: scale(1.02); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
-        .card.Informatív { border-left-color: var(--pri-info); }
-        .card.Magas { border-left-color: var(--pri-high); }
-        .card.Termelésleállás { border-left-color: var(--pri-crit); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+        
+        .card.Informatív { border-color: var(--pri-info); }
+        .card.Magas { border-color: var(--pri-high); }
+        .card.Termelésleállás { border-color: var(--pri-crit); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
         .card.Termelésleállás:hover { box-shadow: 0 0 25px rgba(239, 68, 68, 0.4); }
-        .card.Folyamatban { border-left-color: var(--pri-prog); background: #1e1b4b; }
+        .card.Folyamatban { border-color: var(--pri-prog); background: #1e1b4b; }
 
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
         .machine-name { font-size: 18px; font-weight: bold; color: #e2e8f0; margin-bottom: 8px; }
@@ -91,7 +93,7 @@
         <div id="progressBar"></div>
     </div>
 
-    <!-- KPI SÁV - KATTINTHATÓ SZŰRŐK -->
+    <!-- KPI SÁV -->
     <div class="kpi-bar">
         <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')">
             <h3>Termelésleállás</h3>
@@ -126,22 +128,19 @@
             </div>
             <div style="color: #cbd5e1; font-size: 18px; margin-bottom: 20px; line-height:1.4;" id="modalSubtitle">Feladat leírása</div>
             
-            <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px;">
-                <!-- Részletek JS generálja ide -->
-            </div>
+            <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px;"></div>
 
             <button class="btn-close-modal" onclick="closeModal(true)">Bezárás</button>
         </div>
     </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 
     const REFRESH_INTERVAL_SEC = 60; 
     let timer = REFRESH_INTERVAL_SEC;
     let currentActiveTasks = [];
     
-    // Szűrés változók
     let activeFilter = null; 
     let autoResetTimeout = null;
 
@@ -174,7 +173,6 @@
             if(t.prioritas === "Nem") t.prioritas = "Normál";
         });
 
-        // KPI Frissítés
         let cCrit = 0, cHigh = 0, cProg = 0;
         currentActiveTasks.forEach(t => {
             if(t.prioritas.includes("Leállás")) cCrit++;
@@ -190,22 +188,18 @@
         renderGrid();
     }
 
-    // --- SZŰRŐ LOGIKA ---
     function setDashboardFilter(filterType) {
-        // Toggle (Ha már ez volt aktív, akkor kikapcsolja)
         if (activeFilter === filterType) activeFilter = null;
         else activeFilter = filterType;
         
-        // UI Frissítés (Kártyák aktív stílusa)
         document.querySelectorAll('.kpi-card').forEach(el => el.classList.remove('active-filter'));
         if (activeFilter) document.getElementById('kpiCard-' + activeFilter).classList.add('active-filter');
         else document.getElementById('kpiCard-Total').classList.add('active-filter');
 
-        // Automatikus visszaugrás (45 másodperc múlva törli a szűrést)
         if (autoResetTimeout) clearTimeout(autoResetTimeout);
         if (activeFilter !== null) {
             autoResetTimeout = setTimeout(() => {
-                setDashboardFilter(null); // Visszaáll az összesre
+                setDashboardFilter(null); 
             }, 45000);
         }
 
@@ -216,11 +210,10 @@
         const grid = document.getElementById('taskGrid');
         
         if (currentActiveTasks.length === 0) { 
-            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Minden gép üzemel!</h2></div>`; 
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Minden gép üzemel! Nincs aktív feladat.</h2></div>`; 
             return; 
         }
 
-        // Adatok Szűrése
         let filteredTasks = currentActiveTasks;
         if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => t.prioritas.includes("Leállás"));
         else if (activeFilter === 'High') filteredTasks = currentActiveTasks.filter(t => t.prioritas.includes("Magas"));
@@ -231,11 +224,9 @@
             return;
         }
 
-        // Szétválasztjuk a normál hibákat és a PREV (Ismétlődő) feladatokat
         let normalTasks = filteredTasks.filter(t => !t.id.startsWith("PREV-"));
         let prevTasks = filteredTasks.filter(t => t.id.startsWith("PREV-"));
 
-        // Rendezzük a normál feladatokat fontosság szerint
         const w = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Informatív": 1 };
         const sorter = (a, b) => {
             if (a.statusz === "Folyamatban" && b.statusz !== "Folyamatban") return -1;
@@ -249,13 +240,11 @@
 
         let html = "";
         
-        // 1. NORMÁL FELADATOK RENDERELÉSE
         if (normalTasks.length > 0) {
             if(prevTasks.length > 0) html += `<div class="section-title">🚨 Aktuális Hibák és Feladatok</div>`;
             normalTasks.forEach(task => { html += generateCardHtml(task); });
         }
 
-        // 2. ISMÉTLŐDŐ (TERVEZETT) FELADATOK RENDERELÉSE ALULRA
         if (prevTasks.length > 0) {
             html += `<div class="section-title" style="margin-top:40px; color: var(--pri-info); border-color: var(--pri-info);">🔁 Tervezett Karbantartások</div>`;
             prevTasks.forEach(task => { html += generateCardHtml(task); });
@@ -274,6 +263,7 @@
         if(task.prioritas.includes("Leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
         else if(task.prioritas.includes("Magas")) { bC = "badge-high"; eC = "Magas"; }
         else if(task.prioritas === "Informatív") { bC = "badge-info"; eC = "Informatív"; }
+        
         if (task.statusz === "Folyamatban") eC = "Folyamatban";
 
         let inP = task.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️</span> <b>${task.felelos}</b> éppen dolgozik rajta</div>` : "";
@@ -290,7 +280,6 @@
         </div>`;
     }
 
-    // --- MODAL LOGIKA ---
     function openModal(taskId) {
         const task = currentActiveTasks.find(t => t.id === taskId);
         if (!task) return;
@@ -336,10 +325,7 @@
         }
 
         document.getElementById('modalDetails').innerHTML = details;
-        
-        // Modal animált megjelenítése
-        const modal = document.getElementById('taskModal');
-        modal.style.display = "flex";
+        document.getElementById('taskModal').style.display = "flex";
     }
 
     function closeModal(force = false) {
