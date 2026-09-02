@@ -131,19 +131,23 @@
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
                 <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Kategória / Csarnok</label>
                     <select id="kategoria" onchange="frissitGepek()">
                         <option value="">Válassz csarnokot...</option>
                     </select>
                 </div>
                 <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Gép megnevezése</label>
                     <select id="gep">
                         <option value="">Előbb válassz kategóriát...</option>
                     </select>
                 </div>
                 <div class="form-full">
+                    <label style="font-size:12px; color:var(--text-muted);">Hiba rövid leírása</label>
                     <input type="text" id="hiba" placeholder="Hiba rövid leírása">
                 </div>
                 <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Prioritás</label>
                     <select id="prioritasLegordulo" style="font-weight:bold;">
                         <option value="Informatív">ℹ️ Informatív</option>
                         <option value="Normál" selected>✅ Normál</option>
@@ -152,10 +156,12 @@
                     </select>
                 </div>
                 <div>
-                    <input type="number" id="ido" step="0.5" placeholder="Ráfordított idő (opcionális)">
+                    <label style="font-size:12px; color:var(--text-muted);">Ráfordított idő (opcionális)</label>
+                    <input type="number" id="ido" step="0.5" placeholder="Csak azonnali megoldásnál">
                 </div>
                 <div class="form-full">
-                    <textarea id="megoldas" rows="2" placeholder="Megoldás (Azonnali elhárítás esetén)"></textarea>
+                    <label style="font-size:12px; color:var(--text-muted);">Megoldás (Azonnali elhárítás esetén)</label>
+                    <textarea id="megoldas" rows="2" placeholder="Megoldás..."></textarea>
                 </div>
             </div>
             <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
@@ -176,28 +182,34 @@
                 <h4>Új beállítása</h4>
                 <div class="form-grid">
                     <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Kategória / Csarnok</label>
                         <select id="ismKategoria" onchange="frissitIsmGepek()">
                             <option value="">Válassz csarnokot...</option>
                         </select>
                     </div>
                     <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Gép megnevezése</label>
                         <select id="ismGep">
                             <option value="">Előbb válassz kategóriát...</option>
                         </select>
                     </div>
                     <div class="form-full">
+                        <label style="font-size:12px; color:var(--text-muted);">Feladat rövid neve</label>
                         <input type="text" id="ismHiba" placeholder="Feladat rövid neve (pl. Gép zsírzása)">
                     </div>
                     <div class="form-full">
+                        <label style="font-size:12px; color:var(--text-muted);">Ellenőrzőlista (Opcionális)</label>
                         <textarea id="ismChecklist" rows="3" placeholder="📝 Ellenőrzőlista / Részletes teendők (soronként egy feladat)..."></textarea>
                     </div>
                     <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Prioritás</label>
                         <select id="ismPrioritas">
                             <option value="Normál" selected>✅ Normál</option>
                             <option value="Magas prioritás">⚠️ Magas (Sürgős)</option>
                         </select>
                     </div>
                     <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Gyakoriság</label>
                         <select id="ismTipus" style="font-weight:bold; color:var(--primary);">
                             <option value="Napi">🔄 Napi (Minden nap)</option>
                             <option value="Heti - Hétfő">📅 Heti - Hétfő</option>
@@ -212,6 +224,11 @@
                             <option value="6 Havi">📅 6 Havi (Félévente)</option>
                             <option value="Éves">📆 Éves (Minden év elején)</option>
                         </select>
+                    </div>
+                    <div class="form-full">
+                        <!-- ÚJ MEZŐ: Kezdő dátum -->
+                        <label style="font-size:12px; color:var(--text-muted);">Kezdés / Első generálás dátuma (Ha üres, azonnal indítja)</label>
+                        <input type="date" id="ismKezdoDatum" title="Ettől a naptól kezdve kezdi el figyelni a szabályt">
                     </div>
                 </div>
                 <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit);">Beállítás mentése</button>
@@ -228,6 +245,7 @@
                 <h3>Műszaknapló írása</h3>
                 <div class="form-grid">
                     <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Műszak típusa</label>
                         <select id="muszakTipus">
                             <option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option>
                             <option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option>
@@ -235,9 +253,11 @@
                         </select>
                     </div>
                     <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Melyik napra vonatkozik?</label>
                         <input type="date" id="muszakDatum" title="Melyik napra vonatkozik?">
                     </div>
                     <div class="form-full">
+                        <label style="font-size:12px; color:var(--text-muted);">Napló szövege</label>
                         <textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea>
                     </div>
                 </div>
@@ -594,8 +614,9 @@
         const g = document.getElementById('ismGep').value;
         const h = document.getElementById('ismHiba').value;
         const cl = document.getElementById('ismChecklist').value;
+        const kd = document.getElementById('ismKezdoDatum').value; // ÚJ MEZŐ
         
-        if (!k || !g || !h) { alert("Minden mezőt ki kell tölteni!"); return; }
+        if (!k || !g || !h) { alert("A kategória, gép és feladat neve kötelező!"); return; }
         
         const btn = document.getElementById('btnIsmSubmit');
         const stat = document.getElementById('ismStatus'); 
@@ -612,7 +633,8 @@
             hiba: h, 
             prioritas: document.getElementById('ismPrioritas').value, 
             ismTipus: document.getElementById('ismTipus').value, 
-            checklist: cl 
+            checklist: cl,
+            kezdoDatum: kd
         };
         
         try {
@@ -622,6 +644,7 @@
                 stat.innerText = "✅ Mentve!"; 
                 document.getElementById('ismHiba').value = ""; 
                 document.getElementById('ismChecklist').value = ""; 
+                document.getElementById('ismKezdoDatum').value = "";
                 loadRecurringTasks(); 
                 setTimeout(() => stat.innerText = "", 3000); 
             }
@@ -643,6 +666,8 @@
                 let h = "";
                 r.data.forEach(t => {
                     let clHtml = t.checklist ? `<div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"><b>📝 Checklist:</b><br>${t.checklist.replace(/\n/g, '<br>')}</div>` : '';
+                    let kezdoHtml = t.kezdoDatum ? `<div style="font-size:12px; color:var(--pri-high); margin-bottom:5px;">⏳ Kezdés: ${t.kezdoDatum.substring(0,10)}</div>` : "";
+                    
                     h += `
                     <div class="task-card" style="border-left-color: var(--pri-crit);">
                         <div class="task-header">
@@ -650,6 +675,7 @@
                             <span class="badge badge-high">${t.prioritas}</span>
                         </div>
                         <div class="task-title">${t.gep}</div>
+                        ${kezdoHtml}
                         <div style="margin-bottom:10px;">${t.hiba}</div>
                         ${clHtml}
                         <div style="display:flex; justify-content:space-between; align-items:center;">
