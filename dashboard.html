@@ -40,7 +40,6 @@
         
         .section-title { grid-column: 1/-1; font-size: 20px; color: var(--text-muted); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px; margin-bottom: 5px; display:flex; align-items:center; gap: 10px; }
         
-        /* === KÁRTYA TELJES KERETTEL === */
         .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 2px solid var(--pri-normal); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: scale(1.02); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
         
@@ -175,8 +174,9 @@
 
         let cCrit = 0, cHigh = 0, cProg = 0;
         currentActiveTasks.forEach(t => {
-            if(t.prioritas.includes("Leállás")) cCrit++;
-            if(t.prioritas.includes("Magas")) cHigh++;
+            const pLower = t.prioritas.toLowerCase();
+            if(pLower.includes("leállás")) cCrit++;
+            if(pLower.includes("magas")) cHigh++;
             if(t.statusz === "Folyamatban") cProg++;
         });
 
@@ -215,8 +215,8 @@
         }
 
         let filteredTasks = currentActiveTasks;
-        if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => t.prioritas.includes("Leállás"));
-        else if (activeFilter === 'High') filteredTasks = currentActiveTasks.filter(t => t.prioritas.includes("Magas"));
+        if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => t.prioritas.toLowerCase().includes("leállás"));
+        else if (activeFilter === 'High') filteredTasks = currentActiveTasks.filter(t => t.prioritas.toLowerCase().includes("magas"));
         else if (activeFilter === 'Prog') filteredTasks = currentActiveTasks.filter(t => t.statusz === "Folyamatban");
 
         if (filteredTasks.length === 0) {
@@ -260,9 +260,11 @@
         const prioShort = task.prioritas.replace(" prioritás", "").replace("ással járó", "");
         
         let bC = "badge-normal", eC = "";
-        if(task.prioritas.includes("Leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
-        else if(task.prioritas.includes("Magas")) { bC = "badge-high"; eC = "Magas"; }
-        else if(task.prioritas === "Informatív") { bC = "badge-info"; eC = "Informatív"; }
+        const pLower = task.prioritas.toLowerCase();
+
+        if(pLower.includes("leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
+        else if(pLower.includes("magas")) { bC = "badge-high"; eC = "Magas"; }
+        else if(pLower.includes("informatív")) { bC = "badge-info"; eC = "Informatív"; }
         
         if (task.statusz === "Folyamatban") eC = "Folyamatban";
 
@@ -288,9 +290,11 @@
         document.getElementById('modalSubtitle').innerText = task.hiba;
         
         let pB = "badge-normal";
-        if(task.prioritas.includes("Leállás")) pB = "badge-crit";
-        else if(task.prioritas.includes("Magas")) pB = "badge-high";
-        else if(task.prioritas === "Informatív") pB = "badge-info";
+        const pLower = task.prioritas.toLowerCase();
+        
+        if(pLower.includes("leállás")) pB = "badge-crit";
+        else if(pLower.includes("magas")) pB = "badge-high";
+        else if(pLower.includes("informatív")) pB = "badge-info";
         
         let prioSpan = document.getElementById('modalPrio');
         prioSpan.className = `badge ${pB}`;
