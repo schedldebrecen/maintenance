@@ -277,7 +277,6 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA NÉZET - ÚJ DIZÁJN ÉS EXPORTOK -->
         <div id="statisztikaView" class="view box">
             <h3>📈 Eseti Meghibásodások és Kiesések</h3>
             <div class="kpi-grid" style="margin-bottom:30px;">
@@ -305,7 +304,6 @@
             </div>
         </div>
 
-        <!-- PROFIL -->
         <div id="profilCserelo" class="view box">
             <h3>Profil és Beállítások</h3>
             <div class="settings-row">
@@ -416,7 +414,7 @@
             prioritas: document.getElementById('prioritasLegordulo').value, 
             megoldas: document.getElementById('megoldas').value, 
             ido: document.getElementById('ido').value, 
-            downtime: document.getElementById('downtime').value, // Új paraméter
+            downtime: document.getElementById('downtime').value, 
             kepek: feltoltendoKepek 
         };
         try {
@@ -491,6 +489,7 @@
     }
     
     function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
+
     async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); loadShiftLogs(); }
 
     async function loadTasks() {
@@ -519,6 +518,16 @@
         if(!m) return alert("Megoldás kötelező!"); 
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: id, megoldas: m, ido: i, downtime: dt, lezarta: localStorage.getItem("activeUser") }) }); 
         loadTasks(); 
+    }
+
+    // ÚJRANYITÁS (ESETI)
+    async function reopenTask(id) {
+        if(!confirm("Biztosan újranyitod ezt az eseti hibát?")) return;
+        await fetch(SCRIPT_URL, { 
+            method: "POST", 
+            body: JSON.stringify({ action: "reopenTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) 
+        }); 
+        loadTasks();
     }
 
     async function sendExtraInfo(id) {
@@ -565,8 +574,19 @@
         let kH = ""; if (t.kepek) { kH += `<div class="img-container">`; String(t.kepek).split(",").forEach(u => { if(u.trim()) { const m = u.match(/id=([^&]+)/); kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${u.trim()}', '_blank')">`; } }); kH += `</div>`; }
         let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
 
-        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px;"><button onclick="if(document.getElementById('appF_${t.id}')) document.getElementById('appF_${t.id}').style.display='block';" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button><div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div></div>`;
         let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : "";
+        let reopenBtn = "";
+        
+        // CSAK ESETI hibáknál jelenjen meg az újranyitás gomb
+        if (t.statusz === "Lezárt" && !String(t.id).startsWith("PREV-")) {
+            reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px;">🔄 Újranyitás</button>`;
+        }
+
+        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display:flex; justify-content:space-between;">
+                    <button onclick="if(document.getElementById('appF_${t.id}')) document.getElementById('appF_${t.id}').style.display='block';" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button>
+                    ${reopenBtn}
+                  </div>
+                  <div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div>`;
 
         if(t.statusz!=="Lezárt") {
             let wH = t.statusz==="Folyamatban" ? `<div class="work-in-progress-bar"><span>👷</span> <b>${t.felelos}</b> dolgozik rajta</div>` : `<button class="btn-start" onclick="startTask('${t.id}')" style="margin-bottom:10px;">▶️ Munkát elkezdem</button>`;
@@ -589,7 +609,6 @@
         }
     }
 
-    // STATISZTIKA SZÁMOLÁS SZÉTVÁLASZTVA
     function calcStats() {
         let esetiNyitott = 0, leallas = 0, esetiJavIdo = 0, termelesKieses = 0;
         let prevNyitott = 0, prevIdo = 0;
@@ -619,7 +638,6 @@
         if(document.getElementById('statPrevIdo')) document.getElementById('statPrevIdo').innerText = prevIdo.toFixed(1);
     }
 
-    // ÚJ: SZÉTOSZTOTT EXPORT (Heti, Havi, Éves)
     function exportStatisztika(bontas) {
         let groups = {};
         globalClosedTasks.forEach(t => {
