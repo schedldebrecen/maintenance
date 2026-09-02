@@ -40,7 +40,6 @@
         
         .section-title { grid-column: 1/-1; font-size: 20px; color: var(--text-muted); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px; margin-bottom: 5px; display:flex; align-items:center; gap: 10px; }
         
-        /* === KÁRTYA TELJES KERETTEL === */
         .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 2px solid var(--pri-normal); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: scale(1.02); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
         
@@ -72,14 +71,15 @@
         .modal-content h2 { margin-top:0; color: var(--pri-info); border-bottom: 1px solid var(--border); padding-bottom: 15px; font-size: 24px; }
         .btn-close-modal { background: var(--border); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 25px; transition: background 0.2s; }
         .btn-close-modal:hover { background: #64748b; }
-
-        @media (max-width: 768px) {
-            .top-bar { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
-            .time-group { text-align: left; } .kpi-bar { padding: 15px; } .dashboard-container { padding: 0 15px 15px 15px; } .grid { grid-template-columns: 1fr; }
-        }
+        
+        #audioUnlockBanner { background: var(--pri-crit); color: white; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; font-size: 14px; display: block; }
     </style>
 </head>
 <body>
+
+    <div id="audioUnlockBanner" onclick="unlockAudio()">
+        🔇 KATTINTS IDE, HOGY ENGEDÉLYEZD A HANGJELZÉSEKET ÚJ HIBA ESETÉN!
+    </div>
 
     <div class="top-bar">
         <div class="title-group">
@@ -127,9 +127,7 @@
                 <span id="modalPrio" class="badge badge-normal" style="margin-left:15px; font-size:14px;">Normál</span>
             </div>
             <div style="color: #cbd5e1; font-size: 18px; margin-bottom: 20px; line-height:1.4;" id="modalSubtitle">Feladat leírása</div>
-            
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px;"></div>
-
             <button class="btn-close-modal" onclick="closeModal(true)">Bezárás</button>
         </div>
     </div>
@@ -143,6 +141,48 @@
     
     let activeFilter = null; 
     let autoResetTimeout = null;
+
+    let audioCtx = null;
+    let audioUnlocked = false;
+    let knownAdHocIds = new Set();
+    let isFirstLoad = true;
+
+    // HANGJELZÉS BIZTONSÁGI FELOLDÁSA
+    function unlockAudio() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if(AudioContext) {
+            audioCtx = new AudioContext();
+            audioUnlocked = true;
+            document.getElementById('audioUnlockBanner').style.display = 'none';
+        }
+    }
+
+    // IPARI CSIPOGÓ GENERÁLÁSA
+    function playAlarm() {
+        if (!audioUnlocked || !audioCtx) return;
+        
+        let playBeep = (time) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime + time);
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime + time + 0.1);
+            
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime + time);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + time + 0.5);
+            
+            osc.start(audioCtx.currentTime + time);
+            osc.stop(audioCtx.currentTime + time + 0.5);
+        };
+
+        // 10 másodpercen keresztül sípol (10 db csippanás)
+        for(let i = 0; i < 10; i++) {
+            playBeep(i);
+        }
+    }
 
     setInterval(() => {
         document.getElementById('clockDisplay').innerText = new Date().toLocaleTimeString('hu-HU');
@@ -168,14 +208,30 @@
 
     function processData(allTasks) {
         currentActiveTasks = allTasks.filter(t => t.statusz !== "Lezárt");
+        
+        let hasNewAdHoc = false;
+
         currentActiveTasks.forEach(t => {
             if(t.prioritas === "Igen") t.prioritas = "Magas prioritás";
             if(t.prioritas === "Nem") t.prioritas = "Normál";
+            
+            // Hangjelzés figyelése (Csak normál "KB-" hibákra, amiket még nem láttunk)
+            if(String(t.id).startsWith("KB-")) {
+                if(!isFirstLoad && !knownAdHocIds.has(t.id)) {
+                    hasNewAdHoc = true;
+                }
+                knownAdHocIds.add(t.id);
+            }
         });
+
+        if (hasNewAdHoc) {
+            playAlarm();
+        }
+        isFirstLoad = false;
 
         let cCrit = 0, cHigh = 0, cProg = 0;
         currentActiveTasks.forEach(t => {
-            const pLower = t.prioritas.toLowerCase();
+            const pLower = String(t.prioritas).toLowerCase();
             if(pLower.includes("leállás")) cCrit++;
             if(pLower.includes("magas")) cHigh++;
             if(t.statusz === "Folyamatban") cProg++;
@@ -216,8 +272,8 @@
         }
 
         let filteredTasks = currentActiveTasks;
-        if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => t.prioritas.toLowerCase().includes("leállás"));
-        else if (activeFilter === 'High') filteredTasks = currentActiveTasks.filter(t => t.prioritas.toLowerCase().includes("magas"));
+        if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => String(t.prioritas).toLowerCase().includes("leállás"));
+        else if (activeFilter === 'High') filteredTasks = currentActiveTasks.filter(t => String(t.prioritas).toLowerCase().includes("magas"));
         else if (activeFilter === 'Prog') filteredTasks = currentActiveTasks.filter(t => t.statusz === "Folyamatban");
 
         if (filteredTasks.length === 0) {
@@ -225,14 +281,14 @@
             return;
         }
 
-        let normalTasks = filteredTasks.filter(t => !t.id.startsWith("PREV-"));
-        let prevTasks = filteredTasks.filter(t => t.id.startsWith("PREV-"));
+        let normalTasks = filteredTasks.filter(t => !String(t.id).startsWith("PREV-"));
+        let prevTasks = filteredTasks.filter(t => String(t.id).startsWith("PREV-"));
 
         const w = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Informatív": 1 };
         const sorter = (a, b) => {
             if (a.statusz === "Folyamatban" && b.statusz !== "Folyamatban") return -1;
             if (a.statusz !== "Folyamatban" && b.statusz === "Folyamatban") return 1;
-            let pD = (w[b.prioritas] || 0) - (w[a.prioritas] || 0);
+            let pD = (w[String(b.prioritas)] || 0) - (w[String(a.prioritas)] || 0);
             if (pD !== 0) return pD;
             return new Date(a.idopont) - new Date(b.idopont);
         };
@@ -258,10 +314,10 @@
         const dateObj = new Date(task.idopont);
         const timeStr = dateObj.toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
         const dateStr = dateObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
-        const prioShort = task.prioritas.replace(" prioritás", "").replace("ással járó", "");
+        const prioShort = String(task.prioritas).replace(" prioritás", "").replace("ással járó", "");
         
         let bC = "badge-normal", eC = "";
-        const pLower = task.prioritas.toLowerCase();
+        const pLower = String(task.prioritas).toLowerCase();
 
         if(pLower.includes("leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
         else if(pLower.includes("magas")) { bC = "badge-high"; eC = "Magas"; }
@@ -270,7 +326,7 @@
         if (task.statusz === "Folyamatban") eC = "Folyamatban";
 
         let inP = task.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️</span> <b>${task.felelos}</b> éppen dolgozik rajta</div>` : "";
-        let prevIcon = task.id.startsWith("PREV-") ? "🔁 " : "";
+        let prevIcon = String(task.id).startsWith("PREV-") ? "🔁 " : "";
 
         return `
         <div class="card ${eC}" onclick="openModal('${task.id}')">
@@ -287,11 +343,11 @@
         const task = currentActiveTasks.find(t => t.id === taskId);
         if (!task) return;
 
-        document.getElementById('modalTitle').innerText = (task.id.startsWith("PREV-") ? "🔁 " : "") + task.gep;
+        document.getElementById('modalTitle').innerText = (String(task.id).startsWith("PREV-") ? "🔁 " : "") + task.gep;
         document.getElementById('modalSubtitle').innerText = task.hiba;
         
         let pB = "badge-normal";
-        const pLower = task.prioritas.toLowerCase();
+        const pLower = String(task.prioritas).toLowerCase();
         
         if(pLower.includes("leállás")) pB = "badge-crit";
         else if(pLower.includes("magas")) pB = "badge-high";
@@ -308,9 +364,8 @@
             details += `<div style="background: rgba(139, 92, 246, 0.2); padding:10px; border-radius:6px; color:#a78bfa; margin-top:10px; border:1px solid var(--pri-prog);">👷 <b>${task.felelos}</b> dolgozik rajta</div>`;
         }
 
-        // JAVÍTVA A CHECKLIST DIZÁJN SÖTÉT MÓDBAN!
         if (task.checklist) {
-            let items = task.checklist.split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:8px;">${i}</li>`).join('');
+            let items = String(task.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:8px;">${i}</li>`).join('');
             details += `<div style="background: rgba(0, 0, 0, 0.2); border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:20px;">
                             <strong style="color:var(--text-main); display:block; margin-bottom:10px; font-size:18px;">📝 Ellenőrzőlista:</strong>
                             <ul style="padding-left:20px; color:var(--text-main); margin:0;">${items}</ul>
@@ -319,7 +374,7 @@
 
         if (task.kepek) {
            let kH = `<div style="display:flex; gap:10px; margin-top:20px; overflow-x:auto;">`;
-           task.kepek.split(",").forEach(u => {
+           String(task.kepek).split(",").forEach(u => {
                if(u.trim()) {
                    const m = u.match(/id=([^&]+)/); 
                    const thumb = m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u.trim();
