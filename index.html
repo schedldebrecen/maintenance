@@ -6,93 +6,25 @@
     <title>Ipari CMMS Rendszer</title>
     <style>
         :root {
-            --bg-color: #f1f5f9; 
-            --surface: #ffffff; 
-            --primary: #1e293b; 
-            --primary-hover: #334155;
-            --accent: #0284c7; 
-            --accent-hover: #0369a1; 
-            --text-main: #334155; 
-            --text-muted: #64748b;
-            --border: #e2e8f0; 
-            --pri-info: #0ea5e9; 
-            --pri-normal: #10b981; 
-            --pri-high: #f59e0b;
-            --pri-crit: #ef4444; 
-            --pri-prog: #8b5cf6;
+            --bg-color: #f1f5f9; --surface: #ffffff; --primary: #1e293b; --primary-hover: #334155;
+            --accent: #0284c7; --accent-hover: #0369a1; --text-main: #334155; --text-muted: #64748b;
+            --border: #e2e8f0; --pri-info: #0ea5e9; --pri-normal: #10b981; --pri-high: #f59e0b;
+            --pri-crit: #ef4444; --pri-prog: #8b5cf6;
         }
 
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: var(--bg-color); 
-            margin: 0; 
-            padding: 0; 
-            color: var(--text-main); 
-        }
-
-        .topbar { 
-            background: var(--primary); 
-            color: white; 
-            padding: 15px 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-        }
-
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
+        .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; }
         .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
         .container { padding: 15px; max-width: 1400px; margin: 0 auto; }
-        
-        .box { 
-            background: var(--surface); 
-            padding: 20px; 
-            border-radius: 8px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
-            margin-bottom: 15px; 
-            border: 1px solid var(--border); 
-        }
+        .box { background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid var(--border); }
+        h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; font-size: 18px; }
 
-        h3 { 
-            margin-top: 0; 
-            color: var(--primary); 
-            border-bottom: 2px solid var(--border); 
-            padding-bottom: 10px; 
-            font-size: 18px; 
-        }
-
-        input, select, textarea { 
-            width: 100%; 
-            padding: 10px; 
-            margin: 6px 0 12px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 4px; 
-            box-sizing: border-box; 
-            font-size: 15px; 
-            font-family: inherit; 
-        }
-
-        input:focus, select:focus, textarea:focus { 
-            outline: none; 
-            border-color: var(--accent); 
-            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); 
-        }
-
-        button { 
-            width: 100%; 
-            background: var(--accent); 
-            color: white; 
-            padding: 12px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 15px; 
-            transition: 0.2s; 
-        }
-
+        input, select, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 15px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
+        button { width: 100%; background: var(--accent); color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 15px; transition: 0.2s; }
         button:hover { background: var(--accent-hover); }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
         
@@ -102,52 +34,16 @@
         .btn-start { background: #f59e0b; color: white; }
         .btn-start:hover { background: #d97706; }
         
-        .nav { 
-            display: flex; 
-            gap: 5px; 
-            margin-bottom: 20px; 
-            overflow-x: auto; 
-            padding-bottom: 5px; 
-            background: white; 
-            padding: 10px; 
-            border-radius: 8px; 
-            border: 1px solid var(--border); 
-        }
-
-        .nav button { 
-            margin: 0; 
-            background: transparent; 
-            color: var(--text-muted); 
-            font-size: 14px; 
-            padding: 10px 15px; 
-            white-space: nowrap; 
-            flex: 1; 
-            border: 1px solid transparent; 
-        }
-
-        .nav button.active { 
-            background: var(--bg-color); 
-            color: var(--accent); 
-            border-color: var(--border); 
-            font-weight: bold; 
-        }
+        .nav { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .nav button { margin: 0; background: transparent; color: var(--text-muted); font-size: 14px; padding: 10px 15px; white-space: nowrap; flex: 1; border: 1px solid transparent; }
+        .nav button.active { background: var(--bg-color); color: var(--accent); border-color: var(--border); font-weight: bold; }
 
         .view { display: none; } 
         .view.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         #appView { display: none; }
 
-        .task-card { 
-            background: var(--surface); 
-            padding: 15px; 
-            border-radius: 6px; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
-            display: flex; 
-            flex-direction: column; 
-            border: 1px solid var(--border); 
-            border-left: 5px solid var(--pri-normal); 
-        }
-
+        .task-card { background: var(--surface); padding: 15px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; flex-direction: column; border: 1px solid var(--border); border-left: 5px solid var(--pri-normal); }
         .task-card.Informatív { border-left-color: var(--pri-info); } 
         .task-card.Magas { border-left-color: var(--pri-high); } 
         .task-card.Termelésleállás { border-left-color: var(--pri-crit); } 
@@ -165,11 +61,7 @@
         .badge-prog { background: var(--pri-prog); } 
         .badge-closed { background: var(--text-muted); }
 
-        @keyframes pulse { 
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 
-            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
-        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin: 10px 0; padding-bottom: 5px; }
         .img-container img { max-width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
@@ -294,7 +186,7 @@
                         </select>
                     </div>
                     <div class="form-full">
-                        <input type="text" id="ismHiba" placeholder="Feladat leírása (pl. Gép zsírzása, szűrőcsere)">
+                        <input type="text" id="ismHiba" placeholder="Feladat rövid neve (pl. Gép zsírzása)">
                     </div>
                     <div class="form-full">
                         <textarea id="ismChecklist" rows="3" placeholder="📝 Ellenőrzőlista / Részletes teendők (soronként egy feladat)..."></textarea>
@@ -315,7 +207,10 @@
                             <option value="Heti - Péntek">📅 Heti - Péntek</option>
                             <option value="Heti - Szombat">📅 Heti - Szombat</option>
                             <option value="Heti - Vasárnap">📅 Heti - Vasárnap</option>
-                            <option value="Havi 1-jén">📆 Havi (Minden hónap 1-jén)</option>
+                            <option value="Havi">📆 Havi (Minden hónap elején)</option>
+                            <option value="3 Havi">📅 3 Havi (Negyedévente)</option>
+                            <option value="6 Havi">📅 6 Havi (Félévente)</option>
+                            <option value="Éves">📆 Éves (Minden év elején)</option>
                         </select>
                     </div>
                 </div>
@@ -435,7 +330,7 @@
             <div class="settings-row">
                 <div>
                     <strong>Push Értesítések</strong><br>
-                    <small>Új hibák jelzése zónán belül</small>
+                    <small>Új hibák jelzése a munkahelyi zónában</small>
                 </div>
                 <label style="position:relative; display:inline-block; width:44px; height:24px;">
                     <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" style="opacity:0; width:0; height:0;">
@@ -476,7 +371,8 @@
         "Palettázó B&O": [ "Szekventáló robot - B&O" ],
         "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ],
         "Egyéb Facility": [ "Épülettel kapcsolatos dolgok" ],
-        "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ]
+        "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ],
+        "Aggregátor": [] // ÚJ CSARNOK ALMENÜ NÉLKÜL
     };
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -495,18 +391,25 @@
         });
     });
 
+    // Okos Gép Frissítő (Ha nincs gép, letiltja a legördülőt)
     function frissitGepek() { 
         const k = document.getElementById('kategoria').value;
         const s = document.getElementById('gep'); 
         s.innerHTML = '<option value="">Válassz gépet...</option>'; 
-        if (k && gepAdatbazis[k]) gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
+        if (k && gepAdatbazis[k]) {
+            if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-"));
+            else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
+        }
     }
 
     function frissitSzuroGepek() { 
         const k = document.getElementById('szuroKategoria').value;
         const s = document.getElementById('szuroGep'); 
         s.innerHTML = '<option value="">Összes gép...</option>'; 
-        if (k && gepAdatbazis[k]) gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
+        if (k && gepAdatbazis[k]) {
+            if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-"));
+            else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
+        }
         renderClosedTasks(); 
     }
 
@@ -514,7 +417,10 @@
         const k = document.getElementById('ismKategoria').value;
         const s = document.getElementById('ismGep'); 
         s.innerHTML = '<option value="">Válassz gépet...</option>'; 
-        if (k && gepAdatbazis[k]) gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
+        if (k && gepAdatbazis[k]) {
+            if (gepAdatbazis[k].length === 0) s.add(new Option("Nincs alegység", "-"));
+            else gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); 
+        }
     }
 
     async function hashPassword(p) { 
@@ -633,10 +539,13 @@
         stat.style.color = "var(--accent)"; 
         stat.innerText = "Küldés...";
         
+        // Ha "-" az érték, akkor csak a csarnokot mentjük (pl. Aggregátor)
+        const gepMentve = (g === "-") ? k : k + " - " + g;
+
         let payload = { 
             action: "addTask", 
             felhasznalo: localStorage.getItem("activeUser"), 
-            gep: k + " - " + g, 
+            gep: gepMentve, 
             hiba: h, 
             prioritas: document.getElementById('prioritasLegordulo').value, 
             megoldas: document.getElementById('megoldas').value, 
@@ -678,10 +587,12 @@
         stat.style.color = "var(--accent)"; 
         stat.innerText = "Mentés...";
         
+        const gepMentve = (g === "-") ? k : k + " - " + g;
+
         let p = { 
             action: "addRecurringTask", 
             felhasznalo: localStorage.getItem("activeUser"), 
-            gep: k + " - " + g, 
+            gep: gepMentve, 
             hiba: h, 
             prioritas: document.getElementById('ismPrioritas').value, 
             ismTipus: document.getElementById('ismTipus').value, 
@@ -916,8 +827,11 @@
         
         const f = globalClosedTasks.filter(t => { 
             const d = t.idopont.substring(0, 10); 
+            // Okos szűrés azokra a gépekre is amiknek nincs alegysége
+            let gepNev = (sg === "-") ? sk : sk + " - " + sg;
+
             return (sk ? (t.gep.startsWith(sk+" - ") || t.gep===sk) : true) && 
-                   (sg ? t.gep===(sk+" - "+sg) : true) && 
+                   (sg ? t.gep===gepNev : true) && 
                    (st ? d>=st : true) && 
                    (si ? d<=si : true); 
         });
