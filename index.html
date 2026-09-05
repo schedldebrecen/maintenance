@@ -127,6 +127,7 @@
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
 
+        <!-- ÚJ HIBA RÖGZÍTÉSE -->
         <div id="ujHiba" class="view active box">
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
@@ -158,6 +159,7 @@
             <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
         </div>
 
+        <!-- ISMÉTLŐDŐ FELADATOK (ADMIN) -->
         <div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
             <h3 style="color: var(--pri-crit);">🔁 Ismétlődő Feladatok (Tervezett Karbantartás)</h3>
             <div class="filter-panel">
@@ -201,6 +203,7 @@
             <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
         </div>
 
+        <!-- MŰSZAKÁTADÁS -->
         <div id="muszakatadasView" class="view box">
             <div id="shiftLogInputSection">
                 <h3>Műszaknapló írása</h3>
@@ -239,6 +242,7 @@
             <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
         </div>
 
+        <!-- NYITOTT FELADATOK -->
         <div id="nyitottFeladatok" class="view box">
             <div class="filter-panel">
                 <div class="filter-header">
@@ -256,6 +260,7 @@
             <div id="openTasksContainer" class="grid-cards">Betöltés...</div>
         </div>
 
+        <!-- LEZÁRT FELADATOK -->
         <div id="lezartFeladatok" class="view box">
             <div class="filter-panel">
                 <div class="filter-header">
@@ -277,8 +282,21 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
+        <!-- STATISZTIKA NÉZET - ÚJ DIZÁJN ÉS EXPORTOK -->
         <div id="statisztikaView" class="view box">
-            <h3>📈 Eseti Meghibásodások és Kiesések</h3>
+            
+            <!-- EXPORT GOMBOK FELÜL -->
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
+                <h3 style="border:none; margin:0; padding:0;">📊 Részletes Statisztikák</h3>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('heti')">📅 Heti Export</button>
+                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('havi')">📆 Havi Export</button>
+                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('eves')">🗓️ Éves Export</button>
+                </div>
+            </div>
+
+            <!-- ESETI HIBÁK STAT -->
+            <h4 style="color:var(--pri-crit);">📈 Eseti Meghibásodások és Kiesések</h4>
             <div class="kpi-grid" style="margin-bottom:30px;">
                 <div class="kpi-card alert"><h4>Aktív Leállás</h4><div class="value" id="statLeallas">0</div><small>db</small></div>
                 <div class="kpi-card" style="border-bottom-color:var(--pri-high);"><h4>Nyitott Eseti Hiba</h4><div class="value" id="statNyitott">0</div><small>db</small></div>
@@ -286,24 +304,38 @@
                 <div class="kpi-card alert"><h4>Termeléskiesés</h4><div class="value" id="statDowntime">0</div><small>perc</small></div>
             </div>
 
-            <h3 style="border-top:1px solid var(--border); padding-top:20px;">🔁 Preventív Karbantartások (Ismétlődő)</h3>
-            <div class="kpi-grid">
+            <!-- PREVENTÍV STAT -->
+            <h4 style="color:var(--pri-info); border-top:1px solid var(--border); padding-top:20px;">🔁 Preventív Karbantartások (Ismétlődő)</h4>
+            <div class="kpi-grid" style="margin-bottom:30px;">
                 <div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Nyitott Preventív</h4><div class="value" id="statPrevNyitott" style="color:var(--pri-info);">0</div><small>db</small></div>
                 <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Preventív Munkaidő</h4><div class="value" id="statPrevIdo" style="color:var(--pri-normal);">0</div><small>óra</small></div>
             </div>
 
-            <div class="filter-panel" style="margin-top:30px;">
-                <div class="filter-header">
-                    <h4>Statisztikai Adatok Exportálása (CSV)</h4>
+            <!-- RÉSZLETES TOPLISTÁK ÉS TRENDEK (ÚJ!) -->
+            <div class="form-grid" style="border-top:1px solid var(--border); padding-top:20px;">
+                <div style="background:#f8fafc; padding:15px; border:1px solid var(--border); border-radius:8px;">
+                    <h4 style="margin:0 0 15px 0; color:var(--primary);">🔥 Top 3 Legproblémásabb Gép (Eseti)</h4>
+                    <div id="topMachinesContainer" style="font-size:14px; line-height:1.8;">
+                        Nincs elegendő adat a toplistához.
+                    </div>
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button class="btn-secondary" style="width:auto; padding:10px 20px;" onclick="exportStatisztika('heti')">📅 Heti Bontás</button>
-                    <button class="btn-secondary" style="width:auto; padding:10px 20px;" onclick="exportStatisztika('havi')">📆 Havi Bontás</button>
-                    <button class="btn-secondary" style="width:auto; padding:10px 20px;" onclick="exportStatisztika('eves')">🗓️ Éves Bontás</button>
+                
+                <div style="background:#f8fafc; padding:15px; border:1px solid var(--border); border-radius:8px;">
+                    <h4 style="margin:0 0 15px 0; color:var(--primary);">📊 Trend (Eseti Kiesés & Idő)</h4>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <div><b>Előző hónap:</b></div>
+                        <div id="statTrendLast" style="text-align:right; color:var(--text-muted);">0 perc kiesés<br>0 óra javítás</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:10px;">
+                        <div><b>Aktuális hónap:</b></div>
+                        <div id="statTrendThis" style="text-align:right; color:var(--primary);">0 perc kiesés<br>0 óra javítás</div>
+                    </div>
                 </div>
             </div>
+
         </div>
 
+        <!-- PROFIL -->
         <div id="profilCserelo" class="view box">
             <h3>Profil és Beállítások</h3>
             <div class="settings-row">
@@ -409,14 +441,7 @@
         const btn = document.getElementById('btnSubmit'), stat = document.getElementById('taskStatus'); btn.disabled = true; stat.style.color = "var(--accent)"; stat.innerText = "Küldés...";
         const gepMentve = (g === "-") ? k : k + " - " + g;
         
-        let payload = { 
-            action: "addTask", felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, 
-            prioritas: document.getElementById('prioritasLegordulo').value, 
-            megoldas: document.getElementById('megoldas').value, 
-            ido: document.getElementById('ido').value, 
-            downtime: document.getElementById('downtime').value, 
-            kepek: feltoltendoKepek 
-        };
+        let payload = { action: "addTask", felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, prioritas: document.getElementById('prioritasLegordulo').value, megoldas: document.getElementById('megoldas').value, ido: document.getElementById('ido').value, downtime: document.getElementById('downtime').value, kepek: feltoltendoKepek };
         try {
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
@@ -520,13 +545,9 @@
         loadTasks(); 
     }
 
-    // ÚJRANYITÁS (ESETI)
     async function reopenTask(id) {
         if(!confirm("Biztosan újranyitod ezt az eseti hibát?")) return;
-        await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ action: "reopenTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) 
-        }); 
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "reopenTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) }); 
         loadTasks();
     }
 
@@ -577,31 +598,18 @@
         let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : "";
         let reopenBtn = "";
         
-        // CSAK ESETI hibáknál jelenjen meg az újranyitás gomb
         if (t.statusz === "Lezárt" && !String(t.id).startsWith("PREV-")) {
             reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px;">🔄 Újranyitás</button>`;
         }
 
-        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display:flex; justify-content:space-between;">
-                    <button onclick="if(document.getElementById('appF_${t.id}')) document.getElementById('appF_${t.id}').style.display='block';" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button>
-                    ${reopenBtn}
-                  </div>
-                  <div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div>`;
+        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display:flex; justify-content:space-between;"><button onclick="if(document.getElementById('appF_${t.id}')) document.getElementById('appF_${t.id}').style.display='block';" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button>${reopenBtn}</div><div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div>`;
 
         if(t.statusz!=="Lezárt") {
             let wH = t.statusz==="Folyamatban" ? `<div class="work-in-progress-bar"><span>👷</span> <b>${t.felelos}</b> dolgozik rajta</div>` : `<button class="btn-start" onclick="startTask('${t.id}')" style="margin-bottom:10px;">▶️ Munkát elkezdem</button>`;
             let pB = t.statusz==="Folyamatban" ? `<span class="badge badge-prog" style="margin-left:5px;">Folyamatban</span>` : "";
             
             return `
-            <div class="task-card ${eC}"><div class="task-header"><span>${dateStr}</span><div><span class="badge ${bC}">${pr}</span>${pB}</div></div><div class="task-title">${prevIcon}${t.gep}</div><div style="margin-bottom:5px;">${t.hiba}</div>${clHtml}${kH}<div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Beküldte: <b>${t.felhasznalo}</b></div><div style="margin-top:auto;">${wH}
-            <div style="background:var(--bg-color); padding:10px; border-radius:4px;">
-                <input type="text" id="megoldas_${t.id}" placeholder="Megoldás..." style="margin-bottom:5px;">
-                <div style="display:flex; gap:10px; margin-bottom:5px;">
-                    <input type="number" id="ido_${t.id}" step="0.5" placeholder="Javítás (óra)" style="margin:0;">
-                    <input type="number" id="downtime_${t.id}" step="1" placeholder="Kiesés (perc)" style="margin:0;">
-                </div>
-                <button onclick="closeTask('${t.id}')">Jegy lezárása</button>
-            </div></div>${aH}</div>`;
+            <div class="task-card ${eC}"><div class="task-header"><span>${dateStr}</span><div><span class="badge ${bC}">${pr}</span>${pB}</div></div><div class="task-title">${prevIcon}${t.gep}</div><div style="margin-bottom:5px;">${t.hiba}</div>${clHtml}${kH}<div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Beküldte: <b>${t.felhasznalo}</b></div><div style="margin-top:auto;">${wH}<div style="background:var(--bg-color); padding:10px; border-radius:4px;"><input type="text" id="megoldas_${t.id}" placeholder="Megoldás..." style="margin-bottom:5px;"><div style="display:flex; gap:10px; margin-bottom:5px;"><input type="number" id="ido_${t.id}" step="0.5" placeholder="Javítás (óra)" style="margin:0;"><input type="number" id="downtime_${t.id}" step="1" placeholder="Kiesés (perc)" style="margin:0;"></div><button onclick="closeTask('${t.id}')">Jegy lezárása</button></div></div>${aH}</div>`;
         } else {
             let dtTxt = t.downtime ? ` (Kiesés: ${t.downtime} perc)` : "";
             return `
@@ -612,6 +620,13 @@
     function calcStats() {
         let esetiNyitott = 0, leallas = 0, esetiJavIdo = 0, termelesKieses = 0;
         let prevNyitott = 0, prevIdo = 0;
+        let machineIssues = {}; // TOP 3 Géphez
+        
+        let currentYYYYMM = new Date().toISOString().substring(0,7);
+        let lastDate = new Date(); lastDate.setMonth(lastDate.getMonth() - 1);
+        let lastYYYYMM = lastDate.toISOString().substring(0,7);
+        
+        let monthStat = { current: {kieses:0, javIdo:0}, last: {kieses:0, javIdo:0} };
 
         globalOpenTasks.forEach(t => {
             const isPrev = String(t.id || "").startsWith("PREV-");
@@ -619,6 +634,9 @@
             else {
                 esetiNyitott++;
                 if(String(t.prioritas || "").toLowerCase().includes("leállás")) leallas++;
+                
+                // Top gép gyűjtés nyitottakból
+                if (t.gep && t.gep !== "-") machineIssues[t.gep] = (machineIssues[t.gep] || 0) + 1;
             }
         }); 
         
@@ -626,8 +644,18 @@
             const isPrev = String(t.id || "").startsWith("PREV-");
             let jIdo = parseFloat(t.ido) || 0;
             let dTime = parseFloat(t.downtime) || 0;
+            let tMonth = String(t.idopont).substring(0,7);
+
             if (isPrev) { prevIdo += jIdo; } 
-            else { esetiJavIdo += jIdo; termelesKieses += dTime; }
+            else { 
+                esetiJavIdo += jIdo; termelesKieses += dTime; 
+                // Top gép gyűjtés lezártakból
+                if (t.gep && t.gep !== "-") machineIssues[t.gep] = (machineIssues[t.gep] || 0) + 1;
+
+                // Trend gyűjtés
+                if (tMonth === currentYYYYMM) { monthStat.current.kieses += dTime; monthStat.current.javIdo += jIdo; }
+                else if (tMonth === lastYYYYMM) { monthStat.last.kieses += dTime; monthStat.last.javIdo += jIdo; }
+            }
         });
         
         if(document.getElementById('statNyitott')) document.getElementById('statNyitott').innerText = esetiNyitott; 
@@ -636,6 +664,28 @@
         if(document.getElementById('statDowntime')) document.getElementById('statDowntime').innerText = termelesKieses;
         if(document.getElementById('statPrevNyitott')) document.getElementById('statPrevNyitott').innerText = prevNyitott;
         if(document.getElementById('statPrevIdo')) document.getElementById('statPrevIdo').innerText = prevIdo.toFixed(1);
+
+        // TOP 3 GÉP RENDER
+        if(document.getElementById('topMachinesContainer')) {
+            let sortedMachines = Object.entries(machineIssues).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            let mHtml = "";
+            if(sortedMachines.length > 0) {
+                sortedMachines.forEach((m, idx) => {
+                    let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : "🥉");
+                    mHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px dashed #cbd5e1; padding-bottom:5px;">
+                                <span style="font-weight:bold; color:var(--primary);">${medal} ${m[0]}</span>
+                                <span class="badge badge-crit" style="background:var(--pri-high); border:none;">${m[1]} hiba</span>
+                              </div>`;
+                });
+            } else { mHtml = "Nincs elegendő adat a toplistához."; }
+            document.getElementById('topMachinesContainer').innerHTML = mHtml;
+        }
+
+        // TREND RENDER
+        if(document.getElementById('statTrendLast')) {
+            document.getElementById('statTrendLast').innerHTML = `${monthStat.last.kieses} perc kiesés<br>${monthStat.last.javIdo.toFixed(1)} óra javítás`;
+            document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
+        }
     }
 
     function exportStatisztika(bontas) {
