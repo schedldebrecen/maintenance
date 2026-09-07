@@ -10,47 +10,127 @@
         body { font-family: 'Segoe UI', sans-serif; background: #F8F9FA; padding: 15px; margin: 0; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
         h2 { color: #0D6EFD; margin-top: 0; }
-        input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        input, select { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         button { width: 90%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-primary { background: #0D6EFD; }
         .btn-cam { background: #6C757D; }
         .btn-remove { background: #DC3545; }
         .btn-add { background: #198754; }
         #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 8px; overflow: hidden; display: none; }
-        #item_info { margin: 15px 0; font-weight: bold; color: #198754; min-height: 40px; }
-        #loader { display: none; color: #FFC107; font-weight: bold; }
+        #item_info { margin: 15px 0; font-size: 15px; min-height: 50px; text-align: left; background: #f1f3f5; padding: 10px; border-radius: 8px;}
+        #loader { display: none; color: #FFC107; font-weight: bold; margin-bottom: 10px; }
+        .search-res { background: white; border: 1px solid #ccc; text-align: left; border-radius: 5px; max-height: 150px; overflow-y: auto; position: absolute; width: 90%; margin-left: 5%; z-index: 1000; display: none; }
+        .search-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; }
+        .search-item:active { background: #f1f3f5; }
+        .tag { font-weight: bold; color: #0D6EFD; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>📦 Mobil Raktár</h2>
+<!-- BEJELENTKEZŐ ABLAK -->
+<div class="card" id="login_screen">
+    <h2>🔐 Bejelentkezés</h2>
+    <input type="text" id="login_user" placeholder="Felhasználónév (pl. Admin)">
+    <input type="password" id="login_pin" placeholder="PIN Kód" inputmode="numeric">
+    <button class="btn-primary" onclick="doLogin()">Belépés</button>
+    <div id="login_loader" style="display:none; color: #FFC107;">Azonosítás folyamatban...</div>
+</div>
+
+<!-- FŐ ALKALMAZÁS ABLAK -->
+<div class="card" id="app_screen" style="display:none; position: relative;">
+    <h2 style="font-size: 18px;">📦 Mobil Raktár <br><span id="logged_in_as" style="font-size: 12px; color: gray;"></span></h2>
     
-    <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Kamera Bekapcsolása</button>
+    <!-- KERESÉS -->
+    <input type="text" id="search_box" placeholder="🔍 Keresés (Cikkszám / Név)..." oninput="liveSearch()" autocomplete="off">
+    <div id="search_results" class="search-res"></div>
+    
+    <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Vonalkód Olvasása</button>
     <div id="reader"></div>
     
-    <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()">
+    <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()" style="font-weight: bold;">
     
-    <div id="loader">⏳ Adatok szinkronizálása a felhővel...</div>
-    <div id="item_info">Olvasd le a címkét!</div>
+    <div id="loader">⏳ Adatok lekérése a felhőből...</div>
+    <div id="item_info">Nincs kiválasztott tétel.</div>
     
     <input type="number" id="qty" placeholder="Mennyiség (db)" min="1" value="1">
     <input type="text" id="remark" placeholder="Megjegyzés (Kötelező kivétnél)">
     
     <button class="btn-remove" onclick="konyvel('remove')">➖ KIVÉT (Kiadás)</button>
-    <button class="btn-add" onclick="konyvel('add')">➕ BEVÉTELEZÉS</button>
+    <button class="btn-add" onclick="konyvel('return_item')">➕ VISSZAVÉTELEZÉS</button>
 </div>
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz31ckHWQXgMuapMDOD7xyKxRIAJoCjbwvYLWoL7b6UqPz5-WZXbzpGH5i_y9yXpPo/exec"; 
-    
     const html5QrCode = new Html5Qrcode("reader");
+    let currentUser = "";
+
+    async function doLogin() {
+        const u = document.getElementById("login_user").value.trim();
+        const p = document.getElementById("login_pin").value.trim();
+        if(!u || !p) return alert("Add meg a nevet és a PIN kódot!");
+        
+        document.getElementById("login_loader").style.display = "block";
+        try {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'login', user: u, pin: p })
+            });
+            const data = await res.json();
+            document.getElementById("login_loader").style.display = "none";
+            
+            if (data.status === 'ok') {
+                currentUser = data.name;
+                document.getElementById("login_screen").style.display = "none";
+                document.getElementById("app_screen").style.display = "block";
+                document.getElementById("logged_in_as").innerText = `Belépve: ${data.name} (${data.role})`;
+            } else {
+                alert(data.message);
+            }
+        } catch(e) {
+            document.getElementById("login_loader").style.display = "none";
+            alert("Hálózati hiba!");
+        }
+    }
+
+    let searchTimeout = null;
+    async function liveSearch() {
+        const q = document.getElementById("search_box").value.trim();
+        const resDiv = document.getElementById("search_results");
+        if(q.length < 3) { resDiv.style.display = "none"; return; }
+        
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'search', query: q }) });
+                const data = await res.json();
+                if(data.status === 'ok' && data.results.length > 0) {
+                    resDiv.innerHTML = "";
+                    data.results.forEach(r => {
+                        let div = document.createElement("div");
+                        div.className = "search-item";
+                        div.innerHTML = `<span class="tag">${r.erpid}</span><br>${r.name} <br><small>Hely: ${r.location} | Készlet: ${r.qty} db</small>`;
+                        div.onclick = () => {
+                            document.getElementById("erp_id").value = r.erpid;
+                            resDiv.style.display = "none";
+                            document.getElementById("search_box").value = "";
+                            keresCikk();
+                        };
+                        resDiv.appendChild(div);
+                    });
+                    resDiv.style.display = "block";
+                } else {
+                    resDiv.innerHTML = "<div class='search-item'>Nincs találat.</div>";
+                    resDiv.style.display = "block";
+                }
+            } catch(e) { }
+        }, 500);
+    }
 
     function startScanner() {
         document.getElementById("reader").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
-        
         const config = { fps: 10, qrbox: { width: 250, height: 100 } };
         
         html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
@@ -74,7 +154,7 @@
         const erpid = document.getElementById("erp_id").value.trim();
         if (!erpid) return;
         
-        document.getElementById("item_info").innerText = "";
+        document.getElementById("item_info").innerHTML = "";
         document.getElementById("loader").style.display = "block";
         
         try {
@@ -86,11 +166,13 @@
             
             document.getElementById("loader").style.display = "none";
             if (data.status === 'ok') {
-                document.getElementById("item_info").innerText = `${data.name}\nKészlet (DEB): ${data.qty} db`;
-                document.getElementById("item_info").style.color = "#198754";
+                document.getElementById("item_info").innerHTML = `
+                    <span class="tag">${data.name}</span><br>
+                    <span style="color: gray;">Raktárhely:</span> <b>${data.location}</b><br>
+                    <span style="color: gray;">Készlet:</span> <b style="color: #198754; font-size: 18px;">${data.qty} db</b>
+                `;
             } else {
-                document.getElementById("item_info").innerText = data.message;
-                document.getElementById("item_info").style.color = "#DC3545";
+                document.getElementById("item_info").innerHTML = `<span style="color: red;">${data.message}</span>`;
             }
         } catch(e) {
             document.getElementById("loader").style.display = "none";
@@ -103,20 +185,16 @@
         const qty = parseInt(document.getElementById("qty").value);
         const remark = document.getElementById("remark").value.trim();
         
-        if (!erpid || !qty || qty <= 0) {
-            return alert("Hibás vagy hiányzó adatok (Cikkszám, Mennyiség)!");
-        }
-        if (action === 'remove' && !remark) {
-            return alert("Kivét esetén a megjegyzés kötelező!");
-        }
+        if (!erpid || !qty || qty <= 0) return alert("Hibás vagy hiányzó adatok (Cikkszám, Mennyiség)!");
+        if (action === 'remove' && !remark) return alert("Kivét esetén a megjegyzés kötelező!");
+        if (action === 'return_item' && !remark) return alert("Visszavétel esetén a megjegyzés kötelező!");
         
-        document.getElementById("item_info").innerText = "";
         document.getElementById("loader").style.display = "block";
         
         try {
             const res = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: action, erp_id: erpid, qty: qty, remark: remark })
+                body: JSON.stringify({ action: action, erp_id: erpid, qty: qty, remark: remark, user: currentUser })
             });
             const data = await res.json();
             
@@ -127,7 +205,7 @@
                 document.getElementById("erp_id").value = "";
                 document.getElementById("qty").value = "1";
                 document.getElementById("remark").value = "";
-                document.getElementById("item_info").innerText = "Olvasd le a következő címkét!";
+                document.getElementById("item_info").innerText = "Nincs kiválasztott tétel.";
             } else {
                 alert("Hiba történt: " + data.message);
             }
