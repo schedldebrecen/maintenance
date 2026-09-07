@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vonalkódos Raktárkezelő</title>
+    <meta name="theme-color" content="#0D6EFD">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #F8F9FA; padding: 15px; margin: 0; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        h2 { color: #0D6EFD; margin-top: 0; }
+        input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        button { width: 90%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-cam { background: #6C757D; }
+        .btn-remove { background: #DC3545; }
+        .btn-add { background: #198754; }
+        #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 8px; overflow: hidden; display: none; }
+        #item_info { margin: 15px 0; font-weight: bold; color: #198754; min-height: 40px; }
+        #loader { display: none; color: #FFC107; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📦 Mobil Raktár</h2>
+    
+    <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Kamera Bekapcsolása</button>
+    <div id="reader"></div>
+    
+    <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()">
+    
+    <div id="loader">⏳ Adatok szinkronizálása a felhővel...</div>
+    <div id="item_info">Olvasd le a címkét!</div>
+    
+    <input type="number" id="qty" placeholder="Mennyiség (db)" min="1" value="1">
+    <input type="text" id="remark" placeholder="Megjegyzés (Kötelező kivétnél)">
+    
+    <button class="btn-remove" onclick="konyvel('remove')">➖ KIVÉT (Kiadás)</button>
+    <button class="btn-add" onclick="konyvel('add')">➕ BEVÉTELEZÉS</button>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz31ckHWQXgMuapMDOD7xyKxRIAJoCjbwvYLWoL7b6UqPz5-WZXbzpGH5i_y9yXpPo/exec"; 
+    
+    const html5QrCode = new Html5Qrcode("reader");
+
+    function startScanner() {
+        document.getElementById("reader").style.display = "block";
+        document.getElementById("camBtn").style.display = "none";
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+        
+        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+            document.getElementById("erp_id").value = decodedText;
+            if (navigator.vibrate) navigator.vibrate(200);
+            stopScanner();
+            keresCikk(); 
+        }).catch(err => {
+            alert("Kamera hiba: Engedélyezd a böngészőnek a kamera használatát!");
+            stopScanner();
+        });
+    }
+
+    function stopScanner() {
+        try { html5QrCode.stop(); } catch(e) {}
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("camBtn").style.display = "inline-block";
+    }
+
+    async function keresCikk() {
+        const erpid = document.getElementById("erp_id").value.trim();
+        if (!erpid) return;
+        
+        document.getElementById("item_info").innerText = "";
+        document.getElementById("loader").style.display = "block";
+        
+        try {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'get', erp_id: erpid })
+            });
+            const data = await res.json();
+            
+            document.getElementById("loader").style.display = "none";
+            if (data.status === 'ok') {
+                document.getElementById("item_info").innerText = `${data.name}\nKészlet (DEB): ${data.qty} db`;
+                document.getElementById("item_info").style.color = "#198754";
+            } else {
+                document.getElementById("item_info").innerText = data.message;
+                document.getElementById("item_info").style.color = "#DC3545";
+            }
+        } catch(e) {
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("item_info").innerText = "Hálózati hiba!";
+        }
+    }
+
+    async function konyvel(action) {
+        const erpid = document.getElementById("erp_id").value.trim();
+        const qty = parseInt(document.getElementById("qty").value);
+        const remark = document.getElementById("remark").value.trim();
+        
+        if (!erpid || !qty || qty <= 0) {
+            return alert("Hibás vagy hiányzó adatok (Cikkszám, Mennyiség)!");
+        }
+        if (action === 'remove' && !remark) {
+            return alert("Kivét esetén a megjegyzés kötelező!");
+        }
+        
+        document.getElementById("item_info").innerText = "";
+        document.getElementById("loader").style.display = "block";
+        
+        try {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action, erp_id: erpid, qty: qty, remark: remark })
+            });
+            const data = await res.json();
+            
+            document.getElementById("loader").style.display = "none";
+            
+            if (data.status === 'ok') {
+                alert(`Sikeres könyvelés!\nÚj készlet: ${data.new_qty} db`);
+                document.getElementById("erp_id").value = "";
+                document.getElementById("qty").value = "1";
+                document.getElementById("remark").value = "";
+                document.getElementById("item_info").innerText = "Olvasd le a következő címkét!";
+            } else {
+                alert("Hiba történt: " + data.message);
+            }
+        } catch(e) {
+            document.getElementById("loader").style.display = "none";
+            alert("Hálózati hiba a könyvelés során!");
+        }
+    }
+</script>
+</body>
+</html>
