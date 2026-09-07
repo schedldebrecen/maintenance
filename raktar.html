@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vonalkódos Raktárkezelő</title>
     <meta name="theme-color" content="#0D6EFD">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #F8F9FA; padding: 15px; margin: 0; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
         h2 { color: #0D6EFD; margin-top: 0; }
-        input, select { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        input { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         button { width: 90%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
         .btn-primary { background: #0D6EFD; }
         .btn-cam { background: #6C757D; }
@@ -19,14 +18,23 @@
         #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 8px; overflow: hidden; display: none; }
         #item_info { margin: 15px 0; font-size: 15px; min-height: 50px; text-align: left; background: #f1f3f5; padding: 10px; border-radius: 8px;}
         #loader { display: none; color: #FFC107; font-weight: bold; margin-bottom: 10px; }
-        .search-res { background: white; border: 1px solid #ccc; text-align: left; border-radius: 5px; max-height: 150px; overflow-y: auto; position: absolute; width: 90%; margin-left: 5%; z-index: 1000; display: none; }
-        .search-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; }
-        .search-item:active { background: #f1f3f5; }
+        
+        /* ÚJ: FÜLEK DIZÁJNJA */
+        .tabs { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #0D6EFD; }
+        .tab { flex: 1; padding: 10px; background: white; color: #0D6EFD; font-weight: bold; cursor: pointer; border: none; font-size: 14px; }
+        .tab.active { background: #0D6EFD; color: white; }
+        
+        /* BÖNGÉSZŐ LISTA DIZÁJN */
+        .list-container { max-height: 400px; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .search-item { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; }
+        .search-item:nth-child(even) { background-color: #f9f9f9; }
+        .search-item:active { background: #e2e6ea; }
         .tag { font-weight: bold; color: #0D6EFD; }
     </style>
 </head>
 <body>
 
+<!-- BEJELENTKEZŐ ABLAK -->
 <div class="card" id="login_screen">
     <h2>🔐 Bejelentkezés</h2>
     <input type="text" id="login_user" placeholder="Felhasználónév (pl. Admin)">
@@ -35,25 +43,39 @@
     <div id="login_loader" style="display:none; color: #FFC107;">Azonosítás folyamatban...</div>
 </div>
 
-<div class="card" id="app_screen" style="display:none; position: relative;">
-    <h2 style="font-size: 18px;">📦 Mobil Raktár <br><span id="logged_in_as" style="font-size: 12px; color: gray;"></span></h2>
+<!-- FŐ ALKALMAZÁS ABLAK -->
+<div class="card" id="app_screen" style="display:none; position: relative; padding-top: 10px;">
     
-    <input type="text" id="search_box" placeholder="🔍 Keresés (Cikkszám / Név)..." oninput="liveSearch()" autocomplete="off">
-    <div id="search_results" class="search-res"></div>
+    <!-- FÜLEK -->
+    <div class="tabs">
+        <button class="tab active" id="tab_scan" onclick="switchTab('scan')">📷 Olvasó & Könyvelés</button>
+        <button class="tab" id="tab_browse" onclick="switchTab('browse')">🔍 Böngésző</button>
+    </div>
+
+    <!-- 1. FÜL: KÖNYVELÉS (Eredeti nézet) -->
+    <div id="scan_view">
+        <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Vonalkód Olvasása</button>
+        <div id="reader"></div>
+        
+        <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()" style="font-weight: bold;">
+        
+        <div id="loader">⏳ Adatok lekérése a felhőből...</div>
+        <div id="item_info">Nincs kiválasztott tétel.</div>
+        
+        <input type="number" id="qty" placeholder="Mennyiség (db)" min="1" value="1">
+        <input type="text" id="remark" placeholder="Megjegyzés (Kötelező)">
+        
+        <button class="btn-remove" onclick="konyvel('remove')">➖ KIVÉT (Kiadás)</button>
+        <button class="btn-add" onclick="konyvel('return_item')">➕ VISSZAVÉTELEZÉS</button>
+    </div>
+
+    <!-- 2. FÜL: BÖNGÉSZÉS (Új nézet) -->
+    <div id="browse_view" style="display: none;">
+        <input type="text" id="local_search" placeholder="Gyorskeresés a cikkek között..." oninput="filterList()" autocomplete="off">
+        <div id="browse_loader" style="display: none; color: #198754; font-weight: bold; margin: 10px;">Adatok letöltése...</div>
+        <div id="item_list" class="list-container"></div>
+    </div>
     
-    <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Vonalkód Olvasása</button>
-    <div id="reader"></div>
-    
-    <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()" style="font-weight: bold;">
-    
-    <div id="loader">⏳ Adatok lekérése a felhőből...</div>
-    <div id="item_info">Nincs kiválasztott tétel.</div>
-    
-    <input type="number" id="qty" placeholder="Mennyiség (db)" min="1" value="1">
-    <input type="text" id="remark" placeholder="Megjegyzés (Kötelező kivétnél)">
-    
-    <button class="btn-remove" onclick="konyvel('remove')">➖ KIVÉT (Kiadás)</button>
-    <button class="btn-add" onclick="konyvel('return_item')">➕ VISSZAVÉTELEZÉS</button>
 </div>
 
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -62,19 +84,18 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz31ckHWQXgMuapMDOD7xyKxRIAJoCjbwvYLWoL7b6UqPz5-WZXbzpGH5i_y9yXpPo/exec"; 
     const html5QrCode = new Html5Qrcode("reader");
     let currentUser = "";
+    let allItems = []; // Itt tároljuk a letöltött cikkeket a gyors böngészéshez
 
     async function doFetch(payload) {
-        // Közös fetch logikánk a hibaüzenetek pontos elfogására
         const res = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(payload)
         });
-        
         const text = await res.text();
         try {
             return JSON.parse(text);
         } catch(e) {
-            throw new Error("A szerver nem megfelelő választ küldött (Valószínűleg jogosultsági hiba). Válasz töredéke: " + text.substring(0, 50));
+            throw new Error("Szerver hiba (A Google Apps Script hibaüzenetet küldött):\n" + text);
         }
     }
 
@@ -92,7 +113,6 @@
                 currentUser = data.name;
                 document.getElementById("login_screen").style.display = "none";
                 document.getElementById("app_screen").style.display = "block";
-                document.getElementById("logged_in_as").innerText = `Belépve: ${data.name} (${data.role})`;
             } else {
                 alert(data.message);
             }
@@ -102,39 +122,66 @@
         }
     }
 
-    let searchTimeout = null;
-    async function liveSearch() {
-        const q = document.getElementById("search_box").value.trim();
-        const resDiv = document.getElementById("search_results");
-        if(q.length < 3) { resDiv.style.display = "none"; return; }
-        
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(async () => {
-            try {
-                const data = await doFetch({ action: 'search', query: q });
-                if(data.status === 'ok' && data.results.length > 0) {
-                    resDiv.innerHTML = "";
-                    data.results.forEach(r => {
-                        let div = document.createElement("div");
-                        div.className = "search-item";
-                        div.innerHTML = `<span class="tag">${r.erpid}</span><br>${r.name} <br><small>Hely: ${r.location} | Készlet: ${r.qty} db</small>`;
-                        div.onclick = () => {
-                            document.getElementById("erp_id").value = r.erpid;
-                            resDiv.style.display = "none";
-                            document.getElementById("search_box").value = "";
-                            keresCikk();
-                        };
-                        resDiv.appendChild(div);
-                    });
-                    resDiv.style.display = "block";
-                } else {
-                    resDiv.innerHTML = "<div class='search-item'>Nincs találat.</div>";
-                    resDiv.style.display = "block";
-                }
-            } catch(e) { }
-        }, 500);
+    // FÜLEK VÁLTÁSA
+    function switchTab(tab) {
+        if (tab === 'scan') {
+            document.getElementById('scan_view').style.display = 'block';
+            document.getElementById('browse_view').style.display = 'none';
+            document.getElementById('tab_scan').classList.add('active');
+            document.getElementById('tab_browse').classList.remove('active');
+        } else {
+            document.getElementById('scan_view').style.display = 'none';
+            document.getElementById('browse_view').style.display = 'block';
+            document.getElementById('tab_scan').classList.remove('active');
+            document.getElementById('tab_browse').classList.add('active');
+            // Ha még üres a lista, töltsük le az egészet
+            if (allItems.length === 0) loadAllItems();
+        }
     }
 
+    // BÖNGÉSZŐ LISTA BETÖLTÉSE
+    async function loadAllItems() {
+        document.getElementById('browse_loader').style.display = "block";
+        try {
+            const data = await doFetch({ action: 'get_all' });
+            if (data.status === 'ok') {
+                allItems = data.results;
+                renderList(allItems);
+            } else {
+                alert(data.message);
+            }
+        } catch(e) {
+            alert("Hiba a cikkek letöltésekor: " + e.message);
+        }
+        document.getElementById('browse_loader').style.display = "none";
+    }
+
+    // LISTA MEGJELENÍTÉSE
+    function renderList(items) {
+        const div = document.getElementById('item_list');
+        div.innerHTML = "";
+        items.forEach(r => {
+            const el = document.createElement('div');
+            el.className = 'search-item';
+            el.innerHTML = `<span class="tag">${r.erpid}</span><br>${r.name} <br><small>Hely: ${r.location} | Készlet: <b style="color:#198754">${r.qty} db</b></small>`;
+            el.onclick = () => {
+                // Ha rákattint, átvált a könyvelő ablakra
+                document.getElementById("erp_id").value = r.erpid;
+                switchTab('scan');
+                keresCikk();
+            };
+            div.appendChild(el);
+        });
+    }
+
+    // HELYI GYORSKERESÉS A LETÖLTÖTT LISTÁBAN
+    function filterList() {
+        const q = document.getElementById("local_search").value.toLowerCase();
+        const filtered = allItems.filter(r => r.erpid.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+        renderList(filtered);
+    }
+
+    // VONALKÓD OLVASÓ FUNKCIÓK
     function startScanner() {
         document.getElementById("reader").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
@@ -189,8 +236,7 @@
         const remark = document.getElementById("remark").value.trim();
         
         if (!erpid || !qty || qty <= 0) return alert("Hibás vagy hiányzó adatok (Cikkszám, Mennyiség)!");
-        if (action === 'remove' && !remark) return alert("Kivét esetén a megjegyzés kötelező!");
-        if (action === 'return_item' && !remark) return alert("Visszavétel esetén a megjegyzés kötelező!");
+        if (!remark) return alert("Könyveléshez a megjegyzés mező kitöltése kötelező!");
         
         document.getElementById("loader").style.display = "block";
         
@@ -204,6 +250,8 @@
                 document.getElementById("qty").value = "1";
                 document.getElementById("remark").value = "";
                 document.getElementById("item_info").innerText = "Nincs kiválasztott tétel.";
+                // Frissítsük a háttérben lévő böngésző listát is, hogy pontos legyen
+                if (allItems.length > 0) loadAllItems(); 
             } else {
                 alert("Hiba történt: " + data.message);
             }
