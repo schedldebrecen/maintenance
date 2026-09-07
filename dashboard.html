@@ -8,7 +8,8 @@
         :root {
             --bg-dark: #0f172a; --surface: #1e293b; --text-main: #f8fafc;
             --text-muted: #94a3b8; --border: #475569; --pri-info: #0ea5e9; 
-            --pri-normal: #10b981; --pri-high: #f59e0b; --pri-crit: #ef4444; --pri-prog: #8b5cf6;
+            --pri-normal: #10b981; --pri-high: #f59e0b; --pri-crit: #ef4444; 
+            --pri-prog: #8b5cf6; --pri-obs: #6366f1;
         }
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0; overflow-x: hidden; transition: background 0.3s; }
@@ -24,16 +25,17 @@
         .refresh-info { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 
         .kpi-bar { display: flex; gap: 15px; padding: 20px 30px; background: var(--bg-dark); overflow-x: auto; }
-        .kpi-card { flex: 1; min-width: 150px; background: var(--surface); border-radius: 8px; padding: 15px; text-align: center; border: 1px solid var(--border); border-bottom: 4px solid var(--border); cursor: pointer; transition: transform 0.2s, background 0.2s; }
+        .kpi-card { flex: 1; min-width: 140px; background: var(--surface); border-radius: 8px; padding: 15px; text-align: center; border: 1px solid var(--border); border-bottom: 4px solid var(--border); cursor: pointer; transition: transform 0.2s, background 0.2s; }
         .kpi-card:hover { transform: translateY(-3px); background: #334155; }
         .kpi-card.active-filter { border: 2px solid white; background: #334155; }
-        .kpi-card h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-card h3 { margin: 0 0 10px 0; font-size: 13px; color: var(--text-muted); text-transform: uppercase; }
         .kpi-card .val { font-size: 32px; font-weight: bold; }
         
         .kpi-card.crit { border-bottom-color: var(--pri-crit); } .kpi-card.crit .val { color: var(--pri-crit); }
         .kpi-card.high { border-bottom-color: var(--pri-high); } .kpi-card.high .val { color: var(--pri-high); }
         .kpi-card.prog { border-bottom-color: var(--pri-prog); } .kpi-card.prog .val { color: var(--pri-prog); }
-        .kpi-card.total { border-bottom-color: var(--pri-info); } .kpi-card.total .val { color: var(--pri-info); }
+        .kpi-card.total { border-bottom-color: var(--pri-normal); } .kpi-card.total .val { color: var(--pri-normal); }
+        .kpi-card.info { border-bottom-color: var(--pri-info); } .kpi-card.info .val { color: var(--pri-info); }
 
         .dashboard-container { padding: 0 30px 30px 30px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
@@ -43,6 +45,7 @@
         .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 2px solid var(--pri-normal); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: scale(1.02); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
         .card.Informatív { border-color: var(--pri-info); }
+        .card.Megfigyelés { border-color: var(--pri-obs); }
         .card.Magas { border-color: var(--pri-high); }
         .card.Termelésleállás { border-color: var(--pri-crit); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
         .card.Folyamatban { border-color: var(--pri-prog); background: #1e1b4b; }
@@ -53,6 +56,7 @@
         
         .badge { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
         .badge-info { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid var(--pri-info); }
+        .badge-obs { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid var(--pri-obs); }
         .badge-normal { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid var(--pri-normal); }
         .badge-high { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--pri-high); }
         .badge-crit { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--pri-crit); animation: pulse-border 2s infinite; }
@@ -94,7 +98,7 @@
     <div id="startupBanner">
         <div class="startup-box">
             <h2>Értesítések beállítása</h2>
-            <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a dashboard, ha új eseti hiba érkezik?</p>
+            <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" style="background:var(--border);" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
             <button class="dash-btn" style="background:var(--bg-dark); border:1px solid var(--border);" onclick="initDashboard(false, false)">🔇 Nincs hang, nincs villogás</button>
@@ -127,10 +131,13 @@
             <h3>Sürgős (Magas)</h3><div class="val" id="kpiHigh">0</div>
         </div>
         <div class="kpi-card prog" id="kpiCard-Prog" onclick="setDashboardFilter('Prog')">
-            <h3>Folyamatban lévő</h3><div class="val" id="kpiProg">0</div>
+            <h3>Folyamatban</h3><div class="val" id="kpiProg">0</div>
         </div>
-        <div class="kpi-card total" id="kpiCard-Total" onclick="setDashboardFilter(null)">
-            <h3>Összes Nyitott</h3><div class="val" id="kpiTotal">0</div>
+        <div class="kpi-card total active-filter" id="kpiCard-Total" onclick="setDashboardFilter(null)">
+            <h3>Munkára vár (Fő)</h3><div class="val" id="kpiTotal">0</div>
+        </div>
+        <div class="kpi-card info" id="kpiCard-Info" onclick="setDashboardFilter('Info')">
+            <h3>Informatív / Megf.</h3><div class="val" id="kpiInfo">0</div>
         </div>
     </div>
 
@@ -149,10 +156,8 @@
             
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
-            <!-- Dashboard Akció Panel (Login vagy Műveletek) -->
+            <!-- Dashboard Akció Panel -->
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
-                
-                <!-- Login Forma (Csak ha nincs élő munkamenet) -->
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
                     <input type="text" id="dashLoginNev" class="dash-input" placeholder="Felhasználónév (pl. Admin)">
@@ -161,12 +166,9 @@
                     <div id="dashLoginStatus" style="color:var(--pri-crit); font-size:12px; margin-top:5px;"></div>
                 </div>
 
-                <!-- Műveletek Forma (Ha be van jelentkezve) -->
                 <div id="dashTaskActions" style="display:none;">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Műveletek végrehajtása</h4>
-                    
                     <button id="btnDashStart" class="dash-btn start" onclick="dashStartTask()">▶️ Munkát elkezdem</button>
-                    
                     <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
                         <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
                         <div style="display:flex; gap:10px;">
@@ -176,7 +178,6 @@
                         <button class="dash-btn" style="background:var(--pri-normal);" onclick="dashCloseTask()">✅ Jegy lezárása</button>
                     </div>
                 </div>
-
             </div>
 
             <button class="btn-close-modal" onclick="closeModal(true)">Bezárás (Művelet nélkül)</button>
@@ -186,14 +187,12 @@
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 
-    // 20 MÁSODPERCES FRISSÍTÉS
     const REFRESH_INTERVAL_SEC = 20; 
     let timer = REFRESH_INTERVAL_SEC;
     let currentActiveTasks = [];
     let activeFilter = null; 
     let autoResetTimeout = null;
 
-    // Riasztási beállítások
     let optSound = false;
     let optFlash = false;
     let audioCtx = null;
@@ -201,18 +200,13 @@
     let knownAdHocIds = new Set();
     let isFirstLoad = true;
 
-    // Dashboard Munkamenet
     let sessionUser = null;
     let sessionExpiry = 0;
-    let sessionTimerId = null;
-    let activeTaskId = null; // Melyik task van megnyitva a modalban
+    let activeTaskId = null; 
 
-    // INIT
     function initDashboard(sound, flash) {
-        optSound = sound;
-        optFlash = flash;
+        optSound = sound; optFlash = flash;
         document.getElementById('startupBanner').style.display = 'none';
-        
         if(optSound) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if(AudioContext) audioCtx = new AudioContext();
@@ -220,29 +214,22 @@
         fetchDashboardData();
     }
 
-    async function hashPassword(p) { 
-        const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); 
-        return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); 
-    }
+    async function hashPassword(p) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
 
-    // Óra és visszaszámláló
     setInterval(() => { document.getElementById('clockDisplay').innerText = new Date().toLocaleTimeString('hu-HU'); }, 1000);
     setInterval(() => {
         timer--;
         if (timer <= 0) { timer = REFRESH_INTERVAL_SEC; fetchDashboardData(); }
         document.getElementById('countdownDisplay').innerText = timer;
         document.getElementById('progressBar').style.width = (((REFRESH_INTERVAL_SEC - timer) / REFRESH_INTERVAL_SEC) * 100) + "%";
-        
         updateSessionTimer();
     }, 1000);
 
-    // ADAT LELKÉRDEZÉS ÉS FELDOLGOZÁS
     async function fetchDashboardData() {
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
             const result = await res.json();
             if(result.status === "success") { processData(result.data); } 
-            else { console.error(result.message); }
         } catch (e) { console.error("Hiba:", e); }
     }
 
@@ -250,9 +237,18 @@
         currentActiveTasks = allTasks.filter(t => t.statusz !== "Lezárt");
         let hasNewAdHoc = false;
 
+        let cCrit = 0, cHigh = 0, cProg = 0, cInfo = 0;
+
         currentActiveTasks.forEach(t => {
             if(t.prioritas === "Igen") t.prioritas = "Magas prioritás";
             if(t.prioritas === "Nem") t.prioritas = "Normál";
+            
+            const pLower = String(t.prioritas).toLowerCase();
+
+            if(pLower.includes("leállás")) cCrit++;
+            if(pLower.includes("magas")) cHigh++;
+            if(t.statusz === "Folyamatban") cProg++;
+            if(pLower.includes("informatív") || pLower.includes("megfigyelés")) cInfo++;
             
             if(String(t.id).startsWith("KB-")) {
                 if(!isFirstLoad && !knownAdHocIds.has(t.id)) hasNewAdHoc = true;
@@ -263,23 +259,15 @@
         if (hasNewAdHoc && !isAlarming) triggerAlert();
         isFirstLoad = false;
 
-        let cCrit = 0, cHigh = 0, cProg = 0;
-        currentActiveTasks.forEach(t => {
-            const pLower = String(t.prioritas).toLowerCase();
-            if(pLower.includes("leállás")) cCrit++;
-            if(pLower.includes("magas")) cHigh++;
-            if(t.statusz === "Folyamatban") cProg++;
-        });
-
         document.getElementById('kpiCrit').innerText = cCrit; 
         document.getElementById('kpiHigh').innerText = cHigh;
         document.getElementById('kpiProg').innerText = cProg; 
-        document.getElementById('kpiTotal').innerText = currentActiveTasks.length;
+        document.getElementById('kpiInfo').innerText = cInfo; 
+        document.getElementById('kpiTotal').innerText = currentActiveTasks.length - cInfo;
 
         renderGrid();
     }
 
-    // ALERT LOGIKA
     function triggerAlert() {
         isAlarming = true;
         if(optFlash) document.body.classList.add('flash-red');
@@ -291,7 +279,6 @@
         isAlarming = false;
         document.body.classList.remove('flash-red');
         document.getElementById('ackAlertBtn').style.display = 'none';
-        // A hang automatikusan leáll 10mp után a lenti fgv miatt
     }
 
     function playAlarmSound() {
@@ -304,10 +291,9 @@
             gain.gain.setValueAtTime(0.3, audioCtx.currentTime + time); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + time + 0.5);
             osc.start(audioCtx.currentTime + time); osc.stop(audioCtx.currentTime + time + 0.5);
         };
-        for(let i = 0; i < 10; i++) playBeep(i); // 10 mp csipogás
+        for(let i = 0; i < 10; i++) playBeep(i); 
     }
 
-    // SZŰRÉS ÉS RENDER
     function setDashboardFilter(filterType) {
         if (activeFilter === filterType) activeFilter = null; else activeFilter = filterType;
         document.querySelectorAll('.kpi-card').forEach(el => el.classList.remove('active-filter'));
@@ -321,19 +307,21 @@
 
     function renderGrid() {
         const grid = document.getElementById('taskGrid');
-        if (currentActiveTasks.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Minden gép üzemel! Nincs aktív feladat.</h2></div>`; return; }
-
+        
         let filteredTasks = currentActiveTasks;
+        
         if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => String(t.prioritas).toLowerCase().includes("leállás"));
         else if (activeFilter === 'High') filteredTasks = currentActiveTasks.filter(t => String(t.prioritas).toLowerCase().includes("magas"));
         else if (activeFilter === 'Prog') filteredTasks = currentActiveTasks.filter(t => t.statusz === "Folyamatban");
+        else if (activeFilter === 'Info') filteredTasks = currentActiveTasks.filter(t => String(t.prioritas).toLowerCase().includes("informatív") || String(t.prioritas).toLowerCase().includes("megfigyelés"));
+        else if (activeFilter === null) filteredTasks = currentActiveTasks.filter(t => !String(t.prioritas).toLowerCase().includes("informatív") && !String(t.prioritas).toLowerCase().includes("megfigyelés"));
 
-        if (filteredTasks.length === 0) { grid.innerHTML = `<h2 style="grid-column: 1/-1; text-align: center; color: var(--text-muted); margin-top: 50px;">Nincs feladat ebben a kategóriában.</h2>`; return; }
+        if (filteredTasks.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Nincs aktív feladat ebben a nézetben.</h2></div>`; return; }
 
         let normalTasks = filteredTasks.filter(t => !String(t.id).startsWith("PREV-"));
         let prevTasks = filteredTasks.filter(t => String(t.id).startsWith("PREV-"));
 
-        const w = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Informatív": 1 };
+        const w = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Megfigyelés alatt": 1.5, "Informatív": 1 };
         const sorter = (a, b) => {
             if (a.statusz === "Folyamatban" && b.statusz !== "Folyamatban") return -1;
             if (a.statusz !== "Folyamatban" && b.statusz === "Folyamatban") return 1;
@@ -365,7 +353,9 @@
 
         if(pLower.includes("leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
         else if(pLower.includes("magas")) { bC = "badge-high"; eC = "Magas"; }
+        else if(pLower.includes("megfigyelés")) { bC = "badge-obs"; eC = "Megfigyelés"; }
         else if(pLower.includes("informatív")) { bC = "badge-info"; eC = "Informatív"; }
+        
         if (task.statusz === "Folyamatban") eC = "Folyamatban";
 
         let inP = task.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️</span> <b>${task.felelos}</b> éppen dolgozik rajta</div>` : "";
@@ -388,7 +378,7 @@
         if (left <= 0) {
             sessionUser = null; 
             document.getElementById('activeUserBadge').style.display = 'none';
-            refreshModalActionPanel(); // Ha nyitva van egy ablak, rejtse el a gombokat
+            refreshModalActionPanel(); 
         } else {
             let m = Math.floor(left / 60); let s = left % 60;
             document.getElementById('dashSessionTime').innerText = `${m}:${s.toString().padStart(2, '0')}`;
@@ -397,7 +387,7 @@
 
     function extendSession() {
         if(sessionUser) {
-            sessionExpiry = Date.now() + (5 * 60 * 1000); // 5 perc hosszabbítás
+            sessionExpiry = Date.now() + (5 * 60 * 1000); 
             document.getElementById('activeUserBadge').style.display = 'block';
             document.getElementById('dashUserName').innerText = sessionUser;
             refreshModalActionPanel();
@@ -411,8 +401,7 @@
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
             const r = await res.json();
             if(r.status === "success") { 
-                sessionUser = n;
-                extendSession();
+                sessionUser = n; extendSession();
                 document.getElementById('dashLoginNev').value = ""; document.getElementById('dashLoginPin').value = "";
                 stat.innerText = "";
             } else { stat.innerText = r.message; }
@@ -429,11 +418,7 @@
             document.getElementById('dashTaskActions').style.display = 'block';
             
             const btnStart = document.getElementById('btnDashStart');
-            if(task.statusz === "Folyamatban") {
-                btnStart.style.display = 'none';
-            } else {
-                btnStart.style.display = 'block';
-            }
+            if(task.statusz === "Folyamatban") btnStart.style.display = 'none'; else btnStart.style.display = 'block';
         } else {
             document.getElementById('dashLoginForm').style.display = 'block';
             document.getElementById('dashTaskActions').style.display = 'none';
@@ -450,7 +435,10 @@
         document.getElementById('modalSubtitle').innerText = task.hiba;
         
         let pB = "badge-normal"; const pLower = String(task.prioritas).toLowerCase();
-        if(pLower.includes("leállás")) pB = "badge-crit"; else if(pLower.includes("magas")) pB = "badge-high"; else if(pLower.includes("informatív")) pB = "badge-info";
+        if(pLower.includes("leállás")) pB = "badge-crit"; 
+        else if(pLower.includes("magas")) pB = "badge-high"; 
+        else if(pLower.includes("megfigyelés")) pB = "badge-obs"; 
+        else if(pLower.includes("informatív")) pB = "badge-info";
         
         let prioSpan = document.getElementById('modalPrio'); prioSpan.className = `badge ${pB}`; prioSpan.innerText = task.prioritas;
 
@@ -475,12 +463,11 @@
 
         document.getElementById('modalDetails').innerHTML = details;
         
-        // Formok kiürítése
         document.getElementById('dashMegoldas').value = ""; document.getElementById('dashIdo').value = ""; document.getElementById('dashDowntime').value = "";
         
         refreshModalActionPanel();
         document.getElementById('taskModal').style.display = "flex";
-        extendSession(); // Aktiválja/hosszabbítja a sessiont kattintáskor
+        extendSession(); 
     }
 
     function closeModal(force = false) {
@@ -496,8 +483,7 @@
         if(!sessionUser || !activeTaskId) return;
         document.getElementById('btnDashStart').innerText = "Feldolgozás...";
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
-        fetchDashboardData();
-        closeModal(true);
+        fetchDashboardData(); closeModal(true);
     }
 
     async function dashCloseTask() {
@@ -506,8 +492,7 @@
         if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
         
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser }) }); 
-        fetchDashboardData();
-        closeModal(true);
+        fetchDashboardData(); closeModal(true);
     }
 
 </script>
