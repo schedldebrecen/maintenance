@@ -72,8 +72,9 @@
         .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } 
         .filter-header h4 { margin: 0; font-size: 14px; color: var(--primary); }
         
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .kpi-card { background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border); text-align: center; border-bottom: 4px solid var(--border); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border); text-align: center; border-bottom: 4px solid var(--border); transition: transform 0.2s; }
+        .kpi-card:hover { transform: translateY(-3px); }
         .kpi-card h4 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px; text-transform: uppercase; } 
         .kpi-card .value { font-size: 28px; font-weight: bold; color: var(--primary); } 
         .kpi-card.alert { border-bottom-color: var(--pri-crit); }
@@ -93,6 +94,10 @@
         .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size:14px; }
         .admin-table th, .admin-table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
         .admin-table th { background: #e2e8f0; color: var(--primary); font-weight:bold; }
+        
+        /* MODALS */
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--surface); padding: 30px; border-radius: 10px; border: 1px solid var(--border); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
 
         @media (min-width: 768px) { 
             .form-grid { grid-template-columns: 1fr 1fr; gap: 15px; } 
@@ -291,7 +296,7 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA NÉZET -->
+        <!-- STATISZTIKA NÉZET - KIBŐVÍTETT DRILL-DOWN-NAL -->
         <div id="statisztikaView" class="view box">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
                 <h3 style="border:none; margin:0; padding:0;">📊 Részletes Statisztikák</h3>
@@ -305,10 +310,21 @@
             <!-- ESETI HIBÁK STAT -->
             <h4 style="color:var(--pri-crit);">📈 Eseti Meghibásodások és Kiesések</h4>
             <div class="kpi-grid" style="margin-bottom:30px;">
-                <div class="kpi-card alert"><h4>Aktív Leállás</h4><div class="value" id="statLeallas">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-high);"><h4>Nyitott Eseti Hiba</h4><div class="value" id="statNyitott">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Javítási Idő (Össz)</h4><div class="value" id="statJavIdo">0</div><small>óra</small></div>
-                <div class="kpi-card alert"><h4>Termeléskiesés</h4><div class="value" id="statDowntime">0</div><small>perc</small></div>
+                <div class="kpi-card alert" style="cursor:pointer;" onclick="openStatModal('downtime')" title="Kattints a részletekért!">
+                    <h4>Termeléskiesés 👆</h4><div class="value" id="statDowntime">0</div><small>perc</small>
+                </div>
+                <div class="kpi-card alert">
+                    <h4>Aktív Leállás</h4><div class="value" id="statLeallas">0</div><small>db</small>
+                </div>
+                <div class="kpi-card" style="border-bottom-color:var(--pri-high);">
+                    <h4>Nyitott Eseti Hiba</h4><div class="value" id="statNyitott">0</div><small>db (Kritikus + Normál)</small>
+                </div>
+                <div class="kpi-card" style="border-bottom-color:var(--pri-info);">
+                    <h4>Informatív / Megfigyelés</h4><div class="value" id="statInfoNyitott" style="color:var(--pri-info);">0</div><small>db</small>
+                </div>
+                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);">
+                    <h4>Javítási Idő (Össz)</h4><div class="value" id="statJavIdo">0</div><small>óra</small>
+                </div>
             </div>
 
             <!-- PREVENTÍV STAT -->
@@ -346,16 +362,16 @@
                                 <th>Felhasználó</th>
                                 <th>Felvitt Hibák</th>
                                 <th>Megoldott Hibák</th>
-                                <th>Átlagos Reakcióidő (Munkaidőben)</th>
+                                <th style="color:var(--pri-crit);">Reakció (Sürgős/Leállás)</th>
+                                <th>Reakció (Normál)</th>
                             </tr>
                         </thead>
                         <tbody id="adminStatsTableBody">
-                            <tr><td colspan="4" style="text-align:center;">Adatok betöltése...</td></tr>
+                            <tr><td colspan="5" style="text-align:center;">Adatok betöltése...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-
         </div>
 
         <div id="profilCserelo" class="view box">
@@ -373,6 +389,15 @@
             <button onclick="saveSettings()" class="btn-secondary">Beállítások Mentése</button>
             <div id="profilStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
         </div>
+    </div>
+</div>
+
+<!-- STATISZTIKA DRILL-DOWN MODAL -->
+<div class="modal-overlay" id="statDetailsModal" onclick="closeStatModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 id="statModalTitle" style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;">Részletek</h2>
+        <div id="statModalBody" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;"></div>
+        <button class="btn-close-modal" onclick="closeStatModal(true)">Bezárás</button>
     </div>
 </div>
 
@@ -406,34 +431,22 @@
         return `${y}-${m}-${d}`;
     }
 
-    // --- ÚJ: MUNKAIDŐ SZÁMÍTÁS REAKCIÓIDŐHÖZ (H-P, 06:00-22:00) ---
+    // --- MUNKAIDŐ SZÁMÍTÁS REAKCIÓIDŐHÖZ (H-P, 06:00-22:00) ---
     function getWorkingMinutes(startDateStr, endDateStr) {
-        let start = new Date(startDateStr);
-        let end = new Date(endDateStr);
+        let start = new Date(startDateStr); let end = new Date(endDateStr);
         if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) return 0;
-
-        let totalMinutes = 0;
-        let current = new Date(start);
+        let totalMinutes = 0; let current = new Date(start);
 
         while (current < end) {
             let day = current.getDay(); 
-            // 1: Hétfő ... 5: Péntek
             if (day >= 1 && day <= 5) {
-                let startOfDay = new Date(current);
-                startOfDay.setHours(6, 0, 0, 0); // 06:00
-                let endOfDay = new Date(current);
-                endOfDay.setHours(22, 0, 0, 0); // 22:00
-
+                let startOfDay = new Date(current); startOfDay.setHours(6, 0, 0, 0);
+                let endOfDay = new Date(current); endOfDay.setHours(22, 0, 0, 0);
                 let periodStart = current > startOfDay ? current : startOfDay;
                 let periodEnd = end < endOfDay ? end : endOfDay;
-
-                if (periodStart < periodEnd) {
-                    totalMinutes += (periodEnd - periodStart) / 60000;
-                }
+                if (periodStart < periodEnd) totalMinutes += (periodEnd - periodStart) / 60000;
             }
-            // Ugrás a következő nap éjjelére
-            current.setDate(current.getDate() + 1);
-            current.setHours(0, 0, 0, 0);
+            current.setDate(current.getDate() + 1); current.setHours(0, 0, 0, 0);
         }
         return totalMinutes;
     }
@@ -722,8 +735,9 @@
         }
     }
 
+    // STATISZTIKA SZÁMOLÁS, ADMIN MŰVELETEK ÉS DRILL-DOWN LOGIKA
     function calcStats() {
-        let esetiNyitott = 0, leallas = 0, esetiJavIdo = 0, termelesKieses = 0;
+        let esetiNyitott = 0, infoNyitott = 0, leallas = 0, esetiJavIdo = 0, termelesKieses = 0;
         let prevNyitott = 0, prevIdo = 0;
         let machineIssues = {}; 
         
@@ -734,14 +748,21 @@
 
         // ADMIN Dolgozói stat variables
         let userStats = {};
-        function initUser(u) { if(u && !userStats[u]) userStats[u] = { felvett: 0, megoldott: 0, responseMinutes: [] }; }
+        function initUser(u) { if(u && !userStats[u]) userStats[u] = { felvett: 0, megoldott: 0, reactNorm: [], reactKrit: [] }; }
 
         globalOpenTasks.forEach(t => {
             const isPrev = String(t.id || "").startsWith("PREV-");
-            if (isPrev) prevNyitott++;
-            else {
-                esetiNyitott++;
-                if(String(t.prioritas || "").toLowerCase().includes("leállás")) leallas++;
+            if (isPrev) {
+                prevNyitott++;
+            } else {
+                const pLower = String(t.prioritas || "").toLowerCase();
+                if(pLower.includes("informatív") || pLower.includes("megfigyelés")) {
+                    infoNyitott++;
+                } else {
+                    esetiNyitott++;
+                }
+
+                if(pLower.includes("leállás")) leallas++;
                 if (t.gep && t.gep !== "-") machineIssues[t.gep] = (machineIssues[t.gep] || 0) + 1;
                 
                 initUser(t.felhasznalo); userStats[t.felhasznalo].felvett++;
@@ -749,8 +770,11 @@
 
             if (t.startIdopont) {
                 let diffMin = getWorkingMinutes(t.idopont, t.startIdopont);
-                if (diffMin >= 0 && t.felelos) {
-                    initUser(t.felelos); userStats[t.felelos].responseMinutes.push(diffMin);
+                let worker = t.felelos || t.lezarta;
+                let isKrit = String(t.prioritas).toLowerCase().includes("leállás") || String(t.prioritas).toLowerCase().includes("magas");
+                if (diffMin >= 0 && worker) {
+                    initUser(worker); 
+                    if(isKrit) userStats[worker].reactKrit.push(diffMin); else userStats[worker].reactNorm.push(diffMin);
                 }
             }
         }); 
@@ -777,13 +801,16 @@
             if (t.startIdopont) {
                 let diffMin = getWorkingMinutes(t.idopont, t.startIdopont);
                 let worker = t.felelos || t.lezarta;
+                let isKrit = String(t.prioritas).toLowerCase().includes("leállás") || String(t.prioritas).toLowerCase().includes("magas");
                 if (diffMin >= 0 && worker) {
-                    initUser(worker); userStats[worker].responseMinutes.push(diffMin);
+                    initUser(worker); 
+                    if(isKrit) userStats[worker].reactKrit.push(diffMin); else userStats[worker].reactNorm.push(diffMin);
                 }
             }
         });
         
         if(document.getElementById('statNyitott')) document.getElementById('statNyitott').innerText = esetiNyitott; 
+        if(document.getElementById('statInfoNyitott')) document.getElementById('statInfoNyitott').innerText = infoNyitott; 
         if(document.getElementById('statLeallas')) document.getElementById('statLeallas').innerText = leallas; 
         if(document.getElementById('statJavIdo')) document.getElementById('statJavIdo').innerText = esetiJavIdo.toFixed(1); 
         if(document.getElementById('statDowntime')) document.getElementById('statDowntime').innerText = termelesKieses;
@@ -797,7 +824,7 @@
                 sortedMachines.forEach((m, idx) => {
                     let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : "🥉");
                     mHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px dashed #cbd5e1; padding-bottom:5px;">
-                                <span style="font-weight:bold; color:var(--primary);">${medal} ${m[0]}</span>
+                                <span style="font-weight:bold; color:var(--accent); cursor:pointer; text-decoration:underline;" onclick="openStatModal('machine', '${m[0]}')" title="Kattints a hibalistáért!">${medal} ${m[0]} 👆</span>
                                 <span class="badge badge-crit" style="background:var(--pri-high); border:none;">${m[1]} hiba</span>
                               </div>`;
                 });
@@ -812,23 +839,81 @@
 
         // ADMIN STATS RENDERELÉS
         if(document.getElementById('adminStatsTableBody') && localStorage.getItem("activeRole") === "admin") {
+            let formatMin = (arr) => {
+                if(arr.length === 0) return "-";
+                let sum = arr.reduce((a,b)=>a+b, 0);
+                let avgMin = Math.round(sum / arr.length);
+                if(avgMin < 60) return avgMin + " p";
+                let h = Math.floor(avgMin/60); let m = avgMin%60;
+                return h + "ó " + m + "p";
+            };
+
             let trHtml = "";
             Object.keys(userStats).sort().forEach(user => {
                 let st = userStats[user];
-                let avgResp = "N/A";
-                if(st.responseMinutes.length > 0) {
-                    let sum = st.responseMinutes.reduce((a,b)=>a+b, 0);
-                    let avgMin = Math.round(sum / st.responseMinutes.length);
-                    if(avgMin < 60) avgResp = avgMin + " perc";
-                    else {
-                        let h = Math.floor(avgMin/60); let m = avgMin%60;
-                        avgResp = h + " óra " + m + " p";
-                    }
-                }
-                trHtml += `<tr><td><b>${user}</b></td><td>${st.felvett}</td><td>${st.megoldott}</td><td>${avgResp}</td></tr>`;
+                let avgNorm = formatMin(st.reactNorm);
+                let avgKrit = formatMin(st.reactKrit);
+                
+                trHtml += `<tr>
+                            <td style="cursor:pointer; color:var(--accent); text-decoration:underline;" onclick="openStatModal('worker', '${user}')" title="Kattints a megoldott hibákhoz!"><b>${user}</b> 👆</td>
+                            <td>${st.felvett}</td>
+                            <td>${st.megoldott}</td>
+                            <td style="color:var(--pri-crit); font-weight:bold;">${avgKrit}</td>
+                            <td>${avgNorm}</td>
+                           </tr>`;
             });
-            if(trHtml === "") trHtml = `<tr><td colspan="4" style="text-align:center;">Nincs rögzített adat.</td></tr>`;
+            if(trHtml === "") trHtml = `<tr><td colspan="5" style="text-align:center;">Nincs rögzített adat.</td></tr>`;
             document.getElementById('adminStatsTableBody').innerHTML = trHtml;
+        }
+    }
+
+    // STATISZTIKA RÉSZLETEK (MODAL)
+    function openStatModal(type, param) {
+        let title = ""; let list = [];
+        if (type === 'worker') {
+            title = "👤 " + param + " által megoldott hibák";
+            list = globalClosedTasks.filter(t => t.lezarta === param);
+        } else if (type === 'machine') {
+            title = "⚙️ " + param + " eseti hibái";
+            list = [...globalOpenTasks, ...globalClosedTasks].filter(t => t.gep === param && !String(t.id).startsWith("PREV-"));
+        } else if (type === 'downtime') {
+            title = "🚨 Termeléskiesést okozó hibák";
+            list = globalClosedTasks.filter(t => parseFloat(t.downtime) > 0);
+        }
+
+        let html = "";
+        if (list.length === 0) {
+            html = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Nincs megjeleníthető adat.</div>";
+        } else {
+            list.sort((a,b) => new Date(b.idopont) - new Date(a.idopont));
+            list.forEach(t => {
+                let d = new Date(t.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+                let dtTxt = parseFloat(t.downtime) > 0 ? `<b style="color:var(--pri-crit);">(${t.downtime}p kiesés)</b>` : '';
+                let prTxt = `<span style="font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px; margin-left:5px;">${t.prioritas}</span>`;
+                let statTxt = t.statusz === "Lezárt" ? "✅" : (t.statusz === "Folyamatban" ? "⚙️" : "🆕");
+                
+                html += `
+                <div style="border-bottom:1px solid #cbd5e1; padding:10px 0; font-size:14px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span>${statTxt} <b>${d}</b> - ${t.gep}</span>
+                        ${prTxt}
+                    </div>
+                    <div style="color:var(--text-main); margin-bottom:4px;">${t.hiba}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">
+                        ${t.megoldas ? `<i>Megoldás: ${String(t.megoldas).substring(0, 80)}...</i>` : 'Még nincs lezárva.'} ${dtTxt}
+                    </div>
+                </div>`;
+            });
+        }
+        
+        document.getElementById('statModalTitle').innerText = title;
+        document.getElementById('statModalBody').innerHTML = html;
+        document.getElementById('statDetailsModal').style.display = 'flex';
+    }
+
+    function closeStatModal(force = false) {
+        if(force === true || event.target.id === 'statDetailsModal') {
+            document.getElementById('statDetailsModal').style.display = "none";
         }
     }
 
@@ -869,13 +954,6 @@
         let csv=["ID","Időpont","Státusz","Prioritás","Gép","Hiba","Beküldő","Felelős","Megoldás","Javítás (óra)","Kiesés (perc)","Lezárta","Reakció Start"].join(";")+"\n"; 
         arr.forEach(t=>{ csv+=[t.id,t.idopont,t.statusz,t.prioritas,t.gep,String(t.hiba).replace(/"/g,'""').replace(/\n/g,' '),t.felhasznalo,t.felelos||"",String(t.megoldas||"").replace(/"/g,'""').replace(/\n/g,' '),t.ido||"",t.downtime||"",t.lezarta||"",t.startIdopont||""].map(c=>`"${c}"`).join(";")+"\n"; }); 
         downloadCSV(csv,fn); 
-    }
-
-    function exportShiftLogs() { 
-        if(globalShiftLogs.length===0) return; 
-        let csv=["Időpont","Dátum","Műszak","Író","Szöveg"].join(";")+"\n"; 
-        globalShiftLogs.forEach(l=>{ csv+=[l.idopont,l.datum||String(l.idopont).substring(0,10),l.muszak,l.felhasznalo,String(l.szoveg).replace(/"/g,'""').replace(/\n/g,' ')].map(c=>`"${c}"`).join(";")+"\n"; }); 
-        downloadCSV(csv,'Muszaknaplo.csv'); 
     }
 
     function toggleNotifications() {
