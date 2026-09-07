@@ -73,10 +73,8 @@
         
         document.getElementById("login_loader").style.display = "block";
         try {
-            // A CORS hiba elkerülése miatt "text/plain" fejlécet használunk
             const res = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: 'login', user: u, pin: p })
             });
             const data = await res.json();
@@ -105,11 +103,7 @@
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(async () => {
             try {
-                const res = await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'search', query: q }) 
-                });
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'search', query: q }) });
                 const data = await res.json();
                 if(data.status === 'ok' && data.results.length > 0) {
                     resDiv.innerHTML = "";
@@ -166,7 +160,6 @@
         try {
             const res = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: 'get', erp_id: erpid })
             });
             const data = await res.json();
@@ -201,7 +194,6 @@
         try {
             const res = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: action, erp_id: erpid, qty: qty, remark: remark, user: currentUser })
             });
             const data = await res.json();
