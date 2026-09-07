@@ -27,7 +27,6 @@
 </head>
 <body>
 
-<!-- BEJELENTKEZŐ ABLAK -->
 <div class="card" id="login_screen">
     <h2>🔐 Bejelentkezés</h2>
     <input type="text" id="login_user" placeholder="Felhasználónév (pl. Admin)">
@@ -36,11 +35,9 @@
     <div id="login_loader" style="display:none; color: #FFC107;">Azonosítás folyamatban...</div>
 </div>
 
-<!-- FŐ ALKALMAZÁS ABLAK -->
 <div class="card" id="app_screen" style="display:none; position: relative;">
     <h2 style="font-size: 18px;">📦 Mobil Raktár <br><span id="logged_in_as" style="font-size: 12px; color: gray;"></span></h2>
     
-    <!-- KERESÉS -->
     <input type="text" id="search_box" placeholder="🔍 Keresés (Cikkszám / Név)..." oninput="liveSearch()" autocomplete="off">
     <div id="search_results" class="search-res"></div>
     
@@ -66,6 +63,21 @@
     const html5QrCode = new Html5Qrcode("reader");
     let currentUser = "";
 
+    async function doFetch(payload) {
+        // Közös fetch logikánk a hibaüzenetek pontos elfogására
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch(e) {
+            throw new Error("A szerver nem megfelelő választ küldött (Valószínűleg jogosultsági hiba). Válasz töredéke: " + text.substring(0, 50));
+        }
+    }
+
     async function doLogin() {
         const u = document.getElementById("login_user").value.trim();
         const p = document.getElementById("login_pin").value.trim();
@@ -73,11 +85,7 @@
         
         document.getElementById("login_loader").style.display = "block";
         try {
-            const res = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'login', user: u, pin: p })
-            });
-            const data = await res.json();
+            const data = await doFetch({ action: 'login', user: u, pin: p });
             document.getElementById("login_loader").style.display = "none";
             
             if (data.status === 'ok') {
@@ -90,7 +98,7 @@
             }
         } catch(e) {
             document.getElementById("login_loader").style.display = "none";
-            alert("Hálózati hiba!");
+            alert("Hálózati/Szerver hiba:\n" + e.message);
         }
     }
 
@@ -103,8 +111,7 @@
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(async () => {
             try {
-                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'search', query: q }) });
-                const data = await res.json();
+                const data = await doFetch({ action: 'search', query: q });
                 if(data.status === 'ok' && data.results.length > 0) {
                     resDiv.innerHTML = "";
                     data.results.forEach(r => {
@@ -158,13 +165,9 @@
         document.getElementById("loader").style.display = "block";
         
         try {
-            const res = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'get', erp_id: erpid })
-            });
-            const data = await res.json();
-            
+            const data = await doFetch({ action: 'get', erp_id: erpid });
             document.getElementById("loader").style.display = "none";
+            
             if (data.status === 'ok') {
                 document.getElementById("item_info").innerHTML = `
                     <span class="tag">${data.name}</span><br>
@@ -176,7 +179,7 @@
             }
         } catch(e) {
             document.getElementById("loader").style.display = "none";
-            document.getElementById("item_info").innerText = "Hálózati hiba!";
+            document.getElementById("item_info").innerHTML = `<span style="color: red;">Hiba: ${e.message}</span>`;
         }
     }
 
@@ -192,12 +195,7 @@
         document.getElementById("loader").style.display = "block";
         
         try {
-            const res = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: action, erp_id: erpid, qty: qty, remark: remark, user: currentUser })
-            });
-            const data = await res.json();
-            
+            const data = await doFetch({ action: action, erp_id: erpid, qty: qty, remark: remark, user: currentUser });
             document.getElementById("loader").style.display = "none";
             
             if (data.status === 'ok') {
@@ -211,7 +209,7 @@
             }
         } catch(e) {
             document.getElementById("loader").style.display = "none";
-            alert("Hálózati hiba a könyvelés során!");
+            alert("Könyvelési hiba:\n" + e.message);
         }
     }
 </script>
