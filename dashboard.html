@@ -96,7 +96,7 @@
 
     <div id="startupBanner">
         <div class="startup-box">
-            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.3)</span></h2>
+            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.4)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" style="background:var(--border);" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -170,6 +170,7 @@
             
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
+            <!-- Dashboard Akció Panel -->
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
@@ -185,7 +186,7 @@
                     <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
                         <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
                         <div style="display:flex; gap:10px;">
-                            <input type="number" id="dashIdo" step="0.5" class="dash-input" placeholder="Javítás (óra)">
+                            <input type="number" id="dashIdo" step="1" class="dash-input" placeholder="Javítás (perc)">
                             <input type="number" id="dashDowntime" step="1" class="dash-input" placeholder="Kiesés (perc)">
                         </div>
                         <button class="dash-btn" style="background:var(--pri-normal);" onclick="dashCloseTask()">✅ Jegy lezárása</button>
@@ -268,16 +269,16 @@
         } catch (e) { console.error("Hiba:", e); }
     }
 
+    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK A DASHBOARDON IS ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
-        let startD = new Date(2026, 8, 1, 0, 0, 0); // Szeptember 1.
+        let startD = new Date(2026, 8, 1, 0, 0, 0); 
         let now = new Date();
         let curr = new Date(startD);
         
         let alertHtml = "";
         let upcomingWarning = "";
 
-        // 1 órával műszak vége előtt FIGYELMEZTETÉS
         if (now.getDay() >= 1 && now.getDay() <= 5) {
             let h = now.getHours();
             let todayStr = toLocalISOString(now);
@@ -347,8 +348,6 @@
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                
-                // Saját készítésűt belevesszük a listába (így nem kell jóváhagynia)
                 if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
 
                 let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
@@ -361,7 +360,6 @@
             }
         });
 
-        // DASHBOARD KIZÁRÁS LOGIKA
         if (myUnapprovedCount > 0) {
             document.getElementById('dashboardMainUI').style.display = 'none';
             document.getElementById('dashLockdownScreen').style.display = 'block';
@@ -381,7 +379,6 @@
             return;
         }
 
-        // FELOLDÁS
         document.getElementById('dashboardMainUI').style.display = 'block';
         document.getElementById('dashLockdownScreen').style.display = 'none';
 
@@ -403,7 +400,6 @@
         const btn = document.getElementById('apprBtnDash_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
-        // Azonnali frissítés a gombnyomás után
         fetchDashboardData();
     }
 
