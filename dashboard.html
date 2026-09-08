@@ -96,7 +96,7 @@
 
     <div id="startupBanner">
         <div class="startup-box">
-            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.2)</span></h2>
+            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.3)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" style="background:var(--border);" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -268,12 +268,38 @@
         } catch (e) { console.error("Hiba:", e); }
     }
 
-    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK A DASHBOARDON IS ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
         let startD = new Date(2026, 8, 1, 0, 0, 0); // Szeptember 1.
         let now = new Date();
         let curr = new Date(startD);
+        
+        let alertHtml = "";
+        let upcomingWarning = "";
+
+        // 1 órával műszak vége előtt FIGYELMEZTETÉS
+        if (now.getDay() >= 1 && now.getDay() <= 5) {
+            let h = now.getHours();
+            let todayStr = toLocalISOString(now);
+            
+            if (h === 13) {
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return logD === todayStr && String(l.muszak).includes("Délelőtt");
+                });
+                if (!hasLog) {
+                    upcomingWarning = `<div style="background:var(--pri-high); color:var(--surface); padding:15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:10px; text-align:center; animation: blink 1.5s infinite;">⏰ FIGYELEM! Egy óra múlva vége a délelőtti műszaknak! Ne felejtsd el megírni a műszaknaplót!</div>`;
+                }
+            } else if (h === 21) {
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return logD === todayStr && String(l.muszak).includes("Délután");
+                });
+                if (!hasLog) {
+                    upcomingWarning = `<div style="background:var(--pri-high); color:var(--surface); padding:15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:10px; text-align:center; animation: blink 1.5s infinite;">⏰ FIGYELEM! Egy óra múlva vége a délutáni műszaknak! Ne felejtsd el megírni a műszaknaplót!</div>`;
+                }
+            }
+        }
         
         while (curr <= now) {
             let day = curr.getDay();
@@ -282,14 +308,20 @@
                 
                 let shift1End = new Date(curr); shift1End.setHours(14,0,0,0);
                 if (now >= shift1End) {
-                    if (!globalShiftLogs.some(l => (l.datum === dStr || String(l.idopont).startsWith(dStr)) && String(l.muszak).includes("Délelőtt"))) {
+                    if (!globalShiftLogs.some(l => {
+                        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                        return logD === dStr && String(l.muszak).includes("Délelőtt");
+                    })) {
                         missingLogs.push(`${dStr} Délelőtt`);
                     }
                 }
                 
                 let shift2End = new Date(curr); shift2End.setHours(22,0,0,0);
                 if (now >= shift2End) {
-                    if (!globalShiftLogs.some(l => (l.datum === dStr || String(l.idopont).startsWith(dStr)) && String(l.muszak).includes("Délután"))) {
+                    if (!globalShiftLogs.some(l => {
+                        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                        return logD === dStr && String(l.muszak).includes("Délután");
+                    })) {
                         missingLogs.push(`${dStr} Délután`);
                     }
                 }
@@ -312,9 +344,13 @@
         }
 
         globalShiftLogs.forEach(l => {
-            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
-            if (dStr >= "2026-09-01") {
+            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+            if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                
+                // Saját készítésűt belevesszük a listába (így nem kell jóváhagynia)
+                if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
+
                 let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
@@ -331,7 +367,8 @@
             document.getElementById('dashLockdownScreen').style.display = 'block';
 
             let listHtml = myUnapprovedLogs.map(l => {
-                const displayDate = l.datum ? new Date(l.datum).toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) : new Date(l.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+                let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
                 return `<div style="background:var(--bg-dark); padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border);">
                             <div>
                                 <strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br>
@@ -348,7 +385,7 @@
         document.getElementById('dashboardMainUI').style.display = 'block';
         document.getElementById('dashLockdownScreen').style.display = 'none';
 
-        let alertHtml = "";
+        alertHtml += upcomingWarning;
 
         if (pendingLogUsers.size > 0) {
             alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">⚠️ Műszaknapló jóváhagyás hiányzik a következőktől: ${Array.from(pendingLogUsers).join(', ')}</div>`;
