@@ -133,6 +133,10 @@
     </div>
 
     <div class="container">
+        
+        <!-- ÉRTESÍTÉSI SÁV MŰSZAKNAPLÓKHOZ -->
+        <div id="shiftAlertBanner"></div>
+
         <div class="nav">
             <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
             <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
@@ -268,6 +272,8 @@
                     <button class="btn-export" onclick="exportTasks(getFilteredOpenTasks(), 'Nyitott_Hibak.csv')">📥 Export CSV</button>
                 </div>
                 <div class="form-grid">
+                    <select id="szuroNyitottKategoria" onchange="frissitSzuroNyitottGepek()"><option value="">Minden csarnok / kategória...</option></select>
+                    <select id="szuroNyitottGep" onchange="renderOpenTasks()"><option value="">Összes gép...</option></select>
                     <select id="szuroNyitottIsmetlodo" onchange="renderOpenTasks()">
                         <option value="">Összes (Normál + Ismétlődő)</option>
                         <option value="normal">Csak normál (egyedi) hibák</option>
@@ -286,7 +292,7 @@
                     <button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 Export CSV</button>
                 </div>
                 <div class="form-grid">
-                    <select id="szuroKategoria" onchange="SzuroGepek()"><option value="">Minden csarnok / kategória...</option></select>
+                    <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden csarnok / kategória...</option></select>
                     <select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
                     <select id="szuroLezartIsmetlodo" onchange="renderClosedTasks()">
                         <option value="">Összes (Normál + Ismétlődő)</option>
@@ -300,8 +306,9 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA NÉZET -->
+        <!-- STATISZTIKA NÉZET - IDŐSZAK VÁLASZTÓVAL -->
         <div id="statisztikaView" class="view box">
+            
             <div class="filter-panel" style="margin-bottom: 25px; border-left:4px solid var(--accent);">
                 <div class="filter-header">
                     <h4 style="color:var(--accent); font-size:16px;">⏳ Időszak kiválasztása a statisztikákhoz</h4>
@@ -311,6 +318,7 @@
                     <button id="btnStatMa" class="stat-btn" onclick="setStatPeriod('napi')">Ma</button>
                     <button id="btnStatHet" class="stat-btn" onclick="setStatPeriod('heti')">Ezen a héten</button>
                     <button id="btnStatHo" class="stat-btn" onclick="setStatPeriod('havi')">Ebben a hónapban</button>
+                    
                     <div style="display:flex; gap:5px; align-items:center; margin-left:auto; background:var(--surface); padding:5px 10px; border-radius:4px; border:1px solid var(--border);">
                         <input type="date" id="statDatumTol" onchange="setStatPeriod('egyedi')" style="margin:0; width:auto; border:none; padding:5px;">
                         <span style="color:var(--text-muted);">-</span>
@@ -322,9 +330,10 @@
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
                 <h3 style="border:none; margin:0; padding:0;">📊 Szűrt Statisztikák Eredménye</h3>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('heti')">📅 Heti Export</button>
-                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('havi')">📆 Havi Export</button>
-                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('eves')">🗓️ Éves Export</button>
+                    <button class="btn-export" style="background:var(--pri-normal);" onclick="exportDetailedStats()">📥 Tételes (Részletes) Export</button>
+                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('heti')">📅 Heti</button>
+                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('havi')">📆 Havi</button>
+                    <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('eves')">🗓️ Éves</button>
                 </div>
             </div>
 
@@ -371,6 +380,7 @@
                 </div>
             </div>
 
+            <!-- ADMIN DOLGOZÓI STATISZTIKÁK -->
             <div id="adminStatsContainer" style="display:none; margin-top:30px; border-top:2px solid var(--pri-crit); padding-top:20px;">
                 <h3 style="color:var(--pri-crit);">👥 Dolgozói Statisztikák (Csak Admin)</h3>
                 <div style="overflow-x:auto;">
@@ -380,12 +390,13 @@
                                 <th>Felhasználó</th>
                                 <th>Felvitt Hibák</th>
                                 <th>Megoldott Hibák</th>
-                                <th style="color:var(--pri-crit);">Reakció (Sürgős/Leállás)</th>
+                                <th style="color:var(--pri-crit);">Reakció (Sürgős)</th>
                                 <th>Reakció (Normál)</th>
+                                <th>Elmaradt Jóváhagyás</th>
                             </tr>
                         </thead>
                         <tbody id="adminStatsTableBody">
-                            <tr><td colspan="5" style="text-align:center;">Adatok betöltése...</td></tr>
+                            <tr><td colspan="6" style="text-align:center;">Adatok betöltése...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -426,9 +437,11 @@
     let globalOpenTasks = [];
     let globalClosedTasks = [];
     let globalShiftLogs = [];
+    let expectedApprovers = [];
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
+    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -472,15 +485,27 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        const katSelect = document.getElementById('kategoria'); const szuroKatSelect = document.getElementById('szuroKategoria'); const ismKatSelect = document.getElementById('ismKategoria');
-        for (let kat in gepAdatbazis) { katSelect.add(new Option(kat, kat)); szuroKatSelect.add(new Option(kat, kat)); ismKatSelect.add(new Option(kat, kat)); }
+        const katSelect = document.getElementById('kategoria'); 
+        const szuroKatSelect = document.getElementById('szuroKategoria'); 
+        const ismKatSelect = document.getElementById('ismKategoria');
+        const szuroNyKatSelect = document.getElementById('szuroNyitottKategoria');
+        
+        for (let kat in gepAdatbazis) { 
+            katSelect.add(new Option(kat, kat)); 
+            szuroKatSelect.add(new Option(kat, kat)); 
+            ismKatSelect.add(new Option(kat, kat)); 
+            szuroNyKatSelect.add(new Option(kat, kat));
+        }
+        
         document.getElementById('notifToggle').addEventListener('change', (e) => { document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; });
         if(document.getElementById('muszakDatum')) document.getElementById('muszakDatum').value = toLocalISOString(new Date());
     });
 
     function frissitGepek() { const k = document.getElementById('kategoria').value; const s = document.getElementById('gep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } }
     function frissitSzuroGepek() { const k = document.getElementById('szuroKategoria').value; const s = document.getElementById('szuroGep'); s.innerHTML = '<option value="">Összes gép...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } renderClosedTasks(); }
+    function frissitSzuroNyitottGepek() { const k = document.getElementById('szuroNyitottKategoria').value; const s = document.getElementById('szuroNyitottGep'); s.innerHTML = '<option value="">Összes gép...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } renderOpenTasks(); }
     function frissitIsmGepek() { const k = document.getElementById('ismKategoria').value; const s = document.getElementById('ismGep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } }
+
     async function hashPassword(p) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
 
     window.onload = function() {
@@ -498,6 +523,8 @@
 
             document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
             if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
+            
+            loadShiftLogs(); // Háttérben is töltse le, hogy az értesítés működjön
         }
     };
 
@@ -570,7 +597,7 @@
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
                 stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve!";
-                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl.</span>'; setTimeout(() => stat.innerText = "", 3000);
+                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva. (Max 15MB)</span>'; setTimeout(() => stat.innerText = "", 3000);
             }
         } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
     }
@@ -621,7 +648,81 @@
     }
     
     async function loadShiftLogs() {
-        try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) }); const r = await res.json(); if(r.status === "success") { globalShiftLogs = r.data; filterShiftLogs(); } } catch(e) {}
+        try { 
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) }); 
+            const r = await res.json(); 
+            if(r.status === "success") { 
+                globalShiftLogs = r.data; 
+                expectedApprovers = r.expectedApprovers || [];
+                filterShiftLogs(); 
+                checkMissingShiftLogsAndApprovals();
+            } 
+        } catch(e) {}
+    }
+
+    // --- ÚJ: HIÁNYZÓ NAPLÓK ÉS JÓVÁHAGYÁSOK KERESÉSE ---
+    function checkMissingShiftLogsAndApprovals() {
+        let missingLogs = [];
+        let startD = new Date(2026, 8, 7, 12, 0, 0); // 2026-09-07 12:00
+        let now = new Date();
+        let curr = new Date(startD);
+        
+        // 1. Hiányzó Naplók (csak H-P)
+        while (curr <= now) {
+            let day = curr.getDay();
+            if (day >= 1 && day <= 5) {
+                let dStr = toLocalISOString(curr);
+                
+                let shift1End = new Date(curr); shift1End.setHours(14,0,0,0);
+                if (now > shift1End) {
+                    if (!globalShiftLogs.some(l => (l.datum === dStr || String(l.idopont).startsWith(dStr)) && String(l.muszak).includes("Délelőtt"))) {
+                        missingLogs.push(`${dStr} Délelőtt`);
+                    }
+                }
+                
+                let shift2End = new Date(curr); shift2End.setHours(22,0,0,0);
+                if (now > shift2End) {
+                    if (!globalShiftLogs.some(l => (l.datum === dStr || String(l.idopont).startsWith(dStr)) && String(l.muszak).includes("Délután"))) {
+                        missingLogs.push(`${dStr} Délután`);
+                    }
+                }
+            }
+            curr.setDate(curr.getDate() + 1);
+        }
+
+        // 2. Hiányzó Jóváhagyások (csak 2026-09-07 utániaknál)
+        let pendingLogUsers = new Set();
+        globalShiftLogs.forEach(l => {
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            if (dStr >= "2026-09-07") {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                let unapproved = expectedApprovers.filter(a => !approvers.includes(a));
+                unapproved.forEach(u => pendingLogUsers.add(u));
+            }
+        });
+
+        let alertHtml = "";
+        let role = localStorage.getItem("activeRole");
+        let activeUser = localStorage.getItem("activeUser");
+        let isMaintOrAdmin = (role === "maintenance" || role === "admin" || activeUser === "SzaboP");
+
+        if (isMaintOrAdmin && missingLogs.length > 0) {
+            alertHtml += `<div style="background:var(--pri-crit); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>🚨 Hiányzó műszaknaplók (Kérjük pótolni!):</b> ${missingLogs.join(', ')}</div>`;
+        }
+
+        if (pendingLogUsers.size > 0) {
+            alertHtml += `<div style="background:var(--pri-high); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>⚠️ Műszaknapló jóváhagyás hiányzik a következőktől:</b> ${Array.from(pendingLogUsers).join(', ')}</div>`;
+        }
+
+        const alertDiv = document.getElementById('shiftAlertBanner');
+        if (alertDiv) alertDiv.innerHTML = alertHtml;
+    }
+
+    async function approveShiftLog(id) {
+        const btn = document.getElementById('apprBtn_' + id);
+        if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: localStorage.getItem("activeUser") }) });
+        loadShiftLogs(); // Újratölti a naplókat és frissíti a bannert
     }
 
     function filterShiftLogs() {
@@ -629,11 +730,35 @@
         const f = globalShiftLogs.filter(l => { const dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10); return (String(l.felhasznalo).toLowerCase().includes(st) || String(l.szoveg).toLowerCase().includes(st)) && (tp ? String(l.muszak).includes(tp) : true) && (dt ? dStr >= dt : true) && (di ? dStr <= di : true); });
         const c = document.getElementById('shiftLogsContainer'); if(!c) return;
         if(f.length === 0) { c.innerHTML = "Nincs találat."; return; }
-        const role = localStorage.getItem("activeRole") || "production"; let h = "";
+        
+        const role = localStorage.getItem("activeRole") || "production"; 
+        const currentUser = localStorage.getItem("activeUser");
+        let h = "";
+        
         f.forEach(l => {
             const displayDate = l.datum ? new Date(l.datum).toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) : new Date(l.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
             let eBtn = (role==="maintenance" || role==="admin") ? `<button onclick="toggleEditLog('${l.id}')" class="btn-secondary" style="width:auto; padding:4px 10px; font-size:12px; margin:0;">Szerkesztés</button>` : '';
-            h += `<div class="task-card"><div class="task-header"><span>${displayDate}</span><span class="badge badge-info">${l.muszak}</span></div><div id="logDisp_${l.id}" style="margin-bottom:10px; font-size:15px;">${String(l.szoveg).replace(/\n/g, '<br>')}</div><div id="logEditDiv_${l.id}" style="display:none; margin-bottom:10px;"><textarea id="logInp_${l.id}" rows="3" style="width:100%;">${String(l.szoveg).replace(/"/g, '&quot;')}</textarea><button onclick="saveEditLog('${l.id}','${l.oldTimestamp}','${l.felhasznalo}')" style="background:var(--pri-normal); margin-top:5px;">Mentés</button></div><div style="display:flex; justify-content:space-between; align-items:flex-end;"><small>Írta: <b>${l.felhasznalo}</b></small>${eBtn}</div></div>`;
+            
+            let apprBtn = "";
+            let apprStatus = "";
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            
+            if (dStr >= "2026-09-07") {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
+                let missing = expectedApprovers.filter(a => !approvers.includes(a));
+                
+                if (expectedApprovers.includes(currentUser) && !approvers.includes(currentUser)) {
+                    apprBtn = `<button id="apprBtn_${l.id}" onclick="approveShiftLog('${l.id}')" style="background:var(--pri-normal); width:auto; padding:4px 10px; font-size:12px; margin:0; border:none; color:white; border-radius:4px; font-weight:bold; margin-left:10px;">✅ Jóváhagyom</button>`;
+                }
+                
+                if (missing.length > 0) {
+                    apprStatus = `<div style="color:var(--pri-crit); font-size:12px; margin-top:10px; border-top:1px dashed var(--border); padding-top:5px;">⏳ Jóváhagyásra vár: <b>${missing.join(', ')}</b></div>`;
+                } else {
+                    apprStatus = `<div style="color:var(--pri-normal); font-size:12px; margin-top:10px; border-top:1px dashed var(--border); padding-top:5px;">✅ Mindenki jóváhagyta</div>`;
+                }
+            }
+
+            h += `<div class="task-card"><div class="task-header"><span>${displayDate}</span><span class="badge badge-info">${l.muszak}</span></div><div id="logDisp_${l.id}" style="margin-bottom:10px; font-size:15px;">${String(l.szoveg).replace(/\n/g, '<br>')}</div><div id="logEditDiv_${l.id}" style="display:none; margin-bottom:10px;"><textarea id="logInp_${l.id}" rows="3" style="width:100%;">${String(l.szoveg).replace(/"/g, '&quot;')}</textarea><button onclick="saveEditLog('${l.id}','${l.oldTimestamp}','${l.felhasznalo}')" style="background:var(--pri-normal); margin-top:5px;">Mentés</button></div>${apprStatus}<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:10px;"><small>Írta: <b>${l.felhasznalo}</b></small><div>${eBtn}${apprBtn}</div></div></div>`;
         }); c.innerHTML = h;
     }
     
@@ -692,7 +817,21 @@
 
     function getFilteredOpenTasks() {
         const ismSzuroEl = document.getElementById('szuroNyitottIsmetlodo'); const ismSzuro = ismSzuroEl ? ismSzuroEl.value : "";
-        return globalOpenTasks.filter(t => { const isPrev = String(t.id || "").startsWith("PREV-"); if (ismSzuro === "normal") return !isPrev; if (ismSzuro === "ismetlodo") return isPrev; return true; });
+        const skEl = document.getElementById('szuroNyitottKategoria'); const sk = skEl ? skEl.value : "";
+        const sgEl = document.getElementById('szuroNyitottGep'); const sg = sgEl ? sgEl.value : "";
+
+        return globalOpenTasks.filter(t => { 
+            const isPrev = String(t.id || "").startsWith("PREV-"); 
+            let matchIsm = true;
+            if (ismSzuro === "normal") matchIsm = !isPrev; 
+            if (ismSzuro === "ismetlodo") matchIsm = isPrev; 
+            
+            let gepNev = (sg === "-") ? sk : sk + " - " + sg;
+            let matchKat = sk ? (String(t.gep || "").startsWith(sk+" - ") || t.gep===sk) : true; 
+            let matchGep = sg ? t.gep===gepNev : true;
+
+            return matchIsm && matchKat && matchGep; 
+        });
     }
 
     function renderOpenTasks() { const f = getFilteredOpenTasks(); let h = ""; f.forEach(t => h += genCard(t)); const c = document.getElementById('openTasksContainer'); if(c) c.innerHTML = h || "Nincs a szűrésnek megfelelő nyitott feladat."; }
@@ -727,7 +866,6 @@
             if(t.statusz==="Folyamatban") eC="Folyamatban"; 
         }
         
-        // JAVÍTÁS ITT: window.open URL módosítva /view végződésre!
         let kH = ""; 
         if (t.kepek) { 
             kH += `<div class="img-container">`; 
@@ -980,6 +1118,21 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
         }
 
+        // --- ÚJ: JÓVÁHAGYÁS ELMARADÁS SZÁMÍTÁSA ---
+        let missingApprovalsCount = {};
+        expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
+        globalShiftLogs.forEach(l => {
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            if (dStr >= "2026-09-07") {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                expectedApprovers.forEach(a => {
+                    if (!approvers.includes(a)) {
+                        missingApprovalsCount[a] = (missingApprovalsCount[a] || 0) + 1;
+                    }
+                });
+            }
+        });
+
         if(document.getElementById('adminStatsTableBody') && localStorage.getItem("activeRole") === "admin") {
             let formatMin = (arr) => {
                 if(arr.length === 0) return "-";
@@ -996,17 +1149,33 @@
                 let avgNorm = formatMin(st.reactNorm);
                 let avgKrit = formatMin(st.reactKrit);
                 
+                let elmaradas = missingApprovalsCount[user] !== undefined ? missingApprovalsCount[user] : 0;
+                let elmaradasTxt = elmaradas > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">${elmaradas} db hiányzik</span>` : `<span style="color:var(--pri-normal);">Rendben</span>`;
+
                 trHtml += `<tr>
                             <td style="cursor:pointer; color:var(--accent); text-decoration:underline;" onclick="openStatModal('worker', '${user}')" title="Kattints a megoldott hibákhoz!"><b>${user}</b> 👆</td>
                             <td>${st.felvett}</td>
                             <td>${st.megoldott}</td>
                             <td style="color:var(--pri-crit); font-weight:bold;">${avgKrit}</td>
                             <td>${avgNorm}</td>
+                            <td>${elmaradasTxt}</td>
                            </tr>`;
             });
-            if(trHtml === "") trHtml = `<tr><td colspan="5" style="text-align:center;">Nincs rögzített adat.</td></tr>`;
+            if(trHtml === "") trHtml = `<tr><td colspan="6" style="text-align:center;">Nincs rögzített adat.</td></tr>`;
             document.getElementById('adminStatsTableBody').innerHTML = trHtml;
         }
+    }
+
+    // --- ÚJ: TÉTELES EXPORT FÜGGVÉNY ---
+    function exportDetailedStats() {
+        let list = globalClosedTasks;
+        if (statStartDate || statEndDate) {
+            list = list.filter(t => {
+                let d = String(t.idopont).substring(0,10);
+                return (!statStartDate || d >= statStartDate) && (!statEndDate || d <= statEndDate);
+            });
+        }
+        exportTasks(list, 'Statisztika_Teteles_Reszletek.csv');
     }
 
     function openStatModal(type, param) {
