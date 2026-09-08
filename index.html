@@ -112,7 +112,7 @@
 
 <div id="loginView" class="container active view" style="max-width: 400px; margin-top: 10vh;">
     <div class="box" style="text-align: center;">
-        <img src="image_0f37c2.png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
+        <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
         <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">⚙️ Ipari CMMS</h2>
         <input type="text" id="loginNev" placeholder="Felhasználónév (pl. Admin)">
         <input type="password" id="loginJelszo" placeholder="PIN kód">
@@ -124,8 +124,8 @@
 <div id="appView">
     <div class="topbar">
         <h2>
-            <img src="image_0f37c2.png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
-            ⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px;">(v3.6)</span>
+            <img src="Logo-Schedl (1).png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
+            ⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px;">(v3.7)</span>
         </h2>
         <div class="user-info">
             <span id="currentUserText"></span>
@@ -730,7 +730,6 @@
                 let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                 
-                // Automatikusan jóváhagyottnak vesszük a létrehozót
                 if (!approversLower.includes(creatorLower)) {
                     approversLower.push(creatorLower);
                 }
@@ -818,7 +817,6 @@
                 let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                 
-                // Automatikusan jóváhagyottnak vesszük a létrehozót a UI-on is
                 if (!approversLower.includes(creatorLower)) {
                     approversLower.push(creatorLower);
                 }
