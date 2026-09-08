@@ -123,8 +123,8 @@
         </div>
         <div id="progressBar"></div>
     </div>
-    
-    <!-- DASHBOARD SZINTŰ ÉRTESÍTÉSEK -->
+
+    <!-- ÉRTESÍTÉSI SÁV MŰSZAKNAPLÓKHOZ -->
     <div id="shiftAlertBanner" style="padding: 10px 30px 0 30px; background:var(--bg-dark);"></div>
 
     <div class="kpi-bar">
@@ -160,6 +160,7 @@
             
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
+            <!-- Dashboard Akció Panel -->
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
@@ -243,7 +244,7 @@
             const result = await res.json();
             if(result.status === "success") { processData(result.data); } 
             
-            // Szinkronizáljuk a műszaknaplókat az értesítési sáv miatt
+            // Lekéri a műszaknaplókat az értesítésekhez
             const resLog = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) });
             const resultLog = await resLog.json();
             if(resultLog.status === "success") { 
@@ -299,7 +300,6 @@
             alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">⚠️ Műszaknapló jóváhagyás hiányzik a következőktől: ${Array.from(pendingLogUsers).join(', ')}</div>`;
         }
 
-        // A Dashboardon a hiányzó írást csak akkor mutatjuk, ha be van jelentkezve egy karbantartó/admin
         if (sessionUser && expectedApprovers.includes(sessionUser) && missingLogs.length > 0) {
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">🚨 PÓTOLD A MŰSZAKNAPLÓT: ${missingLogs.join(', ')}</div>`;
         }
@@ -464,7 +464,7 @@
             document.getElementById('activeUserBadge').style.display = 'flex';
             document.getElementById('dashUserName').innerText = sessionUser;
             refreshModalActionPanel();
-            checkMissingShiftLogsAndApprovals(); // Frissíti a bannert is
+            checkMissingShiftLogsAndApprovals();
         }
     }
 
@@ -507,7 +507,6 @@
         }
     }
 
-    // --- MODAL ---
     function openModal(taskId) {
         activeTaskId = taskId;
         const task = currentActiveTasks.find(t => t.id === taskId);
