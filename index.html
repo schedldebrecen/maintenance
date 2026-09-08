@@ -300,9 +300,8 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA NÉZET - IDŐSZAK VÁLASZTÓVAL -->
+        <!-- STATISZTIKA NÉZET -->
         <div id="statisztikaView" class="view box">
-            
             <div class="filter-panel" style="margin-bottom: 25px; border-left:4px solid var(--accent);">
                 <div class="filter-header">
                     <h4 style="color:var(--accent); font-size:16px;">⏳ Időszak kiválasztása a statisztikákhoz</h4>
@@ -312,7 +311,6 @@
                     <button id="btnStatMa" class="stat-btn" onclick="setStatPeriod('napi')">Ma</button>
                     <button id="btnStatHet" class="stat-btn" onclick="setStatPeriod('heti')">Ezen a héten</button>
                     <button id="btnStatHo" class="stat-btn" onclick="setStatPeriod('havi')">Ebben a hónapban</button>
-                    
                     <div style="display:flex; gap:5px; align-items:center; margin-left:auto; background:var(--surface); padding:5px 10px; border-radius:4px; border:1px solid var(--border);">
                         <input type="date" id="statDatumTol" onchange="setStatPeriod('egyedi')" style="margin:0; width:auto; border:none; padding:5px;">
                         <span style="color:var(--text-muted);">-</span>
@@ -373,7 +371,6 @@
                 </div>
             </div>
 
-            <!-- ADMIN DOLGOZÓI STATISZTIKÁK -->
             <div id="adminStatsContainer" style="display:none; margin-top:30px; border-top:2px solid var(--pri-crit); padding-top:20px;">
                 <h3 style="color:var(--pri-crit);">👥 Dolgozói Statisztikák (Csak Admin)</h3>
                 <div style="overflow-x:auto;">
@@ -432,7 +429,6 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -732,7 +728,20 @@
             if(t.statusz==="Folyamatban") eC="Folyamatban"; 
         }
         
-        let kH = ""; if (t.kepek) { kH += `<div class="img-container">`; String(t.kepek).split(",").forEach(u => { if(u.trim()) { const m = u.match(/id=([^&]+)/); kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${u.trim()}', '_blank')">`; } }); kH += `</div>`; }
+        // JAVÍTÁS ITT: window.open URL módosítva /view végződésre!
+        let kH = ""; 
+        if (t.kepek) { 
+            kH += `<div class="img-container">`; 
+            String(t.kepek).split(",").forEach(u => { 
+                if(u.trim()) { 
+                    const m = u.match(/id=([^&]+)/); 
+                    const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim();
+                    kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${viewUrl}', '_blank')">`; 
+                } 
+            }); 
+            kH += `</div>`; 
+        }
+        
         let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
 
         let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : "";
@@ -876,8 +885,6 @@
                 initUser(t.felhasznalo); userStats[t.felhasznalo].felvett++;
             }
 
-            // !--- ITT A JAVÍTÁS A NYITOTT FELADATOKNÁL ---!
-            // Ha egy jegy nyitva van (újranyitottuk), de a múltban már valaki megoldotta, akkor neki is jár a pont!
             if(t.lezarta) {
                 let dolgozok = String(t.lezarta).split(',').map(x=>x.trim()).filter(x=>x);
                 let uniqDolgozok = [...new Set(dolgozok)];
