@@ -122,7 +122,7 @@
 
 <div id="appView">
     <div class="topbar">
-        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.3)</span></h2>
+        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.4)</span></h2>
         <div class="user-info">
             <span id="currentUserText"></span>
             <span id="currentUserRole" style="background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:4px; font-size:11px; text-transform:uppercase;"></span>
@@ -163,7 +163,7 @@
                 </div>
                 <div>
                     <div style="display:flex; gap:10px;">
-                        <input type="number" id="ido" step="0.5" placeholder="Javítás (óra)">
+                        <input type="number" id="ido" step="1" placeholder="Javítás (perc)">
                         <input type="number" id="downtime" step="1" placeholder="Kiesés (perc)">
                     </div>
                 </div>
@@ -350,14 +350,14 @@
                     <h4>Informatív / Megfigyelés</h4><div class="value" id="statInfoNyitott" style="color:var(--pri-info);">0</div><small>db</small>
                 </div>
                 <div class="kpi-card" style="border-bottom-color:var(--pri-normal);">
-                    <h4>Javítási Idő (Össz)</h4><div class="value" id="statJavIdo">0</div><small>óra</small>
+                    <h4>Javítási Idő (Össz)</h4><div class="value" id="statJavIdo">0</div><small>perc</small>
                 </div>
             </div>
 
             <h4 style="color:var(--pri-info); border-top:1px solid var(--border); padding-top:20px;">🔁 Preventív Karbantartások (Ismétlődő)</h4>
             <div class="kpi-grid" style="margin-bottom:30px;">
                 <div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Kiadott Preventív</h4><div class="value" id="statPrevNyitott" style="color:var(--pri-info);">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Preventív Munkaidő</h4><div class="value" id="statPrevIdo" style="color:var(--pri-normal);">0</div><small>óra</small></div>
+                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Preventív Munkaidő</h4><div class="value" id="statPrevIdo" style="color:var(--pri-normal);">0</div><small>perc</small></div>
             </div>
 
             <div class="form-grid" style="border-top:1px solid var(--border); padding-top:20px;">
@@ -369,11 +369,11 @@
                     <h4 style="margin:0 0 15px 0; color:var(--primary);">📊 Globális Trend (Minden időszakban fix)</h4>
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                         <div><b>Előző hónap:</b></div>
-                        <div id="statTrendLast" style="text-align:right; color:var(--text-muted);">0 perc kiesés<br>0 óra javítás</div>
+                        <div id="statTrendLast" style="text-align:right; color:var(--text-muted);">0 perc kiesés<br>0 perc javítás</div>
                     </div>
                     <div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:10px;">
                         <div><b>Aktuális hónap:</b></div>
-                        <div id="statTrendThis" style="text-align:right; color:var(--primary);">0 perc kiesés<br>0 óra javítás</div>
+                        <div id="statTrendThis" style="text-align:right; color:var(--primary);">0 perc kiesés<br>0 perc javítás</div>
                     </div>
                 </div>
             </div>
@@ -437,6 +437,7 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
+    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -730,17 +731,19 @@
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         
+        // Csak a karbantartóknak és SzaboP-nek kell jóváhagynia
         let isApprover = (role === "maintenance" || currentUser === "SzaboP");
         if (isApprover && !expectedApproversClean.includes(currentUser)) {
             expectedApproversClean.push(currentUser);
         }
 
+        // AZ ÖSSZES SZEPTEMBER 1 UTÁNI naplót jóvá kell hagyni
         globalShiftLogs.forEach(l => {
-            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-            if (logD >= "2026-09-01") {
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            if (dStr >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 
-                // Automatikusan hozzáadjuk a létrehozót a jóváhagyókhoz a memóriában (így nem kell sajátot jóváhagyni)
+                // Automatikusan hozzáadjuk a létrehozót
                 if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
 
                 let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
@@ -774,7 +777,7 @@
         navBar.style.display = 'flex';
         document.getElementById('shiftLogInputSection').style.display = 'block';
 
-        alertHtml = upcomingWarning;
+        alertHtml += upcomingWarning;
 
         if (isApprover && missingLogs.length > 0) {
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>🚨 Hiányzó műszaknaplók (Kérjük pótolni!):</b> ${missingLogs.join(', ')}</div>`;
@@ -824,7 +827,7 @@
             
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
-                // Saját naplót nem kell jóváhagyni
+                // Saját készítésűt belevesszük a listába
                 if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
 
                 let missing = expectedApproversClean.filter(a => !approvers.includes(a));
@@ -1011,7 +1014,7 @@
                     <div style="background:var(--bg-color); padding:10px; border-radius:4px;">
                         <input type="text" id="megoldas_${t.id}" placeholder="Megoldás..." style="margin-bottom:5px;">
                         <div style="display:flex; gap:10px; margin-bottom:5px;">
-                            <input type="number" id="ido_${t.id}" step="0.5" placeholder="Javítás (óra)" style="margin:0;">
+                            <input type="number" id="ido_${t.id}" step="1" placeholder="Javítás (perc)" style="margin:0;">
                             <input type="number" id="downtime_${t.id}" step="1" placeholder="Kiesés (perc)" style="margin:0;">
                         </div>
                         <button onclick="closeTask('${t.id}')">Jegy lezárása</button>
@@ -1022,7 +1025,7 @@
         } else {
             let dtTxt = t.downtime ? ` (Kiesés: ${t.downtime} perc)` : "";
             return `
-            <div class="task-card closed"><div class="task-header"><span>${dateStr}</span><span class="badge badge-closed">Lezárt</span></div><div class="task-title" style="color:var(--text-muted);">${prevIcon}${t.gep}</div><div style="margin-bottom:5px;">${t.hiba}</div>${clHtml}${kH}<div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} óra${dtTxt})</span></div><div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;"><div>Beküldte: ${t.felhasznalo}</div><div>Lezárta: ${t.lezarta}</div></div>${aH}</div>`;
+            <div class="task-card closed"><div class="task-header"><span>${dateStr}</span><span class="badge badge-closed">Lezárt</span></div><div class="task-title" style="color:var(--text-muted);">${prevIcon}${t.gep}</div><div style="margin-bottom:5px;">${t.hiba}</div>${clHtml}${kH}<div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} perc${dtTxt})</span></div><div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;"><div>Beküldte: ${t.felhasznalo}</div><div>Lezárta: ${t.lezarta}</div></div>${aH}</div>`;
         }
     }
 
@@ -1163,10 +1166,10 @@
         if(document.getElementById('statNyitott')) document.getElementById('statNyitott').innerText = esetiNyitott; 
         if(document.getElementById('statInfoNyitott')) document.getElementById('statInfoNyitott').innerText = infoNyitott; 
         if(document.getElementById('statLeallas')) document.getElementById('statLeallas').innerText = leallas; 
-        if(document.getElementById('statJavIdo')) document.getElementById('statJavIdo').innerText = esetiJavIdo.toFixed(1); 
+        if(document.getElementById('statJavIdo')) document.getElementById('statJavIdo').innerText = Math.round(esetiJavIdo); 
         if(document.getElementById('statDowntime')) document.getElementById('statDowntime').innerText = termelesKieses;
         if(document.getElementById('statPrevNyitott')) document.getElementById('statPrevNyitott').innerText = prevNyitott;
-        if(document.getElementById('statPrevIdo')) document.getElementById('statPrevIdo').innerText = prevIdo.toFixed(1);
+        if(document.getElementById('statPrevIdo')) document.getElementById('statPrevIdo').innerText = Math.round(prevIdo);
 
         if(document.getElementById('topMachinesContainer')) {
             let sortedMachines = Object.entries(machineIssues).sort((a, b) => b[1] - a[1]).slice(0, 3);
@@ -1199,17 +1202,17 @@
         });
 
         if(document.getElementById('statTrendLast')) {
-            document.getElementById('statTrendLast').innerHTML = `${monthStat.last.kieses} perc kiesés<br>${monthStat.last.javIdo.toFixed(1)} óra javítás`;
-            document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
+            document.getElementById('statTrendLast').innerHTML = `${monthStat.last.kieses} perc kiesés<br>${Math.round(monthStat.last.javIdo)} perc javítás`;
+            document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${Math.round(monthStat.current.javIdo)} perc javítás`;
         }
 
         let missingApprovalsCount = {};
         expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
         globalShiftLogs.forEach(l => {
-            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-            if (logD >= "2026-09-01") {
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            if (dStr >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                // Itt is hozzáadjuk a létrehozót
+                // Saját készítésűt belevesszük a listába
                 if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
 
                 expectedApprovers.forEach(a => {
@@ -1342,10 +1345,10 @@
             else { groups[key].esetiDb++; groups[key].esetiJavIdo += (parseFloat(t.ido) || 0); groups[key].esetiKieses += (parseFloat(t.downtime) || 0); }
         });
         
-        let csv = "Időszak;Eseti hiba (db);Javítási idő (óra);Termeléskiesés (perc);Preventív (db);Preventív idő (óra)\n";
+        let csv = "Időszak;Eseti hiba (db);Javítási idő (perc);Termeléskiesés (perc);Preventív (db);Preventív idő (perc)\n";
         Object.keys(groups).sort().reverse().forEach(k => {
             let g = groups[k];
-            csv += `${k};${g.esetiDb};${g.esetiJavIdo.toFixed(2).replace('.',',')};${g.esetiKieses};${g.prevDb};${g.prevIdo.toFixed(2).replace('.',',')}\n`;
+            csv += `${k};${g.esetiDb};${Math.round(g.esetiJavIdo)};${g.esetiKieses};${g.prevDb};${Math.round(g.prevIdo)}\n`;
         });
         downloadCSV(csv, `Statisztika_${bontas}.csv`);
     }
@@ -1354,7 +1357,7 @@
     
     function exportTasks(arr, fn) { 
         if(arr.length===0) return; 
-        let csv=["ID","Időpont","Státusz","Prioritás","Gép","Hiba","Beküldő","Felelős","Megoldás","Javítás (óra)","Kiesés (perc)","Lezárta","Reakció Start"].join(";")+"\n"; 
+        let csv=["ID","Időpont","Státusz","Prioritás","Gép","Hiba","Beküldő","Felelős","Megoldás","Javítás (perc)","Kiesés (perc)","Lezárta","Reakció Start"].join(";")+"\n"; 
         arr.forEach(t=>{ csv+=[t.id,t.idopont,t.statusz,t.prioritas,t.gep,String(t.hiba).replace(/"/g,'""').replace(/\n/g,' '),t.felhasznalo,t.felelos||"",String(t.megoldas||"").replace(/"/g,'""').replace(/\n/g,' '),t.ido||"",t.downtime||"",t.lezarta||"",t.startIdopont||""].map(c=>`"${c}"`).join(";")+"\n"; }); 
         downloadCSV(csv,fn); 
     }
