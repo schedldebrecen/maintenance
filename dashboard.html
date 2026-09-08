@@ -94,7 +94,6 @@
 </head>
 <body>
 
-    <!-- Rendszer indító banner (Jogosultságok kérése) -->
     <div id="startupBanner">
         <div class="startup-box">
             <h2>Értesítések beállítása</h2>
@@ -105,7 +104,6 @@
         </div>
     </div>
 
-    <!-- Értesítés Nyugtázó Gomb -->
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
     <div class="top-bar">
@@ -454,11 +452,19 @@
                             <ul style="padding-left:20px; color:var(--text-main); margin:0;">${items}</ul>
                         </div>`;
         }
+        
+        // JAVÍTÁS ITT: window.open URL módosítva /view végződésre!
         if (task.kepek) {
            let kH = `<div style="display:flex; gap:10px; margin-top:20px; overflow-x:auto;">`;
            String(task.kepek).split(",").forEach(u => {
-               if(u.trim()) { const m = u.match(/id=([^&]+)/); const thumb = m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u.trim(); kH += `<img src="${thumb}" onclick="window.open('${u.trim()}', '_blank')" style="max-height:150px; border-radius:6px; cursor:pointer; border:1px solid var(--border);">`; }
-           }); kH += `</div>`; details += kH;
+               if(u.trim()) { 
+                   const m = u.match(/id=([^&]+)/); 
+                   const thumb = m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u.trim(); 
+                   const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim();
+                   kH += `<img src="${thumb}" onclick="window.open('${viewUrl}', '_blank')" style="max-height:150px; border-radius:6px; cursor:pointer; border:1px solid var(--border);">`; 
+               }
+           }); 
+           kH += `</div>`; details += kH;
         }
 
         document.getElementById('modalDetails').innerHTML = details;
