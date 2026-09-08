@@ -96,7 +96,7 @@
 
     <div id="startupBanner">
         <div class="startup-box">
-            <h2>Értesítések beállítása</h2>
+            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.2)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" style="background:var(--border);" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -106,47 +106,57 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
-    <div class="top-bar">
-        <div class="title-group">
-            <h1>🛠️ CMMS Dashboard</h1>
-            <div class="live-badge">ÉLŐ</div>
-        </div>
-        <div class="time-group">
-            <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
-                <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
-                <button onclick="dashLogout()" style="background:#ef4444; border:none; color:white; border-radius:3px; padding:3px 8px; cursor:pointer; font-size:10px; text-transform:uppercase; font-weight:bold;">Kijelentkezés</button>
-            </div>
-            <div>
-                <div class="clock" id="clockDisplay">00:00:00</div>
-                <div class="refresh-info">Frissítés: <span id="countdownDisplay">20</span>mp</div>
-            </div>
-        </div>
-        <div id="progressBar"></div>
-    </div>
-
-    <!-- ÉRTESÍTÉSI SÁV MŰSZAKNAPLÓKHOZ -->
-    <div id="shiftAlertBanner" style="padding: 10px 30px 0 30px; background:var(--bg-dark);"></div>
-
-    <div class="kpi-bar">
-        <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')">
-            <h3>Termelésleállás</h3><div class="val" id="kpiCrit">0</div>
-        </div>
-        <div class="kpi-card high" id="kpiCard-High" onclick="setDashboardFilter('High')">
-            <h3>Sürgős (Magas)</h3><div class="val" id="kpiHigh">0</div>
-        </div>
-        <div class="kpi-card prog" id="kpiCard-Prog" onclick="setDashboardFilter('Prog')">
-            <h3>Folyamatban</h3><div class="val" id="kpiProg">0</div>
-        </div>
-        <div class="kpi-card total active-filter" id="kpiCard-Total" onclick="setDashboardFilter(null)">
-            <h3>Munkára vár (Fő)</h3><div class="val" id="kpiTotal">0</div>
-        </div>
-        <div class="kpi-card info" id="kpiCard-Info" onclick="setDashboardFilter('Info')">
-            <h3>Informatív / Megf.</h3><div class="val" id="kpiInfo">0</div>
+    <!-- DASHBOARD KIZÁRÓ KÉPERNYŐ -->
+    <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
+        <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
+            <h2 style="margin-top:0; color:var(--pri-crit);">🚨 Dashboard Lezárva! Elmaradt Műszaknapló Jóváhagyás</h2>
+            <p style="font-size:16px; margin-bottom:20px; color:var(--text-muted);">Amíg az alábbi naplókat nem hagyod jóvá, a Faliújság nem jeleníti meg a gépeket. Nyomj a gombokra az engedélyezéshez:</p>
+            <div id="dashUnapprovedLogsList" style="margin-top:20px; max-height:50vh; overflow-y:auto; padding-right:10px;"></div>
         </div>
     </div>
 
-    <div class="dashboard-container">
-        <div class="grid" id="taskGrid"></div>
+    <div id="dashboardMainUI">
+        <div class="top-bar">
+            <div class="title-group">
+                <h1>🛠️ CMMS Dashboard</h1>
+                <div class="live-badge">ÉLŐ</div>
+            </div>
+            <div class="time-group">
+                <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
+                    <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
+                    <button onclick="dashLogout()" style="background:#ef4444; border:none; color:white; border-radius:3px; padding:3px 8px; cursor:pointer; font-size:10px; text-transform:uppercase; font-weight:bold;">Kijelentkezés</button>
+                </div>
+                <div>
+                    <div class="clock" id="clockDisplay">00:00:00</div>
+                    <div class="refresh-info">Frissítés: <span id="countdownDisplay">20</span>mp</div>
+                </div>
+            </div>
+            <div id="progressBar"></div>
+        </div>
+
+        <div id="shiftAlertBanner" style="padding: 10px 30px 0 30px; background:var(--bg-dark);"></div>
+
+        <div class="kpi-bar">
+            <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')">
+                <h3>Termelésleállás</h3><div class="val" id="kpiCrit">0</div>
+            </div>
+            <div class="kpi-card high" id="kpiCard-High" onclick="setDashboardFilter('High')">
+                <h3>Sürgős (Magas)</h3><div class="val" id="kpiHigh">0</div>
+            </div>
+            <div class="kpi-card prog" id="kpiCard-Prog" onclick="setDashboardFilter('Prog')">
+                <h3>Folyamatban</h3><div class="val" id="kpiProg">0</div>
+            </div>
+            <div class="kpi-card total active-filter" id="kpiCard-Total" onclick="setDashboardFilter(null)">
+                <h3>Munkára vár (Fő)</h3><div class="val" id="kpiTotal">0</div>
+            </div>
+            <div class="kpi-card info" id="kpiCard-Info" onclick="setDashboardFilter('Info')">
+                <h3>Informatív / Megf.</h3><div class="val" id="kpiInfo">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-container">
+            <div class="grid" id="taskGrid"></div>
+        </div>
     </div>
 
     <!-- MODAL -->
@@ -160,7 +170,6 @@
             
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
-            <!-- Dashboard Akció Panel -->
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
@@ -218,6 +227,10 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if(AudioContext) audioCtx = new AudioContext();
         }
+        
+        const savedUser = localStorage.getItem("activeUser");
+        if(savedUser) { sessionUser = savedUser; extendSession(); }
+
         fetchDashboardData();
     }
 
@@ -244,7 +257,6 @@
             const result = await res.json();
             if(result.status === "success") { processData(result.data); } 
             
-            // Lekéri a műszaknaplókat az értesítésekhez
             const resLog = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) });
             const resultLog = await resLog.json();
             if(resultLog.status === "success") { 
@@ -256,9 +268,10 @@
         } catch (e) { console.error("Hiba:", e); }
     }
 
+    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK A DASHBOARDON IS ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
-        let startD = new Date(2026, 8, 7, 12, 0, 0); 
+        let startD = new Date(2026, 8, 1, 0, 0, 0); // Szeptember 1.
         let now = new Date();
         let curr = new Date(startD);
         
@@ -268,31 +281,72 @@
                 let dStr = toLocalISOString(curr);
                 
                 let shift1End = new Date(curr); shift1End.setHours(14,0,0,0);
-                if (now > shift1End) {
+                if (now >= shift1End) {
                     if (!globalShiftLogs.some(l => (l.datum === dStr || String(l.idopont).startsWith(dStr)) && String(l.muszak).includes("Délelőtt"))) {
                         missingLogs.push(`${dStr} Délelőtt`);
                     }
                 }
                 
                 let shift2End = new Date(curr); shift2End.setHours(22,0,0,0);
-                if (now > shift2End) {
+                if (now >= shift2End) {
                     if (!globalShiftLogs.some(l => (l.datum === dStr || String(l.idopont).startsWith(dStr)) && String(l.muszak).includes("Délután"))) {
                         missingLogs.push(`${dStr} Délután`);
                     }
                 }
             }
             curr.setDate(curr.getDate() + 1);
+            curr.setHours(0,0,0,0);
         }
 
         let pendingLogUsers = new Set();
+        let myUnapprovedCount = 0;
+        let myUnapprovedLogs = [];
+        let currentUser = String(localStorage.getItem("activeUser")).trim();
+        let role = String(localStorage.getItem("activeRole")).toLowerCase();
+        
+        let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
+        
+        let isApprover = (role === "maintenance" || currentUser === "SzaboP");
+        if (isApprover && !expectedApproversClean.includes(currentUser)) {
+            expectedApproversClean.push(currentUser);
+        }
+
         globalShiftLogs.forEach(l => {
             let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
-            if (dStr >= "2026-09-07") {
+            if (dStr >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                let unapproved = expectedApprovers.filter(a => !approvers.includes(a));
+                let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
                 unapproved.forEach(u => pendingLogUsers.add(u));
+
+                if (isApprover && expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
+                    myUnapprovedCount++;
+                    myUnapprovedLogs.push(l);
+                }
             }
         });
+
+        // DASHBOARD KIZÁRÁS LOGIKA
+        if (myUnapprovedCount > 0) {
+            document.getElementById('dashboardMainUI').style.display = 'none';
+            document.getElementById('dashLockdownScreen').style.display = 'block';
+
+            let listHtml = myUnapprovedLogs.map(l => {
+                const displayDate = l.datum ? new Date(l.datum).toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) : new Date(l.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+                return `<div style="background:var(--bg-dark); padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border);">
+                            <div>
+                                <strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br>
+                                <span style="font-size:14px; color:var(--text-muted);">Írta: ${l.felhasznalo} - "${String(l.szoveg).substring(0, 60)}..."</span>
+                            </div>
+                            <button id="apprBtnDash_${l.id}" onclick="approveShiftLogDash('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">✅ Jóváhagyom</button>
+                        </div>`;
+            }).join('');
+            document.getElementById('dashUnapprovedLogsList').innerHTML = listHtml;
+            return;
+        }
+
+        // FELOLDÁS
+        document.getElementById('dashboardMainUI').style.display = 'block';
+        document.getElementById('dashLockdownScreen').style.display = 'none';
 
         let alertHtml = "";
 
@@ -300,14 +354,21 @@
             alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">⚠️ Műszaknapló jóváhagyás hiányzik a következőktől: ${Array.from(pendingLogUsers).join(', ')}</div>`;
         }
 
-        if (sessionUser && expectedApprovers.includes(sessionUser) && missingLogs.length > 0) {
-            alertHtml += `<div style="background:var(--pri-crit); color:white; padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">🚨 PÓTOLD A MŰSZAKNAPLÓT: ${missingLogs.join(', ')}</div>`;
+        if (isApprover && missingLogs.length > 0) {
+            alertHtml += `<div style="background:var(--pri-crit); color:white; padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">🚨 PÓTOLD A MŰSZAKNAPLÓT (Karbantartás menü): ${missingLogs.join(', ')}</div>`;
         }
 
         const alertDiv = document.getElementById('shiftAlertBanner');
         if (alertDiv) alertDiv.innerHTML = alertHtml;
     }
 
+    async function approveShiftLogDash(id) {
+        const btn = document.getElementById('apprBtnDash_' + id);
+        if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
+        // Azonnali frissítés a gombnyomás után
+        fetchDashboardData();
+    }
 
     function processData(allTasks) {
         currentActiveTasks = allTasks.filter(t => t.statusz !== "Lezárt");
@@ -475,7 +536,10 @@
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
             const r = await res.json();
             if(r.status === "success") { 
-                sessionUser = n; extendSession();
+                sessionUser = n; 
+                localStorage.setItem("activeUser", n);
+                localStorage.setItem("activeRole", r.role || "production");
+                extendSession();
                 document.getElementById('dashLoginNev').value = ""; document.getElementById('dashLoginPin').value = "";
                 stat.innerText = "";
             } else { stat.innerText = r.message; }
@@ -485,6 +549,8 @@
     function dashLogout() {
         sessionUser = null;
         sessionExpiry = 0;
+        localStorage.removeItem("activeUser"); 
+        localStorage.removeItem("activeRole");
         document.getElementById('activeUserBadge').style.display = 'none';
         refreshModalActionPanel();
         checkMissingShiftLogsAndApprovals();
