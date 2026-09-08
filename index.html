@@ -122,7 +122,7 @@
 
 <div id="appView">
     <div class="topbar">
-        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.1)</span></h2>
+        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.2)</span></h2>
         <div class="user-info">
             <span id="currentUserText"></span>
             <span id="currentUserRole" style="background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:4px; font-size:11px; text-transform:uppercase;"></span>
@@ -437,7 +437,6 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -660,10 +659,10 @@
         } catch(e) {}
     }
 
-    // --- HIÁNYZÓ NAPLÓK ÉS JÓVÁHAGYÁSOK KIZÁRÁSSAL (Dátumkorlát eltörölve a jóváhagyásnál) ---
+    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK (Minden naplónál, Szept. 1-ig visszamenőleg) ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
-        let startD = new Date(2026, 8, 1, 0, 0, 0); // Hiányzó napló vizsgálata 2026-09-01-től
+        let startD = new Date(2026, 8, 1, 0, 0, 0); // Szeptember 1.
         let now = new Date();
         let curr = new Date(startD);
         
@@ -698,31 +697,35 @@
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         
-        // Biztonsági fék: ha az admin vagy a karbantartó valamiért nincs a táblázat jóváhagyó listájában, hozzátesszük a memóriában.
-        if ((role === "maintenance" || role === "admin" || currentUser === "SzaboP") && !expectedApproversClean.includes(currentUser)) {
+        // Csak a karbantartóknak és SzaboP-nek kell jóváhagynia (isApprover)
+        let isApprover = (role === "maintenance" || currentUser === "SzaboP");
+        if (isApprover && !expectedApproversClean.includes(currentUser)) {
             expectedApproversClean.push(currentUser);
         }
 
-        // AZ ÖSSZES eddigi naplót jóvá kell hagyni (nincs dátumkorlát)
+        // AZ ÖSSZES SZEPTEMBER 1 UTÁNI naplót jóvá kell hagyni
         globalShiftLogs.forEach(l => {
-            let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-            
-            let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
-            unapproved.forEach(u => pendingLogUsers.add(u));
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
+            if (dStr >= "2026-09-01") {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                
+                let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
+                unapproved.forEach(u => pendingLogUsers.add(u));
 
-            if (expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
-                myUnapprovedCount++;
+                if (isApprover && expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
+                    myUnapprovedCount++;
+                }
             }
         });
 
         const alertDiv = document.getElementById('shiftAlertBanner');
         const navBar = document.getElementById('mainNavigation');
 
-        // KIZÁRÁS LOGIKA (Ha a jelenlegi embernek van elmaradt jóváhagyása)
+        // KIZÁRÁS LOGIKA
         if (myUnapprovedCount > 0) {
-            navBar.style.display = 'none'; // Menü elrejtése
-            document.getElementById('shiftLogInputSection').style.display = 'none'; // Új napló írásának elrejtése
-            switchTab('muszakatadasView', null); // Átdobás a Műszak fülre
+            navBar.style.display = 'none'; 
+            document.getElementById('shiftLogInputSection').style.display = 'none'; 
+            switchTab('muszakatadasView', null); 
             
             alertDiv.innerHTML = `
                 <div style="background:var(--pri-crit); color:white; padding:20px; border-radius:8px; margin-bottom:20px; font-size:18px; font-weight:bold; text-align:center; box-shadow:0 4px 15px rgba(239,68,68,0.5); animation: pulse 2s infinite;">
@@ -730,17 +733,16 @@
                     ${myUnapprovedCount} db műszaknaplót még nem hagytál jóvá!<br>
                     <span style="font-size:14px; font-weight:normal;">Amíg nem kattintasz rá lent a zöld 'JÓVÁHAGYOM' gombokra, nem tudod használni a többi funkciót.</span>
                 </div>`;
-            return; // Itt meg is állunk, nem mutatjuk a többi értesítést.
+            return; 
         } 
         
-        // FELOLDÁS (Ha nincs elmaradása)
+        // FELOLDÁS
         navBar.style.display = 'flex';
         document.getElementById('shiftLogInputSection').style.display = 'block';
 
         let alertHtml = "";
-        let isMaintOrAdmin = (role === "maintenance" || role === "admin" || currentUser === "SzaboP");
 
-        if (isMaintOrAdmin && missingLogs.length > 0) {
+        if (isApprover && missingLogs.length > 0) {
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>🚨 Hiányzó műszaknaplók (Kérjük pótolni!):</b> ${missingLogs.join(', ')}</div>`;
         }
 
@@ -768,7 +770,9 @@
         const currentUser = String(localStorage.getItem("activeUser")).trim();
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
-        if ((role === "maintenance" || role === "admin" || currentUser === "SzaboP") && !expectedApproversClean.includes(currentUser)) {
+        let isApprover = (role === "maintenance" || currentUser === "SzaboP");
+
+        if (isApprover && !expectedApproversClean.includes(currentUser)) {
             expectedApproversClean.push(currentUser);
         }
 
@@ -779,26 +783,27 @@
             
             let apprBtn = "";
             let apprStatus = "";
+            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
             
-            // JÓVÁHAGYÁS MEGJELENÍTÉSE (Minden naplóra, nincs dátumkorlát)
-            let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
-            let missing = expectedApproversClean.filter(a => !approvers.includes(a));
-            
-            if (expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
-                apprBtn = `<button id="apprBtn_${l.id}" onclick="approveShiftLog('${l.id}')" style="background:var(--pri-normal); width:auto; padding:6px 12px; font-size:14px; margin:0; border:none; color:white; border-radius:4px; font-weight:bold; margin-left:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✅ JÓVÁHAGYOM</button>`;
-            }
-            
-            if (missing.length > 0) {
-                apprStatus = `<div style="color:var(--pri-crit); font-size:12px; margin-top:10px; border-top:1px dashed var(--border); padding-top:5px;">⏳ Jóváhagyásra vár: <b>${missing.join(', ')}</b></div>`;
-            } else {
-                apprStatus = `<div style="color:var(--pri-normal); font-size:12px; margin-top:10px; border-top:1px dashed var(--border); padding-top:5px;">✅ Mindenki jóváhagyta</div>`;
+            if (dStr >= "2026-09-01") {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
+                let missing = expectedApproversClean.filter(a => !approvers.includes(a));
+                
+                if (isApprover && expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
+                    apprBtn = `<button id="apprBtn_${l.id}" onclick="approveShiftLog('${l.id}')" style="background:var(--pri-normal); width:auto; padding:6px 12px; font-size:14px; margin:0; border:none; color:white; border-radius:4px; font-weight:bold; margin-left:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✅ JÓVÁHAGYOM</button>`;
+                }
+                
+                if (missing.length > 0) {
+                    apprStatus = `<div style="color:var(--pri-crit); font-size:12px; margin-top:10px; border-top:1px dashed var(--border); padding-top:5px;">⏳ Jóváhagyásra vár: <b>${missing.join(', ')}</b></div>`;
+                } else {
+                    apprStatus = `<div style="color:var(--pri-normal); font-size:12px; margin-top:10px; border-top:1px dashed var(--border); padding-top:5px;">✅ Mindenki jóváhagyta</div>`;
+                }
             }
 
             h += `<div class="task-card"><div class="task-header"><span>${displayDate}</span><span class="badge badge-info">${l.muszak}</span></div><div id="logDisp_${l.id}" style="margin-bottom:10px; font-size:15px;">${String(l.szoveg).replace(/\n/g, '<br>')}</div><div id="logEditDiv_${l.id}" style="display:none; margin-bottom:10px;"><textarea id="logInp_${l.id}" rows="3" style="width:100%;">${String(l.szoveg).replace(/"/g, '&quot;')}</textarea><button onclick="saveEditLog('${l.id}','${l.oldTimestamp}','${l.felhasznalo}')" style="background:var(--pri-normal); margin-top:5px;">Mentés</button></div>${apprStatus}<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:10px;"><small>Írta: <b>${l.felhasznalo}</b></small><div>${eBtn}${apprBtn}</div></div></div>`;
         }); 
         c.innerHTML = h;
 
-        // Végül ellenőrizzük, hogy kell-e kizárás (mert betöltöttük a gombokat)
         checkMissingShiftLogsAndApprovals();
     }
     
@@ -1158,17 +1163,18 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
         }
 
-        // Jóváhagyás elmaradás számítása
         let missingApprovalsCount = {};
         expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
         globalShiftLogs.forEach(l => {
             let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
-            let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-            expectedApprovers.forEach(a => {
-                if (!approvers.includes(a)) {
-                    missingApprovalsCount[a] = (missingApprovalsCount[a] || 0) + 1;
-                }
-            });
+            if (dStr >= "2026-09-01") {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                expectedApprovers.forEach(a => {
+                    if (!approvers.includes(a)) {
+                        missingApprovalsCount[a] = (missingApprovalsCount[a] || 0) + 1;
+                    }
+                });
+            }
         });
 
         if(document.getElementById('adminStatsTableBody') && localStorage.getItem("activeRole") === "admin") {
