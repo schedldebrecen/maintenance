@@ -60,7 +60,7 @@
         .badge-normal { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid var(--pri-normal); }
         .badge-high { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--pri-high); }
         .badge-crit { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--pri-crit); animation: pulse-border 2s infinite; }
-        @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .meta-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 15px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
         .in-progress-bar { background: rgba(139, 92, 246, 0.2); border: 1px solid var(--pri-prog); color: #a78bfa; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
@@ -96,7 +96,7 @@
 
     <div id="startupBanner">
         <div class="startup-box">
-            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.4)</span></h2>
+            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.5)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" style="background:var(--border);" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -106,7 +106,6 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
-    <!-- DASHBOARD KIZÁRÓ KÉPERNYŐ -->
     <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
         <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
             <h2 style="margin-top:0; color:var(--pri-crit);">🚨 Dashboard Lezárva! Elmaradt Műszaknapló Jóváhagyás</h2>
@@ -170,7 +169,6 @@
             
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
-            <!-- Dashboard Akció Panel -->
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
@@ -269,7 +267,6 @@
         } catch (e) { console.error("Hiba:", e); }
     }
 
-    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK A DASHBOARDON IS ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
         let startD = new Date(2026, 8, 1, 0, 0, 0); 
@@ -340,7 +337,7 @@
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         
         let isApprover = (role === "maintenance" || currentUser === "SzaboP");
-        if (isApprover && !expectedApproversClean.includes(currentUser)) {
+        if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
             expectedApproversClean.push(currentUser);
         }
 
@@ -348,12 +345,13 @@
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
-
-                let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
+                let approversLower = approvers.map(x=>x.toLowerCase());
+                let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
+                
+                let unapproved = expectedApproversClean.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
-                if (isApprover && expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
+                if (isApprover && expectedLower.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) {
                     myUnapprovedCount++;
                     myUnapprovedLogs.push(l);
                 }
