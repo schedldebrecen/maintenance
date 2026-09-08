@@ -122,7 +122,7 @@
 
 <div id="appView">
     <div class="topbar">
-        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.4)</span></h2>
+        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.5)</span></h2>
         <div class="user-info">
             <span id="currentUserText"></span>
             <span id="currentUserRole" style="background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:4px; font-size:11px; text-transform:uppercase;"></span>
@@ -437,7 +437,6 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -603,6 +602,31 @@
         } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
     }
 
+    // --- ÚJ: TÖRLÉS ---
+    async function deleteTask(id) {
+        if(!confirm("⚠️ Biztosan véglegesen törlöd ezt a feladatot? Ezt nem lehet visszavonni!")) return;
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteTask", id: id }) });
+        loadTasks();
+    }
+
+    // --- ÚJ: EGYESÍTÉS ---
+    async function mergeTask(sourceId) {
+        const targetId = prompt("🔗 EGYESÍTÉS\nKérlek add meg a CÉL hibajegy azonosítóját (pl. KB-1234), amibe a jelenlegit be szeretnéd olvasztani!\n\n(A jelenlegi jegy képei és szövege átkerül a cél jegybe, ez a jegy pedig törlődik.)");
+        if (!targetId) return;
+        if (targetId.trim().toUpperCase() === sourceId.toUpperCase()) { alert("❌ Nem vonhatod össze a jegyet önmagával!"); return; }
+        
+        if(!confirm(`Biztosan beolvasztod a(z) ${sourceId} jegyet a(z) ${targetId.toUpperCase()} jegybe?`)) return;
+
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "mergeTask", sourceId: sourceId, targetId: targetId.trim().toUpperCase() }) });
+        const result = await res.json();
+        if (result.status === "success") {
+            alert("✅ Sikeresen összevonva!");
+            loadTasks();
+        } else {
+            alert("❌ Hiba: " + result.message);
+        }
+    }
+
     async function addRecurringTask() {
         const k = document.getElementById('ismKategoria').value, g = document.getElementById('ismGep').value, h = document.getElementById('ismHiba').value, cl = document.getElementById('ismChecklist').value, kd = document.getElementById('ismKezdoDatum').value;
         if (!k || !g || !h) { alert("A kategória, gép és feladat neve kötelező!"); return; }
@@ -660,39 +684,11 @@
         } catch(e) {}
     }
 
-    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK (Minden naplónál, Szept. 1-ig visszamenőleg) ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
-        let startD = new Date(2026, 8, 1, 0, 0, 0); // Szeptember 1.
+        let startD = new Date(2026, 8, 1, 0, 0, 0); 
         let now = new Date();
         let curr = new Date(startD);
-        
-        let alertHtml = "";
-        let upcomingWarning = "";
-
-        // Óránkénti figyelmeztetés a Faliújsághoz (1 órával műszak vége előtt)
-        if (now.getDay() >= 1 && now.getDay() <= 5) {
-            let h = now.getHours();
-            let todayStr = toLocalISOString(now);
-            
-            if (h === 13) {
-                let hasLog = globalShiftLogs.some(l => {
-                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-                    return logD === todayStr && String(l.muszak).includes("Délelőtt");
-                });
-                if (!hasLog) {
-                    upcomingWarning = `<div style="background:var(--pri-high); color:var(--surface); padding:15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:10px; text-align:center; animation: blink 1.5s infinite;">⏰ FIGYELEM! Egy óra múlva vége a délelőtti műszaknak! Ne felejtsd el megírni a műszaknaplót!</div>`;
-                }
-            } else if (h === 21) {
-                let hasLog = globalShiftLogs.some(l => {
-                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-                    return logD === todayStr && String(l.muszak).includes("Délután");
-                });
-                if (!hasLog) {
-                    upcomingWarning = `<div style="background:var(--pri-high); color:var(--surface); padding:15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:10px; text-align:center; animation: blink 1.5s infinite;">⏰ FIGYELEM! Egy óra múlva vége a délutáni műszaknak! Ne felejtsd el megírni a műszaknaplót!</div>`;
-                }
-            }
-        }
         
         // Műszaknapló elmaradások (H-P)
         while (curr <= now) {
@@ -731,21 +727,16 @@
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         
-        // Csak a karbantartóknak és SzaboP-nek kell jóváhagynia
         let isApprover = (role === "maintenance" || currentUser === "SzaboP");
         if (isApprover && !expectedApproversClean.includes(currentUser)) {
             expectedApproversClean.push(currentUser);
         }
 
-        // AZ ÖSSZES SZEPTEMBER 1 UTÁNI naplót jóvá kell hagyni
         globalShiftLogs.forEach(l => {
-            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
-            if (dStr >= "2026-09-01") {
+            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+            if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 
-                // Automatikusan hozzáadjuk a létrehozót
-                if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
-
                 let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
@@ -777,7 +768,7 @@
         navBar.style.display = 'flex';
         document.getElementById('shiftLogInputSection').style.display = 'block';
 
-        alertHtml += upcomingWarning;
+        let alertHtml = "";
 
         if (isApprover && missingLogs.length > 0) {
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>🚨 Hiányzó műszaknaplók (Kérjük pótolni!):</b> ${missingLogs.join(', ')}</div>`;
@@ -827,9 +818,6 @@
             
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
-                // Saját készítésűt belevesszük a listába
-                if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
-
                 let missing = expectedApproversClean.filter(a => !approvers.includes(a));
                 
                 if (isApprover && expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
@@ -940,6 +928,7 @@
         if(f.length===0){c.innerHTML="<div style='grid-column:1/-1; text-align:center;'>Nincs találat.</div>"; return;} let h = ""; f.forEach(t => h += genCard(t)); c.innerHTML = h;
     }
 
+    // --- KÁRTYA GENERÁLÓ: ID ÉS EGYESÍTÉS/TÖRLÉS GOMBOKKAL ---
     function genCard(t) {
         const dateStr = new Date(t.idopont).toLocaleString('hu-HU', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
         const pr = String(t.prioritas || "").replace(" prioritás", "").replace("ással járó", "");
@@ -970,10 +959,23 @@
         let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
 
         let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : "";
-        let reopenBtn = "";
         
+        // GOMBOK
+        let reopenBtn = "";
+        let adminBtns = "";
+        let role = String(localStorage.getItem("activeRole")).toLowerCase();
+        let currentUser = String(localStorage.getItem("activeUser")).trim();
+
         if (t.statusz === "Lezárt" && !String(t.id).startsWith("PREV-")) {
-            reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px;">🔄 Újranyitás</button>`;
+            reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔄 Újranyitás</button>`;
+        }
+        
+        // Ha Admin/Karbantartó, akkor látja a Törlés és Egyesítés gombokat is
+        if ((role === "admin" || role === "maintenance" || currentUser === "SzaboP") && !String(t.id).startsWith("PREV-")) {
+            adminBtns = `
+                <button onclick="mergeTask('${t.id}')" style="background:var(--pri-obs); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔗 Egyesítés</button>
+                <button onclick="deleteTask('${t.id}')" style="background:var(--pri-crit); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🗑️ Törlés</button>
+            `;
         }
 
         let prioSelectHtml = "";
@@ -988,9 +990,12 @@
             </select>`;
         }
 
-        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display:flex; justify-content:space-between;">
+        let aH = `<div style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:5px;">
                     <button onclick="if(document.getElementById('appF_${t.id}')) document.getElementById('appF_${t.id}').style.display='block';" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button>
-                    ${reopenBtn}
+                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                        ${adminBtns}
+                        ${reopenBtn}
+                    </div>
                   </div>
                   <div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*,video/*" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div>`;
 
@@ -1001,7 +1006,7 @@
             return `
             <div class="task-card ${eC}">
                 <div class="task-header">
-                    <span>${dateStr}</span>
+                    <div><span>${dateStr}</span> <span style="color:var(--text-muted); font-size:11px; margin-left:6px; font-family:monospace;">#${t.id}</span></div>
                     <div style="display:flex; gap:5px; align-items:center;">${prioSelectHtml} <span class="badge ${bC}" style="display:none;">${pr}</span>${pB}</div>
                 </div>
                 <div class="task-title">${prevIcon}${t.gep}</div>
@@ -1025,7 +1030,13 @@
         } else {
             let dtTxt = t.downtime ? ` (Kiesés: ${t.downtime} perc)` : "";
             return `
-            <div class="task-card closed"><div class="task-header"><span>${dateStr}</span><span class="badge badge-closed">Lezárt</span></div><div class="task-title" style="color:var(--text-muted);">${prevIcon}${t.gep}</div><div style="margin-bottom:5px;">${t.hiba}</div>${clHtml}${kH}<div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} perc${dtTxt})</span></div><div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;"><div>Beküldte: ${t.felhasznalo}</div><div>Lezárta: ${t.lezarta}</div></div>${aH}</div>`;
+            <div class="task-card closed">
+                <div class="task-header">
+                    <div><span>${dateStr}</span> <span style="color:var(--text-muted); font-size:11px; margin-left:6px; font-family:monospace;">#${t.id}</span></div>
+                    <span class="badge badge-closed">Lezárt</span>
+                </div>
+                <div class="task-title" style="color:var(--text-muted);">${prevIcon}${t.gep}</div><div style="margin-bottom:5px;">${t.hiba}</div>${clHtml}${kH}<div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} perc${dtTxt})</span></div><div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;"><div>Beküldte: ${t.felhasznalo}</div><div>Lezárta: ${t.lezarta}</div></div>${aH}
+            </div>`;
         }
     }
 
@@ -1209,10 +1220,9 @@
         let missingApprovalsCount = {};
         expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
         globalShiftLogs.forEach(l => {
-            let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
-            if (dStr >= "2026-09-01") {
+            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+            if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                // Saját készítésűt belevesszük a listába
                 if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
 
                 expectedApprovers.forEach(a => {
