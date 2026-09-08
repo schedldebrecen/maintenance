@@ -14,7 +14,7 @@
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
         .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; }
+        .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; display:flex; align-items:center; gap:8px;}
         .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
@@ -63,7 +63,7 @@
         .badge-prog { background: var(--pri-prog); } 
         .badge-closed { background: var(--text-muted); }
 
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin: 10px 0; padding-bottom: 5px; }
         .img-container img, .img-container video { max-width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
@@ -90,12 +90,10 @@
         .checklist-box ul { margin: 5px 0 0 0; padding-left: 20px; font-size: 14px; color: var(--primary); }
         .checklist-box li { margin-bottom: 4px; }
 
-        /* ADMIN STAT TABLE */
         .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size:14px; }
         .admin-table th, .admin-table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
         .admin-table th { background: #e2e8f0; color: var(--primary); font-weight:bold; }
         
-        /* MODALS */
         .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 10px; border: 1px solid var(--border); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
 
@@ -124,7 +122,7 @@
 
 <div id="appView">
     <div class="topbar">
-        <h2>⚙️ Karbantartás</h2>
+        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.0)</span></h2>
         <div class="user-info">
             <span id="currentUserText"></span>
             <span id="currentUserRole" style="background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:4px; font-size:11px; text-transform:uppercase;"></span>
@@ -134,10 +132,10 @@
 
     <div class="container">
         
-        <!-- ÉRTESÍTÉSI SÁVOK (Műszaknapló jóváhagyás és elmaradás) -->
+        <!-- ÉRTESÍTÉSI ÉS KIZÁRÓ SÁV MŰSZAKNAPLÓKHOZ -->
         <div id="shiftAlertBanner"></div>
 
-        <div class="nav">
+        <div class="nav" id="mainNavigation">
             <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
             <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
             <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
@@ -380,6 +378,7 @@
                 </div>
             </div>
 
+            <!-- ADMIN DOLGOZÓI STATISZTIKÁK -->
             <div id="adminStatsContainer" style="display:none; margin-top:30px; border-top:2px solid var(--pri-crit); padding-top:20px;">
                 <h3 style="color:var(--pri-crit);">👥 Dolgozói Statisztikák (Csak Admin)</h3>
                 <div style="overflow-x:auto;">
@@ -439,6 +438,7 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
+    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -521,11 +521,16 @@
             document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
             if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
             
-            loadShiftLogs(); 
+            loadShiftLogs(); // Háttérben is töltse le, hogy az értesítés működjön
         }
     };
 
-    function switchTab(tId, btn) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active')); document.getElementById(tId).classList.add('active'); btn.classList.add('active'); }
+    function switchTab(tId, btn) { 
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); 
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active')); 
+        document.getElementById(tId).classList.add('active'); 
+        if(btn) btn.classList.add('active'); 
+    }
 
     async function login() {
         const n = document.getElementById('loginNev').value, j = document.getElementById('loginJelszo').value; document.getElementById('loginStatus').innerText = "Ellenőrzés...";
@@ -594,7 +599,7 @@
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
                 stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve!";
-                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva.</span>'; setTimeout(() => stat.innerText = "", 3000);
+                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva. (Max 15MB)</span>'; setTimeout(() => stat.innerText = "", 3000);
             }
         } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
     }
@@ -652,17 +657,18 @@
                 globalShiftLogs = r.data; 
                 expectedApprovers = r.expectedApprovers || [];
                 filterShiftLogs(); 
-                checkMissingShiftLogsAndApprovals();
             } 
         } catch(e) {}
     }
 
+    // --- ÚJ: HIÁNYZÓ NAPLÓK ÉS JÓVÁHAGYÁSOK KIZÁRÁSSAL ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
         let startD = new Date(2026, 8, 7, 12, 0, 0); 
         let now = new Date();
         let curr = new Date(startD);
         
+        // Műszaknapló elmaradások (H-P)
         while (curr <= now) {
             let day = curr.getDay();
             if (day >= 1 && day <= 5) {
@@ -686,19 +692,49 @@
         }
 
         let pendingLogUsers = new Set();
+        let myUnapprovedCount = 0;
+        let currentUser = String(localStorage.getItem("activeUser")).trim();
+        let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
+
         globalShiftLogs.forEach(l => {
             let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
             if (dStr >= "2026-09-07") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                let unapproved = expectedApprovers.filter(a => !approvers.includes(a));
+                
+                let unapproved = expectedApproversClean.filter(a => !approvers.includes(a));
                 unapproved.forEach(u => pendingLogUsers.add(u));
+
+                if (expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
+                    myUnapprovedCount++;
+                }
             }
         });
 
+        const alertDiv = document.getElementById('shiftAlertBanner');
+        const navBar = document.getElementById('mainNavigation');
+
+        // KIZÁRÁS LOGIKA (Ha a jelenlegi embernek van elmaradt jóváhagyása)
+        if (myUnapprovedCount > 0) {
+            navBar.style.display = 'none'; // Menü elrejtése
+            document.getElementById('shiftLogInputSection').style.display = 'none'; // Új napló írásának elrejtése
+            switchTab('muszakatadasView', null); // Átdobás a Műszak fülre
+            
+            alertDiv.innerHTML = `
+                <div style="background:var(--pri-crit); color:white; padding:20px; border-radius:8px; margin-bottom:20px; font-size:18px; font-weight:bold; text-align:center; box-shadow:0 4px 15px rgba(239,68,68,0.5); animation: pulse 2s infinite;">
+                    🚨 RENDSZER LEZÁRVA!<br><br>
+                    ${myUnapprovedCount} db műszaknaplót még nem hagytál jóvá!<br>
+                    <span style="font-size:14px; font-weight:normal;">Amíg nem kattintasz rá lent a zöld 'JÓVÁHAGYOM' gombokra, nem tudod használni a többi funkciót.</span>
+                </div>`;
+            return; // Itt meg is állunk, nem mutatjuk a többi értesítést.
+        } 
+        
+        // FELOLDÁS (Ha nincs elmaradása)
+        navBar.style.display = 'flex';
+        document.getElementById('shiftLogInputSection').style.display = 'block';
+
         let alertHtml = "";
         let role = localStorage.getItem("activeRole");
-        let activeUser = localStorage.getItem("activeUser");
-        let isMaintOrAdmin = (role === "maintenance" || role === "admin" || activeUser === "SzaboP");
+        let isMaintOrAdmin = (role === "maintenance" || role === "admin" || currentUser === "SzaboP");
 
         if (isMaintOrAdmin && missingLogs.length > 0) {
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>🚨 Hiányzó műszaknaplók (Kérjük pótolni!):</b> ${missingLogs.join(', ')}</div>`;
@@ -708,14 +744,13 @@
             alertHtml += `<div style="background:var(--pri-high); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>⚠️ Műszaknapló jóváhagyás hiányzik a következőktől:</b> ${Array.from(pendingLogUsers).join(', ')}</div>`;
         }
 
-        const alertDiv = document.getElementById('shiftAlertBanner');
         if (alertDiv) alertDiv.innerHTML = alertHtml;
     }
 
     async function approveShiftLog(id) {
         const btn = document.getElementById('apprBtn_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: localStorage.getItem("activeUser") }) });
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
         loadShiftLogs(); 
     }
 
@@ -726,7 +761,8 @@
         if(f.length === 0) { c.innerHTML = "Nincs találat."; return; }
         
         const role = localStorage.getItem("activeRole") || "production"; 
-        const currentUser = localStorage.getItem("activeUser");
+        const currentUser = String(localStorage.getItem("activeUser")).trim();
+        let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         let h = "";
         
         f.forEach(l => {
@@ -739,10 +775,10 @@
             
             if (dStr >= "2026-09-07") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
-                let missing = expectedApprovers.filter(a => !approvers.includes(a));
+                let missing = expectedApproversClean.filter(a => !approvers.includes(a));
                 
-                if (expectedApprovers.includes(currentUser) && !approvers.includes(currentUser)) {
-                    apprBtn = `<button id="apprBtn_${l.id}" onclick="approveShiftLog('${l.id}')" style="background:var(--pri-normal); width:auto; padding:4px 10px; font-size:12px; margin:0; border:none; color:white; border-radius:4px; font-weight:bold; margin-left:10px;">✅ Jóváhagyom</button>`;
+                if (expectedApproversClean.includes(currentUser) && !approvers.includes(currentUser)) {
+                    apprBtn = `<button id="apprBtn_${l.id}" onclick="approveShiftLog('${l.id}')" style="background:var(--pri-normal); width:auto; padding:6px 12px; font-size:14px; margin:0; border:none; color:white; border-radius:4px; font-weight:bold; margin-left:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✅ JÓVÁHAGYOM</button>`;
                 }
                 
                 if (missing.length > 0) {
@@ -753,7 +789,11 @@
             }
 
             h += `<div class="task-card"><div class="task-header"><span>${displayDate}</span><span class="badge badge-info">${l.muszak}</span></div><div id="logDisp_${l.id}" style="margin-bottom:10px; font-size:15px;">${String(l.szoveg).replace(/\n/g, '<br>')}</div><div id="logEditDiv_${l.id}" style="display:none; margin-bottom:10px;"><textarea id="logInp_${l.id}" rows="3" style="width:100%;">${String(l.szoveg).replace(/"/g, '&quot;')}</textarea><button onclick="saveEditLog('${l.id}','${l.oldTimestamp}','${l.felhasznalo}')" style="background:var(--pri-normal); margin-top:5px;">Mentés</button></div>${apprStatus}<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:10px;"><small>Írta: <b>${l.felhasznalo}</b></small><div>${eBtn}${apprBtn}</div></div></div>`;
-        }); c.innerHTML = h;
+        }); 
+        c.innerHTML = h;
+
+        // Végül ellenőrizzük, hogy kell-e kizárás
+        checkMissingShiftLogsAndApprovals();
     }
     
     function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
@@ -1112,7 +1152,6 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
         }
 
-        // Jóváhagyás elmaradás számítása
         let missingApprovalsCount = {};
         expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
         globalShiftLogs.forEach(l => {
