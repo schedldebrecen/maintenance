@@ -876,6 +876,16 @@
                 initUser(t.felhasznalo); userStats[t.felhasznalo].felvett++;
             }
 
+            // !--- ITT A JAVÍTÁS A NYITOTT FELADATOKNÁL ---!
+            // Ha egy jegy nyitva van (újranyitottuk), de a múltban már valaki megoldotta, akkor neki is jár a pont!
+            if(t.lezarta) {
+                let dolgozok = String(t.lezarta).split(',').map(x=>x.trim()).filter(x=>x);
+                let uniqDolgozok = [...new Set(dolgozok)];
+                uniqDolgozok.forEach(u => {
+                    initUser(u); userStats[u].megoldott++;
+                });
+            }
+
             if (t.startIdopont) {
                 let diffMin = getWorkingMinutes(t.idopont, t.startIdopont);
                 let worker = t.felelos || t.lezarta;
@@ -898,9 +908,7 @@
                 initUser(t.felhasznalo); userStats[t.felhasznalo].felvett++;
             }
 
-            // !--- JAVÍTOTT RÉSZ ---!
             if(t.lezarta) {
-                // A "Szakály, Péter" formátumú stringeket feldaraboljuk, hogy mindenki kapjon pontot
                 let dolgozok = String(t.lezarta).split(',').map(x=>x.trim()).filter(x=>x);
                 let uniqDolgozok = [...new Set(dolgozok)];
                 uniqDolgozok.forEach(u => {
@@ -910,16 +918,11 @@
 
             if (t.startIdopont) {
                 let diffMin = getWorkingMinutes(t.idopont, t.startIdopont);
-                let worker = t.felelos || t.lezarta; // Ha többen zárták le, a "felelős" oszlop vagy az első lezáró a releváns
-                // Hogy ne rontsuk el a reakcióidő statot a vesszős listával, mindig csak a felelőst (aki elindította a folyamatot) nézzük
-                if (t.felelos) {
-                    worker = t.felelos;
-                } else if (t.lezarta && t.lezarta.indexOf(',') === -1) {
+                let worker = t.felelos; 
+                if (!worker && t.lezarta && t.lezarta.indexOf(',') === -1) {
                     worker = t.lezarta;
-                } else {
-                    worker = null;
                 }
-
+                
                 let isKrit = String(t.prioritas).toLowerCase().includes("leállás") || String(t.prioritas).toLowerCase().includes("magas");
                 if (diffMin >= 0 && worker) {
                     initUser(worker); 
@@ -1004,8 +1007,7 @@
         let title = ""; let list = [];
         if (type === 'worker') {
             title = "👤 " + param + " által megoldott hibák";
-            // !--- JAVÍTOTT RÉSZ: Szétbontva keresi a nevet a listában ---!
-            list = globalClosedTasks.filter(t => String(t.lezarta).split(',').map(x=>x.trim()).includes(param));
+            list = [...globalOpenTasks, ...globalClosedTasks].filter(t => String(t.lezarta).split(',').map(x=>x.trim()).includes(param));
         } else if (type === 'machine') {
             title = "⚙️ " + param + " eseti hibái";
             list = [...globalOpenTasks, ...globalClosedTasks].filter(t => t.gep === param && !String(t.id).startsWith("PREV-"));
