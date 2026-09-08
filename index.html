@@ -66,7 +66,7 @@
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin: 10px 0; padding-bottom: 5px; }
-        .img-container img { max-width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+        .img-container img, .img-container video { max-width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
         
         .filter-panel { background: #f8fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid var(--border); }
         .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } 
@@ -168,9 +168,9 @@
                 <div class="form-full"><textarea id="megoldas" rows="2" placeholder="Megoldás (Azonnali elhárítás esetén)"></textarea></div>
             </div>
             <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
-                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📸 Fotó csatolása</button>
-                <input type="file" id="kepInput" accept="image/*" capture="environment" style="display:none;" onchange="feldolgozUjKep(this)">
-                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;"><span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép.</span></div>
+                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📎 Fotó / Videó csatolása</button>
+                <input type="file" id="kepInput" accept="image/*,video/*" multiple style="display:none;" onchange="feldolgozUjKep(this)">
+                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;"><span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva. (Max 15MB videó)</span></div>
             </div>
             <button onclick="submitTask()" id="btnSubmit">Beküldés a rendszerbe</button>
             <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
@@ -300,10 +300,9 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA NÉZET - IDŐSZAK VÁLASZTÓVAL -->
+        <!-- STATISZTIKA NÉZET -->
         <div id="statisztikaView" class="view box">
             
-            <!-- IDŐSZAK VÁLASZTÓ PANEL -->
             <div class="filter-panel" style="margin-bottom: 25px; border-left:4px solid var(--accent);">
                 <div class="filter-header">
                     <h4 style="color:var(--accent); font-size:16px;">⏳ Időszak kiválasztása a statisztikákhoz</h4>
@@ -331,7 +330,6 @@
                 </div>
             </div>
 
-            <!-- ESETI HIBÁK STAT -->
             <h4 style="color:var(--pri-crit);">📈 Eseti Meghibásodások és Kiesések</h4>
             <div class="kpi-grid" style="margin-bottom:30px;">
                 <div class="kpi-card alert" style="cursor:pointer;" onclick="openStatModal('downtime')" title="Kattints a részletekért!">
@@ -351,7 +349,6 @@
                 </div>
             </div>
 
-            <!-- PREVENTÍV STAT -->
             <h4 style="color:var(--pri-info); border-top:1px solid var(--border); padding-top:20px;">🔁 Preventív Karbantartások (Ismétlődő)</h4>
             <div class="kpi-grid" style="margin-bottom:30px;">
                 <div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Kiadott Preventív</h4><div class="value" id="statPrevNyitott" style="color:var(--pri-info);">0</div><small>db</small></div>
@@ -442,7 +439,7 @@
     const WORK_LAT = 47.53; const WORK_LNG = 21.62; const GEOFENCE_RADIUS_METERS = 3000;
 
     const gepAdatbazis = {
-        "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "WGS1 - Wheel gauging - IEF Werner", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ],
+        "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ],
         "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ],
         "Production - Egyedi gépek": [ "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop", "HP1 - Hydraulic Press - Strautmann" ],
         "Magasraktár - High Bay System": [ "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas" ],
@@ -459,7 +456,6 @@
         return `${y}-${m}-${d}`;
     }
 
-    // --- MUNKAIDŐ SZÁMÍTÁS REAKCIÓIDŐHÖZ (H-P, 06:00-22:00) ---
     function getWorkingMinutes(startDateStr, endDateStr) {
         let start = new Date(startDateStr); let end = new Date(endDateStr);
         if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) return 0;
@@ -529,10 +525,45 @@
         });
     }
 
+    // --- ÚJ: VIDEÓ ÉS FOTÓ FELDOLGOZÁSA ---
+    async function processVideo(file) {
+        return new Promise((resolve, reject) => {
+            if (file.size > 15 * 1024 * 1024) { 
+                alert("A videó mérete túl nagy (" + (file.size/1024/1024).toFixed(1) + " MB)! Maximum 15 MB engedélyezett.");
+                resolve(null);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => { resolve({ base64: e.target.result.split(',')[1], tipus: file.type }); };
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+        });
+    }
+
     async function feldolgozUjKep(input) {
         if (input.files.length === 0) return;
         const el = document.getElementById('kepElonezet'); document.getElementById('uresKepSzoveg').style.display = 'none';
-        for (let file of input.files) { let t = await compressImage(file); feltoltendoKepek.push(t); let img = document.createElement('img'); img.src = "data:image/jpeg;base64," + t.base64; img.style.width = "40px"; img.style.height = "40px"; img.style.objectFit = "cover"; img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd"; el.appendChild(img); } input.value = ""; 
+        
+        for (let file of input.files) { 
+            if (file.type.startsWith('video/')) {
+                let t = await processVideo(file);
+                if (t) {
+                    feltoltendoKepek.push(t);
+                    let vid = document.createElement('video');
+                    vid.src = URL.createObjectURL(file);
+                    vid.style.width = "40px"; vid.style.height = "40px"; vid.style.objectFit = "cover"; vid.style.borderRadius = "4px"; vid.style.border = "1px solid #ddd";
+                    el.appendChild(vid);
+                }
+            } else {
+                let t = await compressImage(file); 
+                feltoltendoKepek.push(t); 
+                let img = document.createElement('img'); 
+                img.src = "data:image/jpeg;base64," + t.base64; 
+                img.style.width = "40px"; img.style.height = "40px"; img.style.objectFit = "cover"; img.style.borderRadius = "4px"; img.style.border = "1px solid #ddd"; 
+                el.appendChild(img); 
+            }
+        } 
+        input.value = ""; 
     }
 
     async function submitTask() {
@@ -546,7 +577,7 @@
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
                 stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve!";
-                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs kép.</span>'; setTimeout(() => stat.innerText = "", 3000);
+                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl.</span>'; setTimeout(() => stat.innerText = "", 3000);
             }
         } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
     }
@@ -659,7 +690,10 @@
     async function sendExtraInfo(id) {
         const t = document.getElementById(`extraText_${id}`).value, fi = document.getElementById(`extraKep_${id}`); if (!t && fi.files.length === 0) return;
         let p = { action: "appendInfo", id: id, felhasznalo: localStorage.getItem("activeUser"), szoveg: t, kepek: [] };
-        if (fi.files.length > 0) p.kepek = await Promise.all(Array.from(fi.files).map(f => compressImage(f)));
+        if (fi.files.length > 0) {
+            let promises = Array.from(fi.files).map(f => f.type.startsWith('video/') ? processVideo(f) : compressImage(f));
+            p.kepek = (await Promise.all(promises)).filter(x => x !== null);
+        }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); loadTasks();
     }
 
@@ -726,7 +760,7 @@
                     <button onclick="if(document.getElementById('appF_${t.id}')) document.getElementById('appF_${t.id}').style.display='block';" class="btn-secondary" style="padding:4px 8px; width:auto; margin:0; font-size:11px;">+ Infó</button>
                     ${reopenBtn}
                   </div>
-                  <div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*" capture="environment" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div>`;
+                  <div id="appF_${t.id}" style="display:none; margin-top:10px;"><textarea id="extraText_${t.id}" rows="2" placeholder="Megjegyzés..."></textarea><input type="file" id="extraKep_${t.id}" accept="image/*,video/*" multiple><button onclick="sendExtraInfo('${t.id}')">Hozzáadás</button></div>`;
 
         if(t.statusz!=="Lezárt") {
             let wH = t.statusz==="Folyamatban" ? `<div class="work-in-progress-bar"><span>👷</span> <b>${t.felelos}</b> dolgozik rajta</div>` : `<button class="btn-start" onclick="startTask('${t.id}')" style="margin-bottom:10px;">▶️ Munkát elkezdem</button>`;
@@ -763,7 +797,6 @@
         }
     }
 
-    // --- ÚJ: STATISZTIKA IDŐSZAK SZŰRŐ ---
     function setStatPeriod(type) {
         document.querySelectorAll('.stat-btn').forEach(b => b.classList.remove('active'));
         const today = new Date();
@@ -805,13 +838,11 @@
         calcStats();
     }
 
-    // STATISZTIKA SZÁMOLÁS, ADMIN MŰVELETEK ÉS DRILL-DOWN LOGIKA
     function calcStats() {
         let esetiNyitott = 0, infoNyitott = 0, leallas = 0, esetiJavIdo = 0, termelesKieses = 0;
         let prevNyitott = 0, prevIdo = 0;
         let machineIssues = {}; 
         
-        // A szűrt listák létrehozása
         let filteredOpen = globalOpenTasks;
         let filteredClosed = globalClosedTasks;
 
@@ -826,7 +857,6 @@
             });
         }
 
-        // Dolgozói stat variables
         let userStats = {};
         function initUser(u) { if(u && !userStats[u]) userStats[u] = { felvett: 0, megoldott: 0, reactNorm: [], reactKrit: [] }; }
 
@@ -908,7 +938,6 @@
             document.getElementById('topMachinesContainer').innerHTML = mHtml;
         }
 
-        // GLOBÁLIS TREND RENDERELÉS (Ezt nem szűrjük dátummal, mindig a teljes adatbázisból veszi)
         let currentYYYYMM = new Date().toISOString().substring(0,7);
         let lastDate = new Date(); lastDate.setMonth(lastDate.getMonth() - 1);
         let lastYYYYMM = lastDate.toISOString().substring(0,7);
@@ -929,7 +958,6 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
         }
 
-        // ADMIN STATS RENDERELÉS
         if(document.getElementById('adminStatsTableBody') && localStorage.getItem("activeRole") === "admin") {
             let formatMin = (arr) => {
                 if(arr.length === 0) return "-";
@@ -959,7 +987,6 @@
         }
     }
 
-    // STATISZTIKA RÉSZLETEK (MODAL)
     function openStatModal(type, param) {
         let title = ""; let list = [];
         if (type === 'worker') {
@@ -973,7 +1000,6 @@
             list = globalClosedTasks.filter(t => parseFloat(t.downtime) > 0);
         }
 
-        // Szűrés a Modalra is, ha van beállítva dátum (kivéve ha gépre szűrünk)
         if ((statStartDate || statEndDate) && type !== 'machine') {
             list = list.filter(t => {
                 let d = String(t.idopont).substring(0,10);
