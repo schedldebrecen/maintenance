@@ -134,7 +134,7 @@
 
     <div class="container">
         
-        <!-- ÉRTESÍTÉSI SÁV MŰSZAKNAPLÓKHOZ -->
+        <!-- ÉRTESÍTÉSI SÁVOK (Műszaknapló jóváhagyás és elmaradás) -->
         <div id="shiftAlertBanner"></div>
 
         <div class="nav">
@@ -306,7 +306,7 @@
             <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
         </div>
 
-        <!-- STATISZTIKA NÉZET - IDŐSZAK VÁLASZTÓVAL -->
+        <!-- STATISZTIKA NÉZET -->
         <div id="statisztikaView" class="view box">
             
             <div class="filter-panel" style="margin-bottom: 25px; border-left:4px solid var(--accent);">
@@ -330,7 +330,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
                 <h3 style="border:none; margin:0; padding:0;">📊 Szűrt Statisztikák Eredménye</h3>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn-export" style="background:var(--pri-normal);" onclick="exportDetailedStats()">📥 Tételes (Részletes) Export</button>
+                    <button class="btn-export" style="background:var(--pri-normal);" onclick="exportDetailedStats()">📥 Tételes Export</button>
                     <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('heti')">📅 Heti</button>
                     <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('havi')">📆 Havi</button>
                     <button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('eves')">🗓️ Éves</button>
@@ -380,7 +380,6 @@
                 </div>
             </div>
 
-            <!-- ADMIN DOLGOZÓI STATISZTIKÁK -->
             <div id="adminStatsContainer" style="display:none; margin-top:30px; border-top:2px solid var(--pri-crit); padding-top:20px;">
                 <h3 style="color:var(--pri-crit);">👥 Dolgozói Statisztikák (Csak Admin)</h3>
                 <div style="overflow-x:auto;">
@@ -392,7 +391,7 @@
                                 <th>Megoldott Hibák</th>
                                 <th style="color:var(--pri-crit);">Reakció (Sürgős)</th>
                                 <th>Reakció (Normál)</th>
-                                <th>Elmaradt Jóváhagyás</th>
+                                <th style="color:var(--pri-crit);">Elmaradt Jóváhagyás</th>
                             </tr>
                         </thead>
                         <tbody id="adminStatsTableBody">
@@ -421,7 +420,6 @@
     </div>
 </div>
 
-<!-- STATISZTIKA DRILL-DOWN MODAL -->
 <div class="modal-overlay" id="statDetailsModal" onclick="closeStatModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 id="statModalTitle" style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;">Részletek</h2>
@@ -441,7 +439,6 @@
     let lastKnownTaskCount = 0;
     let notifInterval = null;
     
-    // Statisztika Szűrési Változók
     let statStartDate = null;
     let statEndDate = null;
 
@@ -524,7 +521,7 @@
             document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
             if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
             
-            loadShiftLogs(); // Háttérben is töltse le, hogy az értesítés működjön
+            loadShiftLogs(); 
         }
     };
 
@@ -597,7 +594,7 @@
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
                 stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve!";
-                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva. (Max 15MB)</span>'; setTimeout(() => stat.innerText = "", 3000);
+                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva.</span>'; setTimeout(() => stat.innerText = "", 3000);
             }
         } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
     }
@@ -660,14 +657,12 @@
         } catch(e) {}
     }
 
-    // --- ÚJ: HIÁNYZÓ NAPLÓK ÉS JÓVÁHAGYÁSOK KERESÉSE ---
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
-        let startD = new Date(2026, 8, 7, 12, 0, 0); // 2026-09-07 12:00
+        let startD = new Date(2026, 8, 7, 12, 0, 0); 
         let now = new Date();
         let curr = new Date(startD);
         
-        // 1. Hiányzó Naplók (csak H-P)
         while (curr <= now) {
             let day = curr.getDay();
             if (day >= 1 && day <= 5) {
@@ -690,7 +685,6 @@
             curr.setDate(curr.getDate() + 1);
         }
 
-        // 2. Hiányzó Jóváhagyások (csak 2026-09-07 utániaknál)
         let pendingLogUsers = new Set();
         globalShiftLogs.forEach(l => {
             let dStr = l.datum ? String(l.datum) : String(l.idopont).substring(0, 10);
@@ -722,7 +716,7 @@
         const btn = document.getElementById('apprBtn_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: localStorage.getItem("activeUser") }) });
-        loadShiftLogs(); // Újratölti a naplókat és frissíti a bannert
+        loadShiftLogs(); 
     }
 
     function filterShiftLogs() {
@@ -1118,7 +1112,7 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${monthStat.current.javIdo.toFixed(1)} óra javítás`;
         }
 
-        // --- ÚJ: JÓVÁHAGYÁS ELMARADÁS SZÁMÍTÁSA ---
+        // Jóváhagyás elmaradás számítása
         let missingApprovalsCount = {};
         expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
         globalShiftLogs.forEach(l => {
@@ -1164,18 +1158,6 @@
             if(trHtml === "") trHtml = `<tr><td colspan="6" style="text-align:center;">Nincs rögzített adat.</td></tr>`;
             document.getElementById('adminStatsTableBody').innerHTML = trHtml;
         }
-    }
-
-    // --- ÚJ: TÉTELES EXPORT FÜGGVÉNY ---
-    function exportDetailedStats() {
-        let list = globalClosedTasks;
-        if (statStartDate || statEndDate) {
-            list = list.filter(t => {
-                let d = String(t.idopont).substring(0,10);
-                return (!statStartDate || d >= statStartDate) && (!statEndDate || d <= statEndDate);
-            });
-        }
-        exportTasks(list, 'Statisztika_Teteles_Reszletek.csv');
     }
 
     function openStatModal(type, param) {
@@ -1232,6 +1214,17 @@
         if(force === true || event.target.id === 'statDetailsModal') {
             document.getElementById('statDetailsModal').style.display = "none";
         }
+    }
+
+    function exportDetailedStats() {
+        let list = globalClosedTasks;
+        if (statStartDate || statEndDate) {
+            list = list.filter(t => {
+                let d = String(t.idopont).substring(0,10);
+                return (!statStartDate || d >= statStartDate) && (!statEndDate || d <= statEndDate);
+            });
+        }
+        exportTasks(list, 'Statisztika_Teteles_Reszletek.csv');
     }
 
     function exportStatisztika(bontas) {
