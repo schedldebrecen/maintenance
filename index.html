@@ -14,7 +14,7 @@
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
         .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; display:flex; align-items:center; gap:8px;}
+        .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; display:flex; align-items:center; gap:10px;}
         .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
@@ -111,8 +111,9 @@
 <body>
 
 <div id="loginView" class="container active view" style="max-width: 400px; margin-top: 10vh;">
-    <div class="box">
-        <h2 style="text-align: center; color: var(--primary); margin-bottom: 20px;">⚙️ Ipari CMMS</h2>
+    <div class="box" style="text-align: center;">
+        <img src="image_0f37c2.png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
+        <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">⚙️ Ipari CMMS</h2>
         <input type="text" id="loginNev" placeholder="Felhasználónév (pl. Admin)">
         <input type="password" id="loginJelszo" placeholder="PIN kód">
         <button onclick="login()">Rendszerbe lépés</button>
@@ -122,7 +123,10 @@
 
 <div id="appView">
     <div class="topbar">
-        <h2>⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.5)</span></h2>
+        <h2>
+            <img src="image_0f37c2.png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
+            ⚙️ Karbantartás <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px;">(v3.6)</span>
+        </h2>
         <div class="user-info">
             <span id="currentUserText"></span>
             <span id="currentUserRole" style="background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:4px; font-size:11px; text-transform:uppercase;"></span>
@@ -265,7 +269,6 @@
                     <button class="btn-export" onclick="exportTasks(getFilteredOpenTasks(), 'Nyitott_Hibak.csv')">📥 Export CSV</button>
                 </div>
                 <div class="form-grid">
-                    <!-- ÚJ: Kulcsszavas kereső -->
                     <div class="form-full"><input type="text" id="szuroNyitottSzoveg" placeholder="🔍 Keresés hiba leírásában, gépnévben vagy beküldőben..." onkeyup="renderOpenTasks()"></div>
                     <select id="szuroNyitottKategoria" onchange="frissitSzuroNyitottGepek()"><option value="">Minden csarnok / kategória...</option></select>
                     <select id="szuroNyitottGep" onchange="renderOpenTasks()"><option value="">Összes gép...</option></select>
@@ -286,7 +289,6 @@
                     <button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 Export CSV</button>
                 </div>
                 <div class="form-grid">
-                    <!-- ÚJ: Kulcsszavas kereső -->
                     <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="🔍 Keresés leírásban, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
                     <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden csarnok / kategória...</option></select>
                     <select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
@@ -726,7 +728,13 @@
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
                 let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
+                let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                 
+                // Automatikusan jóváhagyottnak vesszük a létrehozót
+                if (!approversLower.includes(creatorLower)) {
+                    approversLower.push(creatorLower);
+                }
+
                 let unapproved = expectedApproversClean.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
@@ -808,6 +816,12 @@
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
                 let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
+                let creatorLower = String(l.felhasznalo).trim().toLowerCase();
+                
+                // Automatikusan jóváhagyottnak vesszük a létrehozót a UI-on is
+                if (!approversLower.includes(creatorLower)) {
+                    approversLower.push(creatorLower);
+                }
                 
                 let missing = expectedApproversClean.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 
@@ -882,7 +896,6 @@
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); loadTasks();
     }
 
-    // --- KULCSSZAVAS SZŰRÉS NYITOTT ---
     function getFilteredOpenTasks() {
         const ismSzuroEl = document.getElementById('szuroNyitottIsmetlodo'); const ismSzuro = ismSzuroEl ? ismSzuroEl.value : "";
         const skEl = document.getElementById('szuroNyitottKategoria'); const sk = skEl ? skEl.value : "";
@@ -907,7 +920,6 @@
 
     function renderOpenTasks() { const f = getFilteredOpenTasks(); let h = ""; f.forEach(t => h += genCard(t)); const c = document.getElementById('openTasksContainer'); if(c) c.innerHTML = h || "Nincs a szűrésnek megfelelő nyitott feladat."; }
 
-    // --- KULCSSZAVAS SZŰRÉS LEZÁRT ---
     function getFilteredClosedTasks() {
         const skEl = document.getElementById('szuroKategoria'), sgEl = document.getElementById('szuroGep'), stEl = document.getElementById('filterDatumTol'), siEl = document.getElementById('filterDatumIg'), ismEl = document.getElementById('szuroLezartIsmetlodo');
         const sk = skEl ? skEl.value : "", sg = sgEl ? sgEl.value : "", st = stEl ? stEl.value : "", si = siEl ? siEl.value : "", ism = ismEl ? ismEl.value : "";
