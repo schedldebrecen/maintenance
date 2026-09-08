@@ -112,7 +112,10 @@
             <div class="live-badge">ÉLŐ</div>
         </div>
         <div class="time-group">
-            <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold;">👤 <span id="dashUserName">User</span> (Munkamenet: <span id="dashSessionTime">5:00</span>)</div>
+            <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
+                <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
+                <button onclick="dashLogout()" style="background:#ef4444; border:none; color:white; border-radius:3px; padding:3px 8px; cursor:pointer; font-size:10px; text-transform:uppercase; font-weight:bold;">Kijelentkezés</button>
+            </div>
             <div>
                 <div class="clock" id="clockDisplay">00:00:00</div>
                 <div class="refresh-info">Frissítés: <span id="countdownDisplay">20</span>mp</div>
@@ -374,9 +377,7 @@
         if (!sessionUser) return;
         let left = Math.floor((sessionExpiry - Date.now()) / 1000);
         if (left <= 0) {
-            sessionUser = null; 
-            document.getElementById('activeUserBadge').style.display = 'none';
-            refreshModalActionPanel(); 
+            dashLogout(); 
         } else {
             let m = Math.floor(left / 60); let s = left % 60;
             document.getElementById('dashSessionTime').innerText = `${m}:${s.toString().padStart(2, '0')}`;
@@ -386,7 +387,7 @@
     function extendSession() {
         if(sessionUser) {
             sessionExpiry = Date.now() + (5 * 60 * 1000); 
-            document.getElementById('activeUserBadge').style.display = 'block';
+            document.getElementById('activeUserBadge').style.display = 'flex';
             document.getElementById('dashUserName').innerText = sessionUser;
             refreshModalActionPanel();
         }
@@ -404,6 +405,13 @@
                 stat.innerText = "";
             } else { stat.innerText = r.message; }
         } catch(e) { stat.innerText = "Hálózati hiba!"; }
+    }
+
+    function dashLogout() {
+        sessionUser = null;
+        sessionExpiry = 0;
+        document.getElementById('activeUserBadge').style.display = 'none';
+        refreshModalActionPanel();
     }
 
     function refreshModalActionPanel() {
@@ -453,7 +461,6 @@
                         </div>`;
         }
         
-        // JAVÍTÁS ITT: window.open URL módosítva /view végződésre!
         if (task.kepek) {
            let kH = `<div style="display:flex; gap:10px; margin-top:20px; overflow-x:auto;">`;
            String(task.kepek).split(",").forEach(u => {
