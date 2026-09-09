@@ -65,9 +65,6 @@
         .meta-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 15px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
         .in-progress-bar { background: rgba(139, 92, 246, 0.2); border: 1px solid var(--pri-prog); color: #a78bfa; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
 
-        #progressBar { position: absolute; bottom: -2px; left: 0; height: 2px; background: var(--pri-info); width: 0%; transition: width 1s linear; }
-
-        /* MODAL ÉS RENDSZER ÜZENETEK */
         .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 10px; border: 1px solid var(--border); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         .modal-content h2 { margin-top:0; color: var(--pri-info); border-bottom: 1px solid var(--border); padding-bottom: 15px; font-size: 24px; }
@@ -107,7 +104,6 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
-    <!-- DASHBOARD KIZÁRÓ KÉPERNYŐ -->
     <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
         <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
             <div style="text-align:center; margin-bottom: 20px;">
@@ -143,7 +139,7 @@
 
         <div id="shiftAlertBanner" style="padding: 10px 30px 0 30px; background:var(--bg-dark);"></div>
 
-        <div class="kpi-bar">
+        <div class="kpi-bar" id="topKpiBar">
             <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')">
                 <h3>Termelésleállás</h3><div class="val" id="kpiCrit">0</div>
             </div>
@@ -161,7 +157,19 @@
             </div>
         </div>
 
-        <div class="dashboard-container">
+        <div class="dashboard-container" style="padding-top:20px;">
+            
+            <!-- ÚJ: Fülek a Dashboardon -->
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <button id="btnDashOpen" onclick="toggleDashView('open')" class="dash-btn start" style="margin:0; width:auto; padding:10px 20px;">🔥 Élő (Nyitott)</button>
+                <button id="btnDashClosed" onclick="toggleDashView('closed')" class="dash-btn" style="margin:0; width:auto; padding:10px 20px; background:var(--border);">🗄️ Lezárt Hibák</button>
+            </div>
+            
+            <!-- ÚJ: Kereső a Lezárt nézethez -->
+            <div id="dashSearchContainer" style="display:none; margin-bottom:20px;">
+                <input type="text" id="dashSearchInput" class="dash-input" placeholder="🔍 Keresés lezárt hibák között (gépnév, hiba, megoldás, beküldő)..." onkeyup="renderGrid()">
+            </div>
+
             <div class="grid" id="taskGrid"></div>
         </div>
     </div>
@@ -210,8 +218,10 @@
     const REFRESH_INTERVAL_SEC = 20; 
     let timer = REFRESH_INTERVAL_SEC;
     let currentActiveTasks = [];
+    let globalClosedTasks = [];
     let activeFilter = null; 
     let autoResetTimeout = null;
+    let currentDashView = 'open'; // ÚJ
 
     let optSound = false;
     let optFlash = false;
@@ -225,6 +235,7 @@
     let activeTaskId = null; 
     
     let globalShiftLogs = [];
+    let globalSchedule = [];
     let expectedApprovers = [];
 
     function initDashboard(sound, flash) {
@@ -260,6 +271,10 @@
 
     async function fetchDashboardData() {
         try {
+            const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule" }) });
+            const rSched = await resSched.json();
+            if(rSched.status === "success") globalSchedule = rSched.data;
+
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
             const result = await res.json();
             if(result.status === "success") { processData(result.data); } 
@@ -273,6 +288,16 @@
             }
 
         } catch (e) { console.error("Hiba:", e); }
+    }
+
+    // --- ÚJ: DASHBOARD VIEW KAPCSOLÓ ---
+    function toggleDashView(view) {
+        currentDashView = view;
+        document.getElementById('btnDashOpen').style.background = (view === 'open') ? 'var(--pri-high)' : 'var(--border)';
+        document.getElementById('btnDashClosed').style.background = (view === 'closed') ? 'var(--pri-high)' : 'var(--border)';
+        document.getElementById('dashSearchContainer').style.display = (view === 'closed') ? 'block' : 'none';
+        document.getElementById('topKpiBar').style.display = (view === 'open') ? 'flex' : 'none';
+        renderGrid();
     }
 
     function checkMissingShiftLogsAndApprovals() {
@@ -344,7 +369,7 @@
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         
-        let isApprover = (role === "maintenance" || currentUser === "SzaboP");
+        let isApprover = (role === "maintenance" || role === "superuser");
         if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
             expectedApproversClean.push(currentUser);
         }
@@ -354,14 +379,17 @@
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
-                let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
-                
-                if (!approversLower.includes(creatorLower)) {
-                    approversLower.push(creatorLower);
-                }
+                if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
 
-                let unapproved = expectedApproversClean.filter(a => !approversLower.includes(String(a).toLowerCase()));
+                let expectedForThisLog = expectedApproversClean.filter(a => {
+                    let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
+                    if (sched && sched.tipus.includes('Szabadság')) return false; 
+                    return true;
+                });
+
+                let expectedLower = expectedForThisLog.map(x=>x.toLowerCase());
+                let unapproved = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
                 if (isApprover && expectedLower.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) {
@@ -371,7 +399,6 @@
             }
         });
 
-        // DASHBOARD KIZÁRÁS LOGIKA
         if (myUnapprovedCount > 0) {
             document.getElementById('dashboardMainUI').style.display = 'none';
             document.getElementById('dashLockdownScreen').style.display = 'block';
@@ -391,7 +418,6 @@
             return;
         }
 
-        // FELOLDÁS
         document.getElementById('dashboardMainUI').style.display = 'block';
         document.getElementById('dashLockdownScreen').style.display = 'none';
 
@@ -418,6 +444,8 @@
 
     function processData(allTasks) {
         currentActiveTasks = allTasks.filter(t => t.statusz !== "Lezárt");
+        globalClosedTasks = allTasks.filter(t => t.statusz === "Lezárt");
+
         let hasNewAdHoc = false;
 
         let cCrit = 0, cHigh = 0, cProg = 0, cInfo = 0;
@@ -491,6 +519,24 @@
     function renderGrid() {
         const grid = document.getElementById('taskGrid');
         
+        if (currentDashView === 'closed') {
+            const szov = document.getElementById('dashSearchInput').value.toLowerCase();
+            let filteredClosedTasks = globalClosedTasks.filter(t => {
+                if (!szov) return true;
+                return String(t.hiba).toLowerCase().includes(szov) || String(t.megoldas).toLowerCase().includes(szov) || String(t.gep).toLowerCase().includes(szov) || String(t.felhasznalo).toLowerCase().includes(szov);
+            });
+            
+            // Limitáljuk az eredményt, hogy ne akadjon meg a Dashboard (pl max 50) ha nincs keresés
+            if(!szov) filteredClosedTasks = filteredClosedTasks.slice(0, 50);
+
+            if (filteredClosedTasks.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><h2 style="color: var(--text-muted);">Nincs a keresésnek megfelelő lezárt feladat.</h2></div>`; return; }
+            let html = "";
+            filteredClosedTasks.forEach(task => { html += generateCardHtml(task); });
+            grid.innerHTML = html;
+            return;
+        }
+        
+        // OPEN TASKS RENDER LOGIC
         let filteredTasks = currentActiveTasks;
         
         if (activeFilter === 'Crit') filteredTasks = currentActiveTasks.filter(t => String(t.prioritas).toLowerCase().includes("leállás"));
@@ -529,24 +575,37 @@
     function generateCardHtml(task) {
         const timeStr = new Date(task.idopont).toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
         const dateStr = new Date(task.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
-        const prioShort = String(task.prioritas).replace(" prioritás", "").replace("ással járó", "");
+        const pr = String(task.prioritas).replace(" prioritás", "").replace("ással járó", "");
         
         let bC = "badge-normal", eC = "";
         const pLower = String(task.prioritas).toLowerCase();
 
-        if(pLower.includes("leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
-        else if(pLower.includes("magas")) { bC = "badge-high"; eC = "Magas"; }
-        else if(pLower.includes("megfigyelés")) { bC = "badge-obs"; eC = "Megfigyelés"; }
-        else if(pLower.includes("informatív")) { bC = "badge-info"; eC = "Informatív"; }
-        
-        if (task.statusz === "Folyamatban") eC = "Folyamatban";
+        if (task.statusz === "Lezárt") { bC = "badge-closed"; eC = "closed"; }
+        else {
+            if(pLower.includes("leállás")) { bC = "badge-crit"; eC = "Termelésleállás"; }
+            else if(pLower.includes("magas")) { bC = "badge-high"; eC = "Magas"; }
+            else if(pLower.includes("megfigyelés")) { bC = "badge-obs"; eC = "Megfigyelés"; }
+            else if(pLower.includes("informatív")) { bC = "badge-info"; eC = "Informatív"; }
+            if (task.statusz === "Folyamatban") eC = "Folyamatban";
+        }
 
         let inP = task.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️</span> <b>${task.felelos}</b> éppen dolgozik rajta</div>` : "";
         let prevIcon = String(task.id).startsWith("PREV-") ? "🔁 " : "";
 
+        if (task.statusz === "Lezárt") {
+            return `
+            <div class="card ${eC}" onclick="openModal('${task.id}')" style="opacity:0.85;">
+                <div class="card-header"><span class="badge badge-closed">Lezárt</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div>
+                <div class="machine-name" style="color:var(--text-muted);">${prevIcon}${task.gep}</div>
+                <div class="issue-desc">${task.hiba}</div>
+                <div style="background:var(--bg-dark); padding:10px; border-radius:4px; font-size:13px; color:var(--pri-normal); border:1px dashed var(--border); margin-bottom:10px;"><b>Megoldás:</b><br>${String(task.megoldas).substring(0,100)}...</div>
+                <div class="meta-footer"><div>Beküldte: <b>${task.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Kattints a képekért 👆</div></div>
+            </div>`;
+        }
+
         return `
         <div class="card ${eC}" onclick="openModal('${task.id}')">
-            <div class="card-header"><span class="badge ${bC}">${prioShort}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div>
+            <div class="card-header"><span class="badge ${bC}">${pr}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div>
             <div class="machine-name">${prevIcon}${task.gep}</div>
             ${inP}
             <div class="issue-desc">${task.hiba}</div>
@@ -604,7 +663,10 @@
 
     function refreshModalActionPanel() {
         if(!activeTaskId) return;
-        const task = currentActiveTasks.find(t => t.id === activeTaskId);
+        
+        // Keressük a nyitottak, majd ha nincs, a lezártak között
+        let task = currentActiveTasks.find(t => t.id === activeTaskId);
+        if(!task) task = globalClosedTasks.find(t => t.id === activeTaskId);
         if(!task) return;
 
         if (sessionUser) {
@@ -612,7 +674,16 @@
             document.getElementById('dashTaskActions').style.display = 'block';
             
             const btnStart = document.getElementById('btnDashStart');
-            if(task.statusz === "Folyamatban") btnStart.style.display = 'none'; else btnStart.style.display = 'block';
+            const closeSec = document.getElementById('dashCloseSection');
+            
+            if(task.statusz === "Lezárt") {
+                btnStart.style.display = 'none';
+                closeSec.style.display = 'none';
+                document.getElementById('dashTaskActions').innerHTML = `<h4 style="color:var(--pri-normal); margin:0; text-align:center;">Ez a jegy már le van zárva.</h4>`;
+            } else {
+                if(task.statusz === "Folyamatban") btnStart.style.display = 'none'; else btnStart.style.display = 'block';
+                closeSec.style.display = 'block';
+            }
         } else {
             document.getElementById('dashLoginForm').style.display = 'block';
             document.getElementById('dashTaskActions').style.display = 'none';
@@ -621,7 +692,8 @@
 
     function openModal(taskId) {
         activeTaskId = taskId;
-        const task = currentActiveTasks.find(t => t.id === taskId);
+        let task = currentActiveTasks.find(t => t.id === taskId);
+        if(!task) task = globalClosedTasks.find(t => t.id === taskId);
         if (!task) return;
 
         document.getElementById('modalTitle').innerText = (String(task.id).startsWith("PREV-") ? "🔁 " : "") + task.gep;
@@ -632,13 +704,20 @@
         else if(pLower.includes("magas")) pB = "badge-high"; 
         else if(pLower.includes("megfigyelés")) pB = "badge-obs"; 
         else if(pLower.includes("informatív")) pB = "badge-info";
+        if(task.statusz === "Lezárt") pB = "badge-closed";
         
-        let prioSpan = document.getElementById('modalPrio'); prioSpan.className = `badge ${pB}`; prioSpan.innerText = task.prioritas;
+        let prioSpan = document.getElementById('modalPrio'); prioSpan.className = `badge ${pB}`; prioSpan.innerText = task.statusz === "Lezárt" ? "Lezárt" : task.prioritas;
 
         let details = `<p style="margin:5px 0;"><b>Státusz:</b> <span style="color:var(--pri-info);">${task.statusz}</span></p>`;
         details += `<p style="margin:5px 0;"><b>Rögzítette:</b> ${task.felhasznalo} <span style="color:var(--text-muted); font-size:13px;">(${new Date(task.idopont).toLocaleString('hu-HU')})</span></p>`;
         
         if (task.statusz === 'Folyamatban') details += `<div style="background: rgba(139, 92, 246, 0.2); padding:10px; border-radius:6px; color:#a78bfa; margin-top:10px; border:1px solid var(--pri-prog);">👷 <b>${task.felelos}</b> dolgozik rajta</div>`;
+
+        if (task.statusz === 'Lezárt') {
+            details += `<div style="background: rgba(16, 185, 129, 0.1); padding:15px; border-radius:6px; color:var(--pri-normal); margin-top:10px; border:1px solid var(--pri-normal);">
+                            <b>Megoldás (${task.lezarta}):</b><br>${String(task.megoldas).replace(/\n/g, '<br>')}
+                        </div>`;
+        }
 
         if (task.checklist) {
             let items = String(task.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:8px;">${i}</li>`).join('');
@@ -667,7 +746,7 @@
         
         refreshModalActionPanel();
         document.getElementById('taskModal').style.display = "flex";
-        extendSession(); 
+        if(sessionUser) extendSession(); 
     }
 
     function closeModal(force = false) {
@@ -675,7 +754,7 @@
             document.getElementById('taskModal').style.display = "none";
             activeTaskId = null;
         }
-        extendSession();
+        if(sessionUser) extendSession();
     }
 
     async function dashStartTask() {
