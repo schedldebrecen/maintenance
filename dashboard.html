@@ -19,7 +19,6 @@
         .live-badge { background: #10b981; color: #022c22; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; animation: blink 2s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* FIXÁLT ÓRA */
         .time-group { flex-shrink: 0; display: flex; align-items: center; gap: 20px; justify-content: flex-end; min-width: 280px; }
         .clock { font-size: 24px; font-weight: bold; letter-spacing: 2px; font-family: monospace; min-width: 125px; text-align: right; display: inline-block; }
         .refresh-info { font-size: 12px; color: var(--text-muted); margin-top: 5px; text-align: right; }
@@ -86,7 +85,7 @@
 
         #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 
-        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
+        /* NAPTÁR MÁTRIX CSS */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -118,7 +117,7 @@
     <div id="startupBanner">
         <div class="startup-box">
             <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 200px; margin-bottom: 20px;">
-            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.9)</span></h2>
+            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.10)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn start" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -128,6 +127,7 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
+    <!-- DASHBOARD KIZÁRÓ KÉPERNYŐ -->
     <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
         <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
             <div style="text-align:center; margin-bottom: 20px;">
@@ -141,7 +141,6 @@
 
     <div id="dashboardMainUI">
         <div class="top-bar">
-            <!-- FÜLEK A FEJLÉCBEN -->
             <div class="title-group">
                 <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="height: 32px; background: white; padding: 2px 8px; border-radius: 4px;">
                 <div class="live-badge">ÉLŐ</div>
@@ -153,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- FIXÁLT ÓRA -->
             <div class="time-group">
                 <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
                     <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
@@ -189,7 +187,6 @@
 
         <div class="dashboard-container" style="padding-top:20px;">
             
-            <!-- KERESŐ ÉS SZŰRŐK A LEZÁRT NÉZETHEZ -->
             <div id="dashSearchContainer" style="display:none; margin-bottom:20px; background:var(--surface); padding:15px; border-radius:8px; border:1px solid var(--border);">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                     <input type="text" id="dashSearchInput" class="dash-input" style="flex:1; min-width:200px; margin:0;" placeholder="🔍 Keresés hiba leírásában, megoldásban, beküldőben..." onkeyup="renderGrid()">
@@ -212,17 +209,17 @@
                 </div>
             </div>
 
-            <!-- NAPTÁR ÉS ECSET KONTÉNER -->
+            <!-- NAPTÁR KONTÉNER ECSETTEL -->
             <div id="scheduleViewDash" style="display:none;">
                 <div id="dashPaintbrushPanel" style="display:none; background:var(--surface); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
                     <div style="color:var(--pri-crit); font-weight:bold; margin-bottom:10px; font-size:16px;">🖌️ Ecset eszköz beosztáshoz (Kattints egy színre, majd a lenti naptár celláira!)</div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                        <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">MS (Délelőtt)</button>
-                        <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">AS (Délután)</button>
-                        <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">NS (Éjszaka)</button>
-                        <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">O (Nappali/Pihenő)</button>
-                        <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">H (Szabadság)</button>
-                        <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">ÜGY (Ügyelet)</button>
+                        <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">Délelőtt</button>
+                        <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">Délután</button>
+                        <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">Éjszaka</button>
+                        <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">Nappali / Pihenő</button>
+                        <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">Szabadság</button>
+                        <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">Ügyelet</button>
                         <button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
                         
                         <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
@@ -319,16 +316,15 @@
         "Aggregátor": [] 
     };
 
-    // MUNKASZÜNETI NAPOK ÉS ÁTHELYEZÉSEK 2026-RA
     const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"];
-    const huWorkWeekends = ["2026-08-08", "2026-12-12"]; // Tipikus szombati munkanapok példa
+    const huWorkWeekends = ["2026-08-08", "2026-12-12"]; 
 
     function isWorkDay(dObj) {
         let dStr = toLocalISOString(dObj);
-        if (huWorkWeekends.includes(dStr)) return true; // Szombati munkanap áthelyezés
-        if (huHolidays.includes(dStr)) return false;    // Ünnepnap
+        if (huWorkWeekends.includes(dStr)) return true; 
+        if (huHolidays.includes(dStr)) return false;    
         let day = dObj.getDay();
-        return day !== 0 && day !== 6;                  // Hétvége kizárása
+        return day !== 0 && day !== 6;                  
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -421,7 +417,7 @@
         else renderScheduleDash();
     }
 
-    // --- ECSET (PAINTBRUSH) FUNKCIÓK ---
+    // --- ECSET FUNKCIÓK A DASHBOARDON ÉS NAPTÁR ---
     function setBrush(tipus, btnObj) {
         activeBrush = tipus;
         document.querySelectorAll('.brush-btn').forEach(b => {
@@ -437,12 +433,12 @@
         if(!activeBrush || sessionRole !== 'superuser') return;
         
         let cls = '', text = '';
-        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'O'; }
-        else if(activeBrush === 'Ügyelet') { cls = 'cell-ugy'; text = 'ÜGY'; }
+        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'Nappali'; }
+        else if(activeBrush === 'Ügyelet') { cls = 'cell-ugy'; text = 'Ügyelet'; }
         
         let el = document.getElementById(tdId);
         if(el) {
@@ -470,7 +466,6 @@
         if(paintedChanges.length === 0) return;
         document.getElementById('activeBrushDisplay').innerText = "Mentés folyamatban ⏳...";
         
-        // Csoportosítjuk user és tipus szerint a hatékony API híváshoz
         let groups = {};
         paintedChanges.forEach(ch => {
             let key = ch.user + "|" + ch.tipus;
@@ -528,7 +523,6 @@
         
         let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
 
-        // Ügyeletes sor
         html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d);
@@ -543,7 +537,6 @@
         });
         html += `</tr>`;
         
-        // Dolgozók
         users.forEach(u => {
             html += `<tr><td class="sticky-col">${u}</td>`;
             dates.forEach(d => {
@@ -554,11 +547,11 @@
                 let tipus = match ? match.tipus : '';
                 let cls = ''; let text = '';
                 
-                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'Nappali'; }
                 
                 let tdId = `cell_${u.replace(/\s+/g,'_')}_${dIso}`;
                 let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : '';
@@ -580,7 +573,7 @@
         let alertHtml = "";
         let upcomingWarning = "";
 
-        if (now.getDay() >= 1 && now.getDay() <= 5) {
+        if (isWorkDay(now)) {
             let h = now.getHours();
             let todayStr = toLocalISOString(now);
             
@@ -604,8 +597,7 @@
         }
         
         while (curr <= now) {
-            let day = curr.getDay();
-            if (day >= 1 && day <= 5) {
+            if (isWorkDay(curr)) {
                 let dStr = toLocalISOString(curr);
                 
                 let shift1End = new Date(curr); shift1End.setHours(14,0,0,0);
@@ -651,10 +643,7 @@
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
-                
-                if (!approversLower.includes(creatorLower)) {
-                    approversLower.push(creatorLower);
-                }
+                if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
 
                 let expectedForThisLog = expectedApproversClean.filter(a => {
                     let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
@@ -663,7 +652,6 @@
                 });
 
                 let expectedLower = expectedForThisLog.map(x=>x.toLowerCase());
-
                 let unapproved = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
@@ -673,8 +661,6 @@
                 }
             }
         });
-
-        const alertDiv = document.getElementById('shiftAlertBanner');
 
         if (myUnapprovedCount > 0) {
             document.getElementById('dashboardMainUI').style.display = 'none';
@@ -708,6 +694,7 @@
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">🚨 PÓTOLD A MŰSZAKNAPLÓT (Karbantartás menü): ${missingLogs.join(', ')}</div>`;
         }
 
+        const alertDiv = document.getElementById('shiftAlertBanner');
         if (alertDiv) alertDiv.innerHTML = alertHtml;
     }
 
@@ -723,6 +710,7 @@
         globalClosedTasks = allTasks.filter(t => t.statusz === "Lezárt");
 
         let hasNewAdHoc = false;
+
         let cCrit = 0, cHigh = 0, cProg = 0, cInfo = 0;
 
         currentActiveTasks.forEach(t => {
@@ -938,7 +926,7 @@
                 extendSession();
                 document.getElementById('dashLoginNev').value = ""; document.getElementById('dashLoginPin').value = "";
                 stat.innerText = "";
-                toggleDashView(currentDashView); // Frissíti a gombokat ha superuser
+                toggleDashView(currentDashView);
             } else { stat.innerText = r.message; }
         } catch(e) { stat.innerText = "Hálózati hiba!"; }
     }
