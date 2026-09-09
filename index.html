@@ -100,19 +100,24 @@
         .stat-btn:hover { background: var(--bg-color); border-color: var(--accent); }
         .stat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* NAPTÁR MÁTRIX CSS */
-        .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; }
+        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
+        .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
-        .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 6px 4px; text-align: center; white-space: nowrap; }
-        .sched-table thead th { background: var(--surface); color: var(--text-main); position: sticky; top: 0; z-index: 10; }
-        .sched-table .sticky-col { position: sticky; left: 0; background: var(--surface); z-index: 11; font-weight: bold; text-align: left; box-shadow: 2px 0 4px rgba(0,0,0,0.5); }
+        .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
+        .sched-table thead th { background: var(--surface); color: var(--text-main); position: sticky; top: 0; z-index: 10; font-size: 14px; }
+        .sched-table .sticky-col { position: sticky; left: 0; background: var(--surface); z-index: 11; font-weight: bold; text-align: left; box-shadow: 2px 0 4px rgba(0,0,0,0.5); padding-left: 15px; }
         .sched-table thead .sticky-col { z-index: 12; }
-        .cell-MS { background: #ffe599; color: #000; font-weight:bold; }
-        .cell-AS { background: #e69138; color: #fff; font-weight:bold; }
-        .cell-NS { background: #3f51b5; color: #fff; font-weight:bold; }
-        .cell-O { background: #fff2cc; color: #000; }
-        .cell-H { background: #93c47d; color: #000; }
-        .cell-ugy { background: #f59e0b; color: #fff; font-weight:bold; }
+        
+        .cell-MS { background: #ffe599 !important; color: #000 !important; font-weight:bold; }
+        .cell-AS { background: #e69138 !important; color: #fff !important; font-weight:bold; }
+        .cell-NS { background: #3f51b5 !important; color: #fff !important; font-weight:bold; }
+        .cell-O { background: #fff2cc !important; color: #000 !important; font-weight:bold; }
+        .cell-H { background: #93c47d !important; color: #000 !important; font-weight:bold; }
+        .cell-ugy { background: #f59e0b !important; color: #fff !important; font-weight:bold; }
+        .sched-cell { transition: opacity 0.2s; }
+        .sched-cell.hoverable:hover { opacity: 0.6; }
+
+        .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
 
         @media (min-width: 768px) { 
             .form-grid { grid-template-columns: 1fr 1fr; gap: 15px; } 
@@ -126,22 +131,22 @@
 <div id="loginView" class="container active view" style="max-width: 400px; margin-top: 10vh;">
     <div class="box" style="text-align: center;">
         <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
-        <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">⚙️ Ipari CMMS</h2>
+        <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">Ipari CMMS</h2>
         <input type="text" id="loginNev" placeholder="Felhasználónév (pl. Admin)">
         <input type="password" id="loginJelszo" placeholder="PIN kód">
-        <button onclick="login()">Rendszerbe lépés</button>
+        <button onclick="login()">Belépés</button>
         <div id="loginStatus" style="color:var(--pri-crit); margin-top:10px; text-align:center; font-weight:bold;"></div>
     </div>
 </div>
 
 <div id="appView">
     <div class="topbar">
+        <!-- LETISZTÍTOTT FEJLÉC -->
         <h2 style="margin: 0; display:flex; align-items:center;">
             <img src="Logo-Schedl (1).png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
         </h2>
         <div class="user-info">
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
-            <span id="currentUserRole" style="display:none;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
     </div>
@@ -161,6 +166,7 @@
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
 
+        <!-- ÚJ HIBA RÖGZÍTÉSE -->
         <div id="ujHiba" class="view active box">
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
@@ -193,29 +199,29 @@
             <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
         </div>
 
-        <!-- ÚJ: BEOSZTÁS NÉZET -->
+        <!-- BEOSZTÁS NÉZET MÁTRIXSZAL ÉS ECSETTEL -->
         <div id="beosztasView" class="view box">
             <h3>📅 Dolgozói Beosztás és Szabadság</h3>
-            <div id="beosztasAdminPanel" class="filter-panel" style="display:none; border-color:var(--pri-crit);">
-                <h4 style="color:var(--pri-crit);">Tömeges beosztás szerkesztő (Superuser)</h4>
-                <div class="form-grid">
-                    <input type="date" id="beosztasDatumTol" title="Kezdő dátum">
-                    <input type="date" id="beosztasDatumIg" title="Záró dátum (Opcionális, több naphoz)">
-                    <select id="beosztasUser"><option value="">Válassz dolgozót...</option></select>
-                    <select id="beosztasTipus">
-                        <option value="Délelőtt">Délelőtt (MS)</option>
-                        <option value="Délután">Délután (AS)</option>
-                        <option value="Éjszaka">Éjszaka (NS)</option>
-                        <option value="Nappali">Nappali / Pihenő (O)</option>
-                        <option value="Szabadság">Szabadság 🏖️ (H)</option>
-                        <option value="Ügyelet">Ügyelet 📞</option>
-                        <option value="Törlés">-- Kijelölt napok törlése --</option>
-                    </select>
+            
+            <div id="dashPaintbrushPanel" style="display:none; background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+                <div style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size:15px;">🖌️ Ecset eszköz beosztáshoz (Kattints egy színre, majd a lenti naptár celláira!)</div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">MS (Délelőtt)</button>
+                    <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">AS (Délután)</button>
+                    <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">NS (Éjszaka)</button>
+                    <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">O (Nappali/Pihenő)</button>
+                    <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">H (Szabadság)</button>
+                    <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">ÜGY (Ügyelet)</button>
+                    <button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
+                    
+                    <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
+                        <span id="activeBrushDisplay" style="color:var(--text-main); font-weight:bold; font-size:14px;">Aktív: Nincs</span>
+                        <button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal);" onclick="savePaintedSchedule()">💾 Módosítások mentése</button>
+                    </div>
                 </div>
-                <button onclick="saveSchedule()" style="background:var(--pri-crit);">Mentés a naptárba</button>
-                <div id="beosztasStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
             </div>
-            <div id="scheduleContainer" class="full-width-list" style="margin-top:20px;">Betöltés...</div>
+
+            <div id="scheduleContainer" style="margin-top:10px;">Betöltés...</div>
         </div>
 
         <div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
@@ -489,6 +495,9 @@
     let expectedApprovers = [];
     let lastKnownTaskCount = 0;
     let notifInterval = null;
+    let sessionRole = null;
+    let activeBrush = null;
+    let paintedChanges = [];
     
     let statStartDate = null;
     let statEndDate = null;
@@ -506,6 +515,17 @@
         "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ],
         "Aggregátor": [] 
     };
+
+    const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"];
+    const huWorkWeekends = ["2026-08-08", "2026-12-12"];
+
+    function isWorkDay(dObj) {
+        let dStr = toLocalISOString(dObj);
+        if (huWorkWeekends.includes(dStr)) return true; 
+        if (huHolidays.includes(dStr)) return false;    
+        let day = dObj.getDay();
+        return day !== 0 && day !== 6;                  
+    }
 
     function toLocalISOString(dateObj) {
         if(isNaN(dateObj)) return "";
@@ -547,7 +567,6 @@
         
         document.getElementById('notifToggle').addEventListener('change', (e) => { document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; });
         if(document.getElementById('muszakDatum')) document.getElementById('muszakDatum').value = toLocalISOString(new Date());
-        if(document.getElementById('beosztasDatumTol')) document.getElementById('beosztasDatumTol').value = toLocalISOString(new Date());
     });
 
     function frissitGepek() { const k = document.getElementById('kategoria').value; const s = document.getElementById('gep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } }
@@ -561,16 +580,17 @@
         const savedUser = localStorage.getItem("activeUser");
         if(savedUser) {
             document.getElementById('currentUserText').innerText = savedUser;
-            const role = localStorage.getItem("activeRole") || "production";
-            document.getElementById('currentUserRole').innerText = role;
-            if (role !== "maintenance" && role !== "admin" && role !== "superuser") if(document.getElementById('shiftLogInputSection')) document.getElementById('shiftLogInputSection').style.display = "none";
+            sessionRole = localStorage.getItem("activeRole") || "production";
             
-            if (role === "admin" || role === "superuser") {
+            if (sessionRole !== "maintenance" && sessionRole !== "admin" && sessionRole !== "superuser") if(document.getElementById('shiftLogInputSection')) document.getElementById('shiftLogInputSection').style.display = "none";
+            
+            if (sessionRole === "admin" || sessionRole === "superuser") {
                 if(document.getElementById('navAdminTab')) document.getElementById('navAdminTab').style.display = "block";
                 if(document.getElementById('adminStatsContainer')) document.getElementById('adminStatsContainer').style.display = "block";
             }
-            if (role === "superuser") {
-                if(document.getElementById('beosztasAdminPanel')) document.getElementById('beosztasAdminPanel').style.display = "block";
+            
+            if (sessionRole === "superuser") {
+                if(document.getElementById('dashPaintbrushPanel')) document.getElementById('dashPaintbrushPanel').style.display = "block";
             }
 
             document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
@@ -677,35 +697,82 @@
         else { alert("❌ Hiba: " + result.message); }
     }
 
-    // --- BEOSZTÁS FUNKCIÓK ---
-    async function saveSchedule() {
-        const dTol = document.getElementById('beosztasDatumTol').value;
-        const dIg = document.getElementById('beosztasDatumIg').value;
-        const u = document.getElementById('beosztasUser').value;
-        const t = document.getElementById('beosztasTipus').value;
+    // --- BEOSZTÁS ÉS NAPTÁR FUNKCIÓK ---
+    function setBrush(tipus, btnObj) {
+        activeBrush = tipus;
+        document.querySelectorAll('.brush-btn').forEach(b => {
+            b.style.outline = 'none';
+            b.style.transform = 'scale(1)';
+        });
+        btnObj.style.outline = '3px solid var(--pri-info)';
+        btnObj.style.transform = 'scale(1.1)';
+        document.getElementById('activeBrushDisplay').innerText = "Aktív: " + tipus;
+    }
+
+    function paintCell(user, dateStr, tdId) {
+        if(!activeBrush || sessionRole !== 'superuser') return;
         
-        if(!dTol || !u || !t) { alert("Dátum, dolgozó név és típus kitöltése kötelező!"); return; }
+        let cls = '', text = '';
+        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
+        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
+        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
+        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
+        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+        else if(activeBrush === 'Ügyelet') { cls = 'cell-ugy'; text = 'ÜGY'; }
         
-        let datesToSave = [];
-        let curr = new Date(dTol);
-        let endD = dIg ? new Date(dIg) : new Date(dTol);
-        
-        while(curr <= endD) {
-            datesToSave.push(toLocalISOString(curr));
-            curr.setDate(curr.getDate() + 1);
+        let el = document.getElementById(tdId);
+        if(el) {
+            el.className = 'sched-cell hoverable ' + cls;
+            el.innerText = text;
         }
 
-        const stat = document.getElementById('beosztasStatus'); 
-        stat.style.color = "var(--accent)"; stat.innerText = "Mentés...";
+        let existingIdx = paintedChanges.findIndex(x => x.user === user && x.datum === dateStr);
+        if(existingIdx > -1) {
+            paintedChanges[existingIdx].tipus = activeBrush;
+        } else {
+            paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
+        }
+
+        let gsIdx = globalSchedule.findIndex(x => x.user === user && x.datum === dateStr);
+        if(activeBrush === 'Törlés') {
+            if(gsIdx > -1) globalSchedule.splice(gsIdx, 1);
+        } else {
+            if(gsIdx > -1) globalSchedule[gsIdx].tipus = activeBrush;
+            else globalSchedule.push({user: user, datum: dateStr, tipus: activeBrush});
+        }
+    }
+
+    async function savePaintedSchedule() {
+        if(paintedChanges.length === 0) return;
+        document.getElementById('activeBrushDisplay').innerText = "Mentés folyamatban ⏳...";
         
+        let groups = {};
+        paintedChanges.forEach(ch => {
+            let key = ch.user + "|" + ch.tipus;
+            if(!groups[key]) groups[key] = [];
+            groups[key].push(ch.datum);
+        });
+
         try {
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addScheduleBulk", dates: datesToSave, user: u, tipus: t }) });
-            if((await res.json()).status === "success") { 
-                stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Naptár frissítve!"; 
-                setTimeout(()=>stat.innerText="",3000); 
-                loadSchedule(); 
+            for(let key in groups) {
+                let [u, t] = key.split("|");
+                await fetch(SCRIPT_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: "addScheduleBulk", dates: groups[key], user: u, tipus: t }) 
+                });
             }
-        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hálózati hiba!"; }
+            paintedChanges = [];
+            activeBrush = null;
+            document.querySelectorAll('.brush-btn').forEach(b => { b.style.outline = 'none'; b.style.transform = 'scale(1)'; });
+            document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
+            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások sikeresen mentve!";
+            setTimeout(()=> { 
+                document.getElementById('activeBrushDisplay').style.color = "var(--text-main)";
+                document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs"; 
+            }, 3000);
+        } catch(e) {
+            document.getElementById('activeBrushDisplay').innerText = "❌ Hálózati hiba mentéskor!";
+        }
     }
 
     async function loadSchedule() {
@@ -715,70 +782,79 @@
             const r = await res.json();
             if(r.status === "success") {
                 globalSchedule = r.data;
-                if(globalSchedule.length === 0) { c.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Nincs rögzített beosztás.</div>"; return; }
-                
-                let now = new Date();
-                let dayOfWeek = now.getDay() || 7; 
-                let startDate = new Date(now);
-                startDate.setDate(now.getDate() - dayOfWeek + 1 - 7); // Múlt hét hétfő
-                
-                let dates = [];
-                for(let i=0; i<35; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
-
-                let users = expectedApprovers; // A Karbantartókat/Adminokat mutatjuk
-                if (users.length === 0) { c.innerHTML = "Nincs karbantartó a rendszerben."; return; }
-
-                let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col" style="min-width:150px;">Név / Dátum</th>`;
-                dates.forEach(d => {
-                    let isWeekend = (d.getDay() === 0 || d.getDay() === 6);
-                    let bg = isWeekend ? 'background:rgba(0,0,0,0.05);' : '';
-                    let dStr = d.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
-                    
-                    let isToday = (toLocalISOString(d) === toLocalISOString(now));
-                    if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high);';
-                    
-                    html += `<th style="${bg}">${dStr}</th>`;
-                });
-                html += `</tr></thead><tbody>`;
-
-                // Ügyeletes sor
-                html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
-                dates.forEach(d => {
-                    let isWeekend = (d.getDay() === 0 || d.getDay() === 6);
-                    let bg = isWeekend ? 'background:rgba(0,0,0,0.05);' : '';
-                    let dIso = toLocalISOString(d);
-                    let match = globalSchedule.find(s => s.datum === dIso && s.tipus === 'Ügyelet');
-                    let text = match ? match.user : '';
-                    let cls = match ? 'cell-ugy' : '';
-                    html += `<td class="sched-cell ${cls}" style="${bg}">${text}</td>`;
-                });
-                html += `</tr>`;
-
-                // Dolgozók sorai
-                users.forEach(u => {
-                    html += `<tr><td class="sticky-col">${u}</td>`;
-                    dates.forEach(d => {
-                        let isWeekend = (d.getDay() === 0 || d.getDay() === 6);
-                        let bg = isWeekend ? 'background:rgba(0,0,0,0.05);' : '';
-                        let dIso = toLocalISOString(d);
-                        let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.tipus !== 'Ügyelet');
-                        let tipus = match ? match.tipus : '';
-                        let cls = ''; let text = '';
-                        
-                        if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-                        else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-                        else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-                        else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-                        else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'O'; }
-                        
-                        html += `<td class="sched-cell ${cls}" style="${bg}">${text}</td>`;
-                    });
-                    html += `</tr>`;
-                });
-                html += `</tbody></table></div>`;
-                c.innerHTML = html;
+                renderScheduleMain();
             }
         } catch(e) {}
+    }
+
+    function renderScheduleMain() {
+        const c = document.getElementById('scheduleContainer');
+        if(expectedApprovers.length === 0) { c.innerHTML = "<div style='text-align:center; padding:50px; color:var(--text-muted);'>Nincs karbantartó a rendszerben.</div>"; return; }
+
+        let now = new Date();
+        let dayOfWeek = now.getDay() || 7;
+        let startDate = new Date(now);
+        startDate.setDate(now.getDate() - dayOfWeek + 1 - 7); 
+        
+        let dates = [];
+        for(let i=0; i<35; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
+        let users = expectedApprovers; 
+        
+        let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col" style="min-width:150px;">Név / Dátum</th>`;
+        dates.forEach(d => {
+            let isWorking = isWorkDay(d);
+            let bg = !isWorking ? 'background:rgba(0,0,0,0.05); color:#94a3b8;' : '';
+            let dStr = d.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+            
+            let isToday = (toLocalISOString(d) === toLocalISOString(now));
+            if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high); font-weight:bold;';
+            
+            html += `<th style="${bg}">${dStr}</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+        
+        let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
+
+        // Ügyeletes sor
+        html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
+        dates.forEach(d => {
+            let isWorking = isWorkDay(d);
+            let bg = !isWorking ? 'background:rgba(0,0,0,0.05);' : '';
+            let dIso = toLocalISOString(d);
+            let match = globalSchedule.find(s => s.datum === dIso && s.tipus === 'Ügyelet');
+            let text = match ? match.user : '';
+            let cls = match ? 'cell-ugy' : '';
+            let tdId = `maincell___UGYELET___${dIso}`;
+            let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('__UGYELET__', '${dIso}', '${tdId}')"` : '';
+            html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
+        });
+        html += `</tr>`;
+        
+        // Dolgozók
+        users.forEach(u => {
+            html += `<tr><td class="sticky-col">${u}</td>`;
+            dates.forEach(d => {
+                let isWorking = isWorkDay(d);
+                let bg = !isWorking ? 'background:rgba(0,0,0,0.05);' : '';
+                let dIso = toLocalISOString(d);
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.tipus !== 'Ügyelet');
+                let tipus = match ? match.tipus : '';
+                let cls = ''; let text = '';
+                
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
+                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
+                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
+                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
+                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+                
+                let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`;
+                let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : '';
+                html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
+            });
+            html += `</tr>`;
+        });
+        html += `</tbody></table></div>`;
+        c.innerHTML = html;
     }
 
     async function addRecurringTask() {
@@ -837,133 +913,9 @@
             if(r.status === "success") { 
                 globalShiftLogs = r.data; 
                 expectedApprovers = r.expectedApprovers || [];
-                
-                const uSel = document.getElementById('beosztasUser');
-                if(uSel) {
-                    uSel.innerHTML = '<option value="">Válassz dolgozót...</option>';
-                    expectedApprovers.forEach(a => uSel.add(new Option(a, a)));
-                }
-
                 filterShiftLogs(); 
             } 
         } catch(e) {}
-    }
-
-    // --- KIZÁRÁS ÉS HIÁNYZÓ NAPLÓK (Naptár / Szabadság figyelésével) ---
-    function checkMissingShiftLogsAndApprovals() {
-        let missingLogs = [];
-        let startD = new Date(2026, 8, 1, 0, 0, 0); 
-        let now = new Date();
-        let curr = new Date(startD);
-        
-        while (curr <= now) {
-            let day = curr.getDay();
-            if (day >= 1 && day <= 5) {
-                let dStr = toLocalISOString(curr);
-                
-                let shift1End = new Date(curr); shift1End.setHours(14,0,0,0);
-                if (now >= shift1End) {
-                    if (!globalShiftLogs.some(l => {
-                        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-                        return logD === dStr && String(l.muszak).includes("Délelőtt");
-                    })) {
-                        missingLogs.push(`${dStr} Délelőtt`);
-                    }
-                }
-                
-                let shift2End = new Date(curr); shift2End.setHours(22,0,0,0);
-                if (now >= shift2End) {
-                    if (!globalShiftLogs.some(l => {
-                        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-                        return logD === dStr && String(l.muszak).includes("Délután");
-                    })) {
-                        missingLogs.push(`${dStr} Délután`);
-                    }
-                }
-            }
-            curr.setDate(curr.getDate() + 1);
-            curr.setHours(0,0,0,0);
-        }
-
-        let pendingLogUsers = new Set();
-        let myUnapprovedCount = 0;
-        let currentUser = String(localStorage.getItem("activeUser")).trim();
-        let role = String(localStorage.getItem("activeRole")).toLowerCase();
-        
-        let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
-        
-        let isApprover = (role === "maintenance" || role === "superuser");
-        if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
-            expectedApproversClean.push(currentUser);
-        }
-
-        globalShiftLogs.forEach(l => {
-            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-            if (logD >= "2026-09-01") {
-                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                let approversLower = approvers.map(x=>x.toLowerCase());
-                let creatorLower = String(l.felhasznalo).trim().toLowerCase();
-                
-                if (!approversLower.includes(creatorLower)) {
-                    approversLower.push(creatorLower);
-                }
-
-                // Kiszűrjük azokat az embereket, akik azon a napon szabadságon voltak
-                let expectedForThisLog = expectedApproversClean.filter(a => {
-                    let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
-                    if (sched && sched.tipus.includes('Szabadság')) return false; 
-                    return true;
-                });
-
-                let expectedLower = expectedForThisLog.map(x=>x.toLowerCase());
-
-                let unapproved = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
-                unapproved.forEach(u => pendingLogUsers.add(u));
-
-                if (isApprover && expectedLower.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) {
-                    myUnapprovedCount++;
-                }
-            }
-        });
-
-        const alertDiv = document.getElementById('shiftAlertBanner');
-        const navBar = document.getElementById('mainNavigation');
-
-        if (myUnapprovedCount > 0) {
-            navBar.style.display = 'none'; 
-            document.getElementById('shiftLogInputSection').style.display = 'none'; 
-            switchTab('muszakatadasView', null); 
-            
-            alertDiv.innerHTML = `
-                <div style="background:var(--pri-crit); color:white; padding:20px; border-radius:8px; margin-bottom:20px; font-size:18px; font-weight:bold; text-align:center; box-shadow:0 4px 15px rgba(239,68,68,0.5); animation: pulse 2s infinite;">
-                    🚨 RENDSZER LEZÁRVA!<br><br>
-                    ${myUnapprovedCount} db műszaknaplót még nem hagytál jóvá!<br>
-                    <span style="font-size:14px; font-weight:normal;">Amíg nem kattintasz rá lent a zöld 'JÓVÁHAGYOM' gombokra, nem tudod használni a többi funkciót.</span>
-                </div>`;
-            return; 
-        } 
-        
-        navBar.style.display = 'flex';
-        document.getElementById('shiftLogInputSection').style.display = 'block';
-
-        let alertHtml = "";
-
-        if (isApprover && missingLogs.length > 0) {
-            alertHtml += `<div style="background:var(--pri-crit); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>🚨 Hiányzó műszaknaplók (Kérjük pótolni!):</b> ${missingLogs.join(', ')}</div>`;
-        }
-
-        if (pendingLogUsers.size > 0) {
-            alertHtml += `<div style="background:var(--pri-high); color:white; padding:10px 15px; border-radius:6px; margin-bottom:10px; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><b>⚠️ Műszaknapló jóváhagyás hiányzik a következőktől:</b> ${Array.from(pendingLogUsers).join(', ')}</div>`;
-        }
-
-        if (alertDiv) alertDiv.innerHTML = alertHtml;
-    }
-
-    async function approveShiftLog(id) {
-        const btn = document.getElementById('apprBtn_' + id);
-        if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
-        loadShiftLogs(); 
     }
 
     function filterShiftLogs() {
@@ -1000,9 +952,7 @@
                 let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                 
-                if (!approversLower.includes(creatorLower)) {
-                    approversLower.push(creatorLower);
-                }
+                if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
 
                 let expectedForThisLog = expectedApproversClean.filter(a => {
                     let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
@@ -1028,11 +978,16 @@
         }); 
         c.innerHTML = h;
 
-        checkMissingShiftLogsAndApprovals();
     }
-    
+
     function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
     async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); loadShiftLogs(); }
+    async function approveShiftLog(id) {
+        const btn = document.getElementById('apprBtn_' + id);
+        if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
+        loadShiftLogs(); 
+    }
 
     async function loadTasks() {
         const otc = document.getElementById('openTasksContainer'); if(otc) otc.innerHTML = "Betöltés...";
@@ -1170,6 +1125,7 @@
             reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔄 Újranyitás</button>`;
         }
         
+        // Csak superuser láthatja a Törlés és Egyesítés gombokat!
         if (role === "superuser" && !String(t.id).startsWith("PREV-")) {
             adminBtns = `
                 <button onclick="mergeTask('${t.id}')" style="background:var(--pri-obs); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔗 Egyesítés</button>
@@ -1416,33 +1372,6 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${Math.round(monthStat.current.javIdo)} perc javítás`;
         }
 
-        let missingApprovalsCount = {};
-        expectedApprovers.forEach(a => missingApprovalsCount[a] = 0);
-        
-        let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
-
-        globalShiftLogs.forEach(l => {
-            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-            if (logD >= "2026-09-01") {
-                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                let approversLower = approvers.map(x=>x.toLowerCase());
-                let creatorLower = String(l.felhasznalo).trim().toLowerCase();
-                if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
-
-                let expectedForThisLog = expectedApproversClean.filter(a => {
-                    let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
-                    if (sched && sched.tipus.includes('Szabadság')) return false; 
-                    return true;
-                });
-                
-                expectedForThisLog.forEach(a => {
-                    if (!approversLower.includes(String(a).toLowerCase())) {
-                        missingApprovalsCount[a] = (missingApprovalsCount[a] || 0) + 1;
-                    }
-                });
-            }
-        });
-
         if(document.getElementById('adminStatsTableBody') && (localStorage.getItem("activeRole") === "admin" || localStorage.getItem("activeRole") === "superuser")) {
             let formatMin = (arr) => {
                 if(arr.length === 0) return "-";
@@ -1459,16 +1388,13 @@
                 let avgNorm = formatMin(st.reactNorm);
                 let avgKrit = formatMin(st.reactKrit);
                 
-                let elmaradas = missingApprovalsCount[user] !== undefined ? missingApprovalsCount[user] : 0;
-                let elmaradasTxt = elmaradas > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">${elmaradas} db hiányzik</span>` : `<span style="color:var(--pri-normal);">Rendben</span>`;
-
                 trHtml += `<tr>
                             <td style="cursor:pointer; color:var(--accent); text-decoration:underline;" onclick="openStatModal('worker', '${user}')" title="Kattints a megoldott hibákhoz!"><b>${user}</b> 👆</td>
                             <td>${st.felvett}</td>
                             <td>${st.megoldott}</td>
                             <td style="color:var(--pri-crit); font-weight:bold;">${avgKrit}</td>
                             <td>${avgNorm}</td>
-                            <td>${elmaradasTxt}</td>
+                            <td>-</td>
                            </tr>`;
             });
             if(trHtml === "") trHtml = `<tr><td colspan="6" style="text-align:center;">Nincs rögzített adat.</td></tr>`;
