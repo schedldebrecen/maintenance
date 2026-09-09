@@ -19,6 +19,7 @@
         .live-badge { background: #10b981; color: #022c22; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; animation: blink 2s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
+        /* FIXÁLT ÓRA */
         .time-group { flex-shrink: 0; display: flex; align-items: center; gap: 20px; justify-content: flex-end; min-width: 280px; }
         .clock { font-size: 24px; font-weight: bold; letter-spacing: 2px; font-family: monospace; min-width: 125px; text-align: right; display: inline-block; }
         .refresh-info { font-size: 12px; color: var(--text-muted); margin-top: 5px; text-align: right; }
@@ -85,7 +86,7 @@
 
         #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 
-        /* NAPTÁR MÁTRIX CSS */
+        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -117,7 +118,7 @@
     <div id="startupBanner">
         <div class="startup-box">
             <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 200px; margin-bottom: 20px;">
-            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.10)</span></h2>
+            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.11)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn start" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -127,7 +128,6 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
-    <!-- DASHBOARD KIZÁRÓ KÉPERNYŐ -->
     <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
         <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
             <div style="text-align:center; margin-bottom: 20px;">
@@ -141,6 +141,7 @@
 
     <div id="dashboardMainUI">
         <div class="top-bar">
+            <!-- FÜLEK A FEJLÉCBEN -->
             <div class="title-group">
                 <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="height: 32px; background: white; padding: 2px 8px; border-radius: 4px;">
                 <div class="live-badge">ÉLŐ</div>
@@ -152,6 +153,7 @@
                 </div>
             </div>
 
+            <!-- FIXÁLT ÓRA -->
             <div class="time-group">
                 <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
                     <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
@@ -187,6 +189,7 @@
 
         <div class="dashboard-container" style="padding-top:20px;">
             
+            <!-- KERESŐ ÉS SZŰRŐK A LEZÁRT NÉZETHEZ -->
             <div id="dashSearchContainer" style="display:none; margin-bottom:20px; background:var(--surface); padding:15px; border-radius:8px; border:1px solid var(--border);">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                     <input type="text" id="dashSearchInput" class="dash-input" style="flex:1; min-width:200px; margin:0;" placeholder="🔍 Keresés hiba leírásában, megoldásban, beküldőben..." onkeyup="renderGrid()">
@@ -209,10 +212,12 @@
                 </div>
             </div>
 
-            <!-- NAPTÁR KONTÉNER ECSETTEL -->
+            <!-- NAPTÁR ÉS ECSET KONTÉNER -->
             <div id="scheduleViewDash" style="display:none;">
                 <div id="dashPaintbrushPanel" style="display:none; background:var(--surface); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
-                    <div style="color:var(--pri-crit); font-weight:bold; margin-bottom:10px; font-size:16px;">🖌️ Ecset eszköz beosztáshoz (Kattints egy színre, majd a lenti naptár celláira!)</div>
+                    <div style="color:var(--pri-crit); font-weight:bold; margin-bottom:10px; font-size:16px;">
+                        🖌️ Ecset eszköz beosztáshoz (Kattints a műszakra, majd a lenti naptárban a dolgozóra! Az <b>Ügyelet</b> esetén is válaszd ki az Ügyelet ecsetet, majd kattints annak a személynek a cellájára, aki az ügyeletes lesz aznap!)
+                    </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                         <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">Délelőtt</button>
                         <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">Délután</button>
@@ -432,13 +437,57 @@
     function paintCell(user, dateStr, tdId) {
         if(!activeBrush || sessionRole !== 'superuser') return;
         
+        // ÜGYELET LOGIKA
+        if (activeBrush === 'Ügyelet') {
+            if (user === '__UGYELET__') return; // Ne lehessen önmagára kattintani
+            
+            let topTdId = tdId.replace(`cell_${user.replace(/\s+/g,'_')}`, 'cell___UGYELET__'); 
+            let topEl = document.getElementById(topTdId);
+            
+            if (topEl) {
+                topEl.innerText = user;
+                topEl.className = 'sched-cell cell-ugy hoverable';
+            }
+
+            let existingIdx = paintedChanges.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
+            if(existingIdx > -1) paintedChanges[existingIdx].tipus = user;
+            else paintedChanges.push({ user: '__UGYELET__', datum: dateStr, tipus: user });
+
+            let gsIdx = globalSchedule.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
+            if(gsIdx > -1) globalSchedule[gsIdx].tipus = user;
+            else globalSchedule.push({user: '__UGYELET__', datum: dateStr, tipus: user});
+
+            // Vizuális visszajelzés a rákattintott cellán is (kicsit felvillan)
+            let el = document.getElementById(tdId);
+            if(el) {
+                let origBg = el.style.backgroundColor;
+                el.style.backgroundColor = 'var(--pri-high)';
+                setTimeout(() => { el.style.backgroundColor = origBg; }, 300);
+            }
+            return;
+        }
+
+        // TÖRLÉS LOGIKA ÜGYELETRE
+        if (activeBrush === 'Törlés' && user === '__UGYELET__') {
+            let el = document.getElementById(tdId);
+            if(el) { el.innerText = ''; el.className = 'sched-cell hoverable'; }
+            
+            let existingIdx = paintedChanges.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
+            if(existingIdx > -1) paintedChanges[existingIdx].tipus = 'Törlés';
+            else paintedChanges.push({ user: '__UGYELET__', datum: dateStr, tipus: 'Törlés' });
+            return;
+        }
+
+        if (user === '__UGYELET__') return;
+
+        // NORMÁL MŰSZAK LOGIKA
         let cls = '', text = '';
         if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
         else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
         else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
         else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
         else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'Nappali'; }
-        else if(activeBrush === 'Ügyelet') { cls = 'cell-ugy'; text = 'Ügyelet'; }
+        else if(activeBrush === 'Törlés') { cls = ''; text = ''; }
         
         let el = document.getElementById(tdId);
         if(el) {
@@ -523,13 +572,15 @@
         
         let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
 
+        // Ügyeletes sor
         html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d);
             let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : '';
             let dIso = toLocalISOString(d);
-            let match = globalSchedule.find(s => s.datum === dIso && s.tipus === 'Ügyelet');
-            let text = match ? match.user : '';
+            // VÁLTOZÁS ITT: 's.user === __UGYELET__' -et keresünk!
+            let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
+            let text = match ? match.tipus : '';
             let cls = match ? 'cell-ugy' : '';
             let tdId = `cell___UGYELET___${dIso}`;
             let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('__UGYELET__', '${dIso}', '${tdId}')"` : '';
@@ -537,13 +588,14 @@
         });
         html += `</tr>`;
         
+        // Dolgozók
         users.forEach(u => {
             html += `<tr><td class="sticky-col">${u}</td>`;
             dates.forEach(d => {
                 let isWorking = isWorkDay(d);
                 let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : '';
                 let dIso = toLocalISOString(d);
-                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.tipus !== 'Ügyelet');
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__');
                 let tipus = match ? match.tipus : '';
                 let cls = ''; let text = '';
                 
@@ -643,7 +695,10 @@
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
-                if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
+                
+                if (!approversLower.includes(creatorLower)) {
+                    approversLower.push(creatorLower);
+                }
 
                 let expectedForThisLog = expectedApproversClean.filter(a => {
                     let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
@@ -661,6 +716,8 @@
                 }
             }
         });
+
+        const alertDiv = document.getElementById('shiftAlertBanner');
 
         if (myUnapprovedCount > 0) {
             document.getElementById('dashboardMainUI').style.display = 'none';
@@ -694,7 +751,6 @@
             alertHtml += `<div style="background:var(--pri-crit); color:white; padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">🚨 PÓTOLD A MŰSZAKNAPLÓT (Karbantartás menü): ${missingLogs.join(', ')}</div>`;
         }
 
-        const alertDiv = document.getElementById('shiftAlertBanner');
         if (alertDiv) alertDiv.innerHTML = alertHtml;
     }
 
