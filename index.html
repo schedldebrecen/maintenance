@@ -13,6 +13,8 @@
         }
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
+        
+        /* LETISZTÍTOTT TOPBAR */
         .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -100,7 +102,7 @@
         .stat-btn:hover { background: var(--bg-color); border-color: var(--accent); }
         .stat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
+        /* NAPTÁR MÁTRIX CSS */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -141,12 +143,12 @@
 
 <div id="appView">
     <div class="topbar">
-        <!-- LETISZTÍTOTT FEJLÉC -->
         <h2 style="margin: 0; display:flex; align-items:center;">
             <img src="Logo-Schedl (1).png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
         </h2>
         <div class="user-info">
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
+            <span id="currentUserRole" style="display:none;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
     </div>
@@ -166,7 +168,6 @@
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
 
-        <!-- ÚJ HIBA RÖGZÍTÉSE -->
         <div id="ujHiba" class="view active box">
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
@@ -199,17 +200,18 @@
             <div id="taskStatus" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
         </div>
 
-        <!-- BEOSZTÁS NÉZET MÁTRIXSZAL ÉS ECSETTEL -->
         <div id="beosztasView" class="view box">
             <h3>📅 Dolgozói Beosztás és Szabadság</h3>
             
             <div id="dashPaintbrushPanel" style="display:none; background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
-                <div style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size:15px;">🖌️ Ecset eszköz beosztáshoz (Kattints egy színre, majd a lenti naptár celláira!)</div>
+                <div style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size:15px;">
+                    🖌️ Ecset eszköz beosztáshoz (Kattints a műszakra, majd a lenti naptárban a dolgozóra! Az <b>Ügyelet</b> esetén is válaszd ki az Ügyelet ecsetet, majd kattints annak a személynek a cellájára, aki az ügyeletes lesz aznap!)
+                </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                     <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">MS (Délelőtt)</button>
                     <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">AS (Délután)</button>
                     <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">NS (Éjszaka)</button>
-                    <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">O (Nappali/Pihenő)</button>
+                    <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">O (Nappali)</button>
                     <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">H (Szabadság)</button>
                     <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">ÜGY (Ügyelet)</button>
                     <button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
@@ -539,8 +541,7 @@
         let totalMinutes = 0; let current = new Date(start);
 
         while (current < end) {
-            let day = current.getDay(); 
-            if (day >= 1 && day <= 5) {
+            if (isWorkDay(current)) {
                 let startOfDay = new Date(current); startOfDay.setHours(6, 0, 0, 0);
                 let endOfDay = new Date(current); endOfDay.setHours(22, 0, 0, 0);
                 let periodStart = current > startOfDay ? current : startOfDay;
@@ -697,7 +698,7 @@
         else { alert("❌ Hiba: " + result.message); }
     }
 
-    // --- BEOSZTÁS ÉS NAPTÁR FUNKCIÓK ---
+    // --- BEOSZTÁS ÉS NAPTÁR ECSET FUNKCIÓK ---
     function setBrush(tipus, btnObj) {
         activeBrush = tipus;
         document.querySelectorAll('.brush-btn').forEach(b => {
@@ -712,13 +713,53 @@
     function paintCell(user, dateStr, tdId) {
         if(!activeBrush || sessionRole !== 'superuser') return;
         
+        if (activeBrush === 'Ügyelet') {
+            if (user === '__UGYELET__') return; 
+            
+            let topTdId = tdId.replace(user.replace(/\s+/g,'_'), '__UGYELET__'); 
+            let topEl = document.getElementById(topTdId);
+            
+            if (topEl) {
+                topEl.innerText = user;
+                topEl.className = 'sched-cell cell-ugy hoverable';
+            }
+
+            let existingIdx = paintedChanges.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
+            if(existingIdx > -1) paintedChanges[existingIdx].tipus = user;
+            else paintedChanges.push({ user: '__UGYELET__', datum: dateStr, tipus: user });
+
+            let gsIdx = globalSchedule.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
+            if(gsIdx > -1) globalSchedule[gsIdx].tipus = user;
+            else globalSchedule.push({user: '__UGYELET__', datum: dateStr, tipus: user});
+
+            let el = document.getElementById(tdId);
+            if(el) {
+                let origBg = el.style.backgroundColor;
+                el.style.backgroundColor = 'var(--pri-high)';
+                setTimeout(() => { el.style.backgroundColor = origBg; }, 300);
+            }
+            return;
+        }
+
+        if (activeBrush === 'Törlés' && user === '__UGYELET__') {
+            let el = document.getElementById(tdId);
+            if(el) { el.innerText = ''; el.className = 'sched-cell hoverable'; }
+            
+            let existingIdx = paintedChanges.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
+            if(existingIdx > -1) paintedChanges[existingIdx].tipus = 'Törlés';
+            else paintedChanges.push({ user: '__UGYELET__', datum: dateStr, tipus: 'Törlés' });
+            return;
+        }
+
+        if (user === '__UGYELET__') return;
+
         let cls = '', text = '';
         if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
         else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
         else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
         else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
         else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'O'; }
-        else if(activeBrush === 'Ügyelet') { cls = 'cell-ugy'; text = 'ÜGY'; }
+        else if(activeBrush === 'Törlés') { cls = ''; text = ''; }
         
         let el = document.getElementById(tdId);
         if(el) {
@@ -727,19 +768,8 @@
         }
 
         let existingIdx = paintedChanges.findIndex(x => x.user === user && x.datum === dateStr);
-        if(existingIdx > -1) {
-            paintedChanges[existingIdx].tipus = activeBrush;
-        } else {
-            paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
-        }
-
-        let gsIdx = globalSchedule.findIndex(x => x.user === user && x.datum === dateStr);
-        if(activeBrush === 'Törlés') {
-            if(gsIdx > -1) globalSchedule.splice(gsIdx, 1);
-        } else {
-            if(gsIdx > -1) globalSchedule[gsIdx].tipus = activeBrush;
-            else globalSchedule.push({user: user, datum: dateStr, tipus: activeBrush});
-        }
+        if(existingIdx > -1) paintedChanges[existingIdx].tipus = activeBrush;
+        else paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
     }
 
     async function savePaintedSchedule() {
@@ -765,7 +795,7 @@
             activeBrush = null;
             document.querySelectorAll('.brush-btn').forEach(b => { b.style.outline = 'none'; b.style.transform = 'scale(1)'; });
             document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
-            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások sikeresen mentve!";
+            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások mentve!";
             setTimeout(()=> { 
                 document.getElementById('activeBrushDisplay').style.color = "var(--text-main)";
                 document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs"; 
@@ -821,8 +851,8 @@
             let isWorking = isWorkDay(d);
             let bg = !isWorking ? 'background:rgba(0,0,0,0.05);' : '';
             let dIso = toLocalISOString(d);
-            let match = globalSchedule.find(s => s.datum === dIso && s.tipus === 'Ügyelet');
-            let text = match ? match.user : '';
+            let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
+            let text = match ? match.tipus : '';
             let cls = match ? 'cell-ugy' : '';
             let tdId = `maincell___UGYELET___${dIso}`;
             let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('__UGYELET__', '${dIso}', '${tdId}')"` : '';
@@ -837,7 +867,7 @@
                 let isWorking = isWorkDay(d);
                 let bg = !isWorking ? 'background:rgba(0,0,0,0.05);' : '';
                 let dIso = toLocalISOString(d);
-                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.tipus !== 'Ügyelet');
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__');
                 let tipus = match ? match.tipus : '';
                 let cls = ''; let text = '';
                 
@@ -949,10 +979,11 @@
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
-                let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                 
-                if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
+                if (!approversLower.includes(creatorLower)) {
+                    approversLower.push(creatorLower);
+                }
 
                 let expectedForThisLog = expectedApproversClean.filter(a => {
                     let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
@@ -982,6 +1013,7 @@
 
     function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
     async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); loadShiftLogs(); }
+
     async function approveShiftLog(id) {
         const btn = document.getElementById('apprBtn_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
