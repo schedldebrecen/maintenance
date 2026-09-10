@@ -207,8 +207,10 @@
         document.getElementById('dateTo').value = toISO(toDate);
     }
 
-    // CSV Feldolgozó (Biztonságos a ; karakterekre, ha idézőjelben vannak)
+    // CSV Feldolgozó (Biztonságos a ; karakterekre és a \r sorvégekre)
     function parseCSV(text) {
+        // BOM eltávolítása, \r eltávolítása
+        text = text.replace(/^\uFEFF/, '').replace(/\r/g, '');
         let lines = text.split('\n');
         let result = [];
         let headers = [];
@@ -365,30 +367,31 @@
         criticalTasks.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
         let cHtml = "";
         if (criticalTasks.length === 0) {
-            cHtml = "<tr><td colspan='6' style="text-align:center; padding:20px;">🎉 Nincs regisztrált kritikus meghibásodás ebben az időszakban!</td></tr>";
+            cHtml = `<tr><td colspan='6' style="text-align:center; padding:20px;">🎉 Nincs regisztrált kritikus meghibásodás ebben az időszakban!</td></tr>`;
+        } else {
+            criticalTasks.forEach(t => {
+                let dObj = new Date(t['Időpont']);
+                let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
+                
+                let pStr = String(t['Prioritás']);
+                let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : "badge-high";
+                let pTxt = pStr.toLowerCase().includes("leállás") ? "Leállás" : "Sürgős";
+
+                let hibaSzoveg = String(t['Hiba']);
+                let megSzoveg = String(t['Megoldás']);
+                // Eltávolítjuk a generált sallangot a megoldás elejéről a szebb nézetért
+                megSzoveg = megSzoveg.replace(/✅ \[.*?\]: /g, '');
+
+                cHtml += `<tr>
+                            <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
+                            <td><span class="badge ${badge}">${pTxt}</span></td>
+                            <td style="font-weight:bold;">${t['Gép']}</td>
+                            <td>${hibaSzoveg}</td>
+                            <td style="font-size:13px;"><i>${megSzoveg}</i> <br><br><b>Felelős:</b> ${t['Lezárta'] || t['Felelős']}</td>
+                            <td style="text-align:center; color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)'] || 0} p</td>
+                          </tr>`;
+            });
         }
-        criticalTasks.forEach(t => {
-            let dObj = new Date(t['Időpont']);
-            let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
-            
-            let pStr = String(t['Prioritás']);
-            let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : "badge-high";
-            let pTxt = pStr.includes("leállás") ? "Leállás" : "Sürgős";
-
-            let hibaSzoveg = String(t['Hiba']);
-            let megSzoveg = String(t['Megoldás']);
-            // Eltávolítjuk a generált sallangot a megoldás elejéről a szebb nézetért
-            megSzoveg = megSzoveg.replace(/✅ \[.*?\]: /g, '');
-
-            cHtml += `<tr>
-                        <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
-                        <td><span class="badge ${badge}">${pTxt}</span></td>
-                        <td style="font-weight:bold;">${t['Gép']}</td>
-                        <td>${hibaSzoveg}</td>
-                        <td style="font-size:13px;"><i>${megSzoveg}</i> <br><br><b>Felelős:</b> ${t['Lezárta'] || t['Felelős']}</td>
-                        <td style="text-align:center; color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)'] || 0} p</td>
-                      </tr>`;
-        });
         document.querySelector('#criticalTasksTable tbody').innerHTML = cHtml;
 
         // Megjelenítés & Gomb mutatása
