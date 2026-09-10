@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karbantartási Értékelő és Prezentáció</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a; --surface: #ffffff; --primary: #1e293b; 
+            --accent: #0284c7; --text-main: #334155; --text-muted: #64748b;
+            --border: #e2e8f0; --pri-info: #0ea5e9; --pri-normal: #10b981; 
+            --pri-high: #f59e0b; --pri-crit: #ef4444; --prev: #8b5cf6;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: var(--text-main); margin: 0; padding: 20px; }
+        
+        /* VEZÉRLŐ PANEL (Nyomtatáskor eltűnik) */
+        .control-panel { background: var(--surface); padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 1000px; margin: 0 auto 30px auto; border: 1px solid var(--border); }
+        .control-panel h2 { margin-top: 0; color: var(--primary); font-size: 22px; }
+        
+        .flex-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
+        .btn-quick { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 13px; }
+        .btn-quick:hover { background: #cbd5e1; }
+        
+        input[type="date"], input[type="file"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: inherit; }
+        
+        .btn-generate { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .btn-generate:hover { background: #0369a1; }
+        .btn-print { background: var(--pri-normal); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; display: none; }
+        
+        /* PREZENTÁCIÓ NÉZET */
+        #reportContainer { display: none; background: white; padding: 40px; max-width: 1100px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; border-top: 8px solid var(--primary); }
+        
+        .report-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 30px; }
+        .report-header h1 { margin: 0; color: var(--primary); font-size: 32px; text-transform: uppercase; letter-spacing: 1px; }
+        .report-header .date-range { font-size: 18px; color: var(--text-muted); font-weight: bold; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px; }
+        .kpi-box { background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border); border-bottom: 4px solid var(--border); }
+        .kpi-box h4 { margin: 0 0 10px 0; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-box .val { font-size: 36px; font-weight: bold; color: var(--primary); }
+        .kpi-box.crit { border-bottom-color: var(--pri-crit); } .kpi-box.crit .val { color: var(--pri-crit); }
+        .kpi-box.warn { border-bottom-color: var(--pri-high); } .kpi-box.warn .val { color: var(--pri-high); }
+        .kpi-box.prev { border-bottom-color: var(--prev); } .kpi-box.prev .val { color: var(--prev); }
+
+        .section-title { font-size: 22px; color: var(--primary); margin: 30px 0 15px 0; border-bottom: 2px solid var(--border); padding-bottom: 5px; display: flex; align-items: center; gap: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
+        th { background: #e2e8f0; color: var(--primary); font-weight: bold; }
+        tr:nth-child(even) { background: #f8fafc; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; white-space: nowrap; }
+        .badge-crit { background: var(--pri-crit); }
+        .badge-high { background: var(--pri-high); }
+        
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+        
+        /* INTERAKTÍV JEGYZET DOBOZ MEETINGRE */
+        .action-plan { background: #fffbeb; border: 1px dashed #f59e0b; padding: 20px; border-radius: 8px; }
+        .action-plan h3 { color: #d97706; margin-top: 0; display: flex; align-items: center; gap: 8px; }
+        .editable-area { min-height: 150px; background: white; border: 1px solid #fcd34d; padding: 15px; border-radius: 5px; font-size: 16px; line-height: 1.6; outline: none; }
+        .editable-area:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); }
+        .editable-area li { margin-bottom: 8px; }
+
+        @media print {
+            body { padding: 0; background: white; }
+            .control-panel { display: none !important; }
+            #reportContainer { box-shadow: none; border-top: none; padding: 0; max-width: 100%; }
+            .editable-area { border: 1px solid #eee; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel" id="controls">
+        <h2>📊 CMMS Prezentáció és Értékelő Generátor</h2>
+        <p style="color:var(--text-muted); margin-bottom:20px;">Töltsd fel a rendszerből kiexportált <b>Statisztika_Teteles_Reszletek.csv</b> fájlt, válaszd ki az időszakot, és készítsd el a vezetői / heti meeting anyagot!</p>
+        
+        <div class="flex-row">
+            <input type="file" id="csvFileInput" accept=".csv" style="background:#f8fafc; flex:1;">
+        </div>
+
+        <div class="flex-row" style="background:#f1f5f9; padding:15px; border-radius:6px; border:1px solid var(--border);">
+            <div style="font-weight:bold; width:100%;">Időszak kiválasztása:</div>
+            <button class="btn-quick" onclick="setPreset('last_week')">Múlt hét</button>
+            <button class="btn-quick" onclick="setPreset('this_week')">Ezen a héten</button>
+            <button class="btn-quick" onclick="setPreset('last_month')">Előző hónap</button>
+            <button class="btn-quick" onclick="setPreset('this_month')">Ebben a hónapban</button>
+            <span style="margin: 0 10px; color:var(--text-muted);">vagy manuálisan:</span>
+            <input type="date" id="dateFrom">
+            <span> - </span>
+            <input type="date" id="dateTo">
+        </div>
+
+        <div style="display:flex; gap:15px;">
+            <button class="btn-generate" onclick="generateReport()">📉 Prezentáció Generálása</button>
+            <button class="btn-print" id="btnPrint" onclick="window.print()">🖨️ Mentés PDF-be / Nyomtatás</button>
+        </div>
+        <div id="errorMsg" style="color:var(--pri-crit); font-weight:bold; margin-top:10px;"></div>
+    </div>
+
+    <!-- PREZENTÁCIÓS FELÜLET -->
+    <div id="reportContainer">
+        <div class="report-header">
+            <div>
+                <h1>Karbantartási Jelentés</h1>
+                <div style="color:var(--primary); font-size:18px; margin-top:5px;">Heti / Havi áttekintés és Akcióterv</div>
+            </div>
+            <div class="date-range" id="reportDateRange">2026.09.01 - 2026.09.10</div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-box">
+                <h4>Összes Eseti Hiba</h4>
+                <div class="val" id="kpiEseti">0</div>
+            </div>
+            <div class="kpi-box prev">
+                <h4>Elvégzett Preventív</h4>
+                <div class="val" id="kpiPrev">0</div>
+            </div>
+            <div class="kpi-box crit">
+                <h4>Termeléskiesés (Perc)</h4>
+                <div class="val" id="kpiKieses">0</div>
+            </div>
+            <div class="kpi-box warn">
+                <h4>Eseti Javítási Idő (Perc)</h4>
+                <div class="val" id="kpiJavitas">0</div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div>
+                <h3 class="section-title">⚙️ Top 5 Legproblémásabb Gép</h3>
+                <table id="topMachinesTable">
+                    <thead><tr><th>Gép Név</th><th>Hibák száma</th><th>Kiesés (perc)</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div>
+                <h3 class="section-title">👥 Operátori (Beküldői) Aktivitás</h3>
+                <table id="topUsersTable">
+                    <thead><tr><th>Beküldő Neve</th><th>Bejelentett Hibák</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <h3 class="section-title">🚨 Kritikus Meghibásodások (Leállás & Sürgős)</h3>
+        <table id="criticalTasksTable">
+            <thead>
+                <tr>
+                    <th style="width:120px;">Dátum</th>
+                    <th style="width:100px;">Prioritás</th>
+                    <th style="width:200px;">Gép</th>
+                    <th>Hiba Leírása</th>
+                    <th>Megoldás & Felelős</th>
+                    <th style="width:80px;">Kiesés</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- INTERAKTÍV AKCIÓTERV -->
+        <div class="page-break"></div>
+        <div class="action-plan">
+            <h3>💡 Megbeszélés jegyzet / Preventív Karbantartási Javaslatok</h3>
+            <p style="font-size:14px; margin-top:0; color:#b45309;">(Kattints ide és gépeld be a meeting alatt megállapított új feladatokat, majd nyomtasd PDF-be!)</p>
+            <ul class="editable-area" contenteditable="true">
+                <li>Beszéljük át a Top 1 legproblémásabb gép okait...</li>
+                <li>Új ismétlődő napi ellenőrzés szükséges az alábbi gépre: </li>
+                <li>...</li>
+            </ul>
+        </div>
+    </div>
+
+<script>
+    // Dátum formázó segéd
+    function toISO(d) {
+        return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+    }
+
+    // Előre beállított dátumok
+    function setPreset(type) {
+        let today = new Date();
+        let fromDate = new Date();
+        let toDate = new Date();
+
+        if (type === 'this_week') {
+            let day = today.getDay() || 7; 
+            fromDate.setDate(today.getDate() - day + 1);
+            toDate = today;
+        } else if (type === 'last_week') {
+            let day = today.getDay() || 7; 
+            toDate.setDate(today.getDate() - day);
+            fromDate.setDate(toDate.getDate() - 6);
+        } else if (type === 'this_month') {
+            fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            toDate = today;
+        } else if (type === 'last_month') {
+            fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+        }
+
+        document.getElementById('dateFrom').value = toISO(fromDate);
+        document.getElementById('dateTo').value = toISO(toDate);
+    }
+
+    // CSV Feldolgozó (Biztonságos a ; karakterekre, ha idézőjelben vannak)
+    function parseCSV(text) {
+        let lines = text.split('\n');
+        let result = [];
+        let headers = [];
+        
+        if (lines.length > 0) {
+            headers = parseCSVRow(lines[0]);
+        }
+
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            let row = parseCSVRow(lines[i]);
+            let obj = {};
+            headers.forEach((h, index) => {
+                obj[h.trim()] = row[index] ? row[index] : "";
+            });
+            result.push(obj);
+        }
+        return result;
+    }
+
+    function parseCSVRow(str) {
+        let arr = []; let quote = false; let col = '';
+        for (let i = 0; i < str.length; i++) {
+            let c = str[i];
+            if (c === '"' && str[i+1] === '"') { col += '"'; i++; } // Escaped quote
+            else if (c === '"') { quote = !quote; }
+            else if (c === ';' && !quote) { arr.push(col); col = ''; }
+            else { col += c; }
+        }
+        arr.push(col);
+        return arr;
+    }
+
+    // Jelentés Generálása
+    function generateReport() {
+        const fileInput = document.getElementById('csvFileInput');
+        const err = document.getElementById('errorMsg');
+        err.innerText = "";
+
+        if (fileInput.files.length === 0) {
+            err.innerText = "Kérlek, töltsd fel a Statisztika_Teteles_Reszletek.csv fájlt!";
+            return;
+        }
+
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
+        if (!dateFrom || !dateTo) {
+            err.innerText = "Kérlek, válassz egy időszakot!";
+            return;
+        }
+
+        document.getElementById('reportDateRange').innerText = `${dateFrom.replace(/-/g, '.')} - ${dateTo.replace(/-/g, '.')}`;
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const data = parseCSV(e.target.result);
+            processReportData(data, dateFrom, dateTo);
+        };
+        reader.readAsText(file, 'utf-8');
+    }
+
+    function processReportData(data, dateFrom, dateTo) {
+        // Szűrés az időszakra (és csak a lezárt/releváns jegyek)
+        let filtered = data.filter(row => {
+            if (!row['Időpont']) return false;
+            let rowDate = row['Időpont'].substring(0, 10);
+            return rowDate >= dateFrom && rowDate <= dateTo;
+        });
+
+        if (filtered.length === 0) {
+            document.getElementById('errorMsg').innerText = "Erre az időszakra nincs megjeleníthető adat a fájlban.";
+            return;
+        }
+
+        let esetiDb = 0;
+        let prevDb = 0;
+        let totalDowntime = 0;
+        let totalJavitas = 0;
+
+        let machineStats = {};
+        let userStats = {};
+        let criticalTasks = [];
+
+        filtered.forEach(row => {
+            let isPrev = String(row['ID']).startsWith("PREV-");
+            let prio = String(row['Prioritás']).toLowerCase();
+            let downtime = parseFloat(row['Kiesés (perc)']) || 0;
+            let javitas = parseFloat(row['Javítás (perc)']) || 0;
+            let gep = row['Gép'] || "Ismeretlen";
+            let bekuldo = row['Beküldő'] || "Ismeretlen";
+
+            if (isPrev) {
+                prevDb++;
+            } else {
+                esetiDb++;
+                totalDowntime += downtime;
+                totalJavitas += javitas;
+
+                // Gép statisztika
+                if(gep && gep !== "-") {
+                    if(!machineStats[gep]) machineStats[gep] = { count: 0, downtime: 0 };
+                    machineStats[gep].count++;
+                    machineStats[gep].downtime += downtime;
+                }
+
+                // Beküldő statisztika
+                if(bekuldo) {
+                    userStats[bekuldo] = (userStats[bekuldo] || 0) + 1;
+                }
+
+                // Kritikus lista
+                if (prio.includes("leállás") || prio.includes("magas")) {
+                    criticalTasks.push(row);
+                }
+            }
+        });
+
+        // 1. KPI-ok frissítése
+        document.getElementById('kpiEseti').innerText = esetiDb;
+        document.getElementById('kpiPrev').innerText = prevDb;
+        document.getElementById('kpiKieses').innerText = Math.round(totalDowntime);
+        document.getElementById('kpiJavitas').innerText = Math.round(totalJavitas);
+
+        // 2. Top Gépek
+        let sortedMachines = Object.entries(machineStats).sort((a, b) => b[1].count - a[1].count).slice(0, 5);
+        let mHtml = "";
+        if (sortedMachines.length === 0) mHtml = "<tr><td colspan='3'>Nincs eseti meghibásodás.</td></tr>";
+        sortedMachines.forEach((m, idx) => {
+            let medal = idx === 0 ? "🔴" : "🟠";
+            mHtml += `<tr>
+                        <td><b>${medal} ${m[0]}</b></td>
+                        <td style="text-align:center; font-weight:bold; font-size:16px;">${m[1].count}</td>
+                        <td style="text-align:center; color:var(--pri-crit);">${m[1].downtime} p</td>
+                      </tr>`;
+        });
+        document.querySelector('#topMachinesTable tbody').innerHTML = mHtml;
+
+        // 3. Top Beküldők
+        let sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        let uHtml = "";
+        if (sortedUsers.length === 0) uHtml = "<tr><td colspan='2'>Nincs adat.</td></tr>";
+        sortedUsers.forEach(u => {
+            uHtml += `<tr>
+                        <td>👤 ${u[0]}</td>
+                        <td style="text-align:center; font-weight:bold;">${u[1]} db</td>
+                      </tr>`;
+        });
+        document.querySelector('#topUsersTable tbody').innerHTML = uHtml;
+
+        // 4. Kritikus hibák táblázata
+        criticalTasks.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
+        let cHtml = "";
+        if (criticalTasks.length === 0) {
+            cHtml = "<tr><td colspan='6' style="text-align:center; padding:20px;">🎉 Nincs regisztrált kritikus meghibásodás ebben az időszakban!</td></tr>";
+        }
+        criticalTasks.forEach(t => {
+            let dObj = new Date(t['Időpont']);
+            let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
+            
+            let pStr = String(t['Prioritás']);
+            let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : "badge-high";
+            let pTxt = pStr.includes("leállás") ? "Leállás" : "Sürgős";
+
+            let hibaSzoveg = String(t['Hiba']);
+            let megSzoveg = String(t['Megoldás']);
+            // Eltávolítjuk a generált sallangot a megoldás elejéről a szebb nézetért
+            megSzoveg = megSzoveg.replace(/✅ \[.*?\]: /g, '');
+
+            cHtml += `<tr>
+                        <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
+                        <td><span class="badge ${badge}">${pTxt}</span></td>
+                        <td style="font-weight:bold;">${t['Gép']}</td>
+                        <td>${hibaSzoveg}</td>
+                        <td style="font-size:13px;"><i>${megSzoveg}</i> <br><br><b>Felelős:</b> ${t['Lezárta'] || t['Felelős']}</td>
+                        <td style="text-align:center; color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)'] || 0} p</td>
+                      </tr>`;
+        });
+        document.querySelector('#criticalTasksTable tbody').innerHTML = cHtml;
+
+        // Megjelenítés & Gomb mutatása
+        document.getElementById('reportContainer').style.display = 'block';
+        document.getElementById('btnPrint').style.display = 'inline-block';
+        
+        // Automatikus görgetés
+        document.getElementById('reportContainer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+</script>
+</body>
+</html>
