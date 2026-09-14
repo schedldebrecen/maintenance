@@ -411,28 +411,22 @@
 
     async function fetchDashboardData() {
         try {
-            const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule" }) });
-            const rSched = await resSched.json();
-            if(rSched.status === "success") {
-                globalSchedule = rSched.data;
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData" }) });
+            const result = await res.json();
+            
+            if(result.status === "success") { 
+                globalSchedule = result.data.schedule;
+                globalShiftLogs = result.data.shiftLogs;
+                expectedApprovers = result.data.expectedApprovers || [];
+                
+                processData(result.data.tasks); 
+                checkMissingShiftLogsAndApprovals();
+                
                 if(currentDashView === 'schedule') renderScheduleDash();
             }
-
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
-            const result = await res.json();
-            if(result.status === "success") { processData(result.data); } 
-            
-            const resLog = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) });
-            const resultLog = await resLog.json();
-            if(resultLog.status === "success") { 
-                globalShiftLogs = resultLog.data;
-                expectedApprovers = resultLog.expectedApprovers || [];
-                checkMissingShiftLogsAndApprovals();
-            }
-
         } catch (e) { console.error("Hiba:", e); }
     }
-
+    
     function toggleDashView(view) {
         currentDashView = view;
         document.getElementById('btnDashOpen').style.background = (view === 'open') ? 'var(--pri-high)' : 'var(--border)';
