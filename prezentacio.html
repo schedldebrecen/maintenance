@@ -43,38 +43,48 @@
 
         .section-title { font-size: 22px; color: var(--primary); margin: 30px 0 15px 0; border-bottom: 2px solid var(--border); padding-bottom: 5px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         
-        details { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; transition: all 0.3s ease; }
+        /* CSEMPE & ACCORDION STÍLUSOK */
+        details { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 15px; transition: all 0.3s ease; }
         details[open] { box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: var(--accent); }
         summary { padding: 15px 20px; font-weight: bold; font-size: 16px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--primary); }
         summary::-webkit-details-marker { display: none; }
         summary:hover { background: #f1f5f9; }
         
-        .summary-title { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .summary-title { display: flex; align-items: center; gap: 10px; flex: 1; font-size: 18px; }
         .summary-stats { display: flex; gap: 15px; align-items: center; font-size: 14px; }
         .summary-badge { background: var(--bg-dark); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
         .summary-badge.crit { background: var(--pri-crit); }
         .summary-badge.warn { background: var(--pri-high); color: #000; }
         
-        .details-content { padding: 15px; border-top: 1px solid var(--border); background: #ffffff; border-radius: 0 0 6px 6px; }
+        .details-content { padding: 20px; border-top: 1px solid var(--border); background: #ffffff; border-radius: 0 0 6px 6px; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: middle; }
-        th { background: #e2e8f0; color: var(--primary); font-weight: bold; }
-        tr:nth-child(even) { background: #f8fafc; }
+        /* DRAG & DROP CSEMPÉK */
+        .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .ticket-tile { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: grab; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+        .ticket-tile:active { cursor: grabbing; }
+        .ticket-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); border-color: #cbd5e1; }
+        .ticket-tile.drag-over { border: 2px dashed var(--accent); background: #f0f9ff; transform: scale(1.02); }
         
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; white-space: nowrap; }
+        .ticket-tile.group-tile { border: 2px dashed var(--pri-high); background: #fffbeb; }
+        .ticket-tile.group-tile.drag-over { border-color: var(--pri-normal); background: #f0fdf4; }
+
+        .tile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: var(--text-muted); }
+        .tile-title { font-weight: bold; font-size: 14px; color: var(--text-main); margin-bottom: 8px; line-height: 1.4; }
+        .tile-solution { font-size: 13px; color: #64748b; font-style: italic; margin-bottom: 10px; }
+        .tile-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; white-space: nowrap; }
         .badge-crit { background: var(--pri-crit); }
         .badge-high { background: var(--pri-high); }
         .badge-obs { background: var(--pri-obs); }
-        .badge-normal { background: var(--pri-normal); color: #000; border: 1px solid #cbd5e1; }
+        .badge-normal { background: var(--bg-dark); }
         
+        /* INTERAKTÍV JEGYZET DOBOZ MEETINGRE */
         .action-plan { background: #fffbeb; border: 1px dashed #f59e0b; padding: 25px; border-radius: 8px; margin-top: 40px; }
         .action-plan h3 { color: #d97706; margin-top: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; }
         .editable-area { min-height: 200px; background: white; border: 1px solid #fcd34d; padding: 20px; border-radius: 5px; font-size: 16px; line-height: 1.6; outline: none; }
         .editable-area:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); }
         .editable-area li { margin-bottom: 10px; }
-
-        .group-checkbox { width: 18px; height: 18px; cursor: pointer; }
 
         .no-print { display: flex; }
         @media print {
@@ -85,6 +95,7 @@
             .page-break { page-break-before: always; }
             details { break-inside: avoid; }
             details[open] .details-content { display: block; }
+            .ticket-tile { break-inside: avoid; border: 1px solid #ccc; box-shadow: none; }
         }
     </style>
 </head>
@@ -92,7 +103,7 @@
 
     <div class="control-panel" id="controls">
         <h2>📈 Folyamatos Fejlesztés (CI) - Karbantartási Értékelő</h2>
-        <p style="color:var(--text-muted); margin-bottom:20px;">Ez a modul abban segít, hogy a heti/havi meetingeken azonnal rátapintsatok a leggyakoribb, legtöbb kiesést okozó, vagy visszatérő problémákra a gépeknél. Válaszd ki az időszakot a generáláshoz!</p>
+        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot a generáláshoz! Az azonos hibákat <b>Drag & Drop</b> módszerrel (egymásra húzva) tudod csoportosítani a gépek lenyíló ablakában.</p>
 
         <div class="flex-row" style="background:#f1f5f9; padding:15px; border-radius:6px; border:1px solid var(--border);">
             <div style="font-weight:bold; width:100%;">Időszak kiválasztása:</div>
@@ -156,25 +167,24 @@
 
         <!-- FOLYAMATOS FEJLESZTÉS: GÉPEK RANGSORA -->
         <div class="section-title">
-            <div>⚙️ Gépek rangsora meghibásodás szerint (Kattints a részletekért!)</div>
+            <div>⚙️ Gépek rangsora (Kattints a gépekre a részletekért!)</div>
         </div>
         
-        <div class="no-print" style="background:#f8fafc; padding:10px 15px; border:1px solid var(--border); border-radius:6px; margin-bottom:15px; justify-content:space-between; align-items:center;">
-            <span style="font-size:14px; color:var(--text-muted);">Jelöld ki a lenti listákban azokat a hibákat, amiket össze szeretnél vonni, majd kattints ide:</span>
-            <button class="btn-quick" style="background:var(--pri-obs); color:white; border:none; margin:0;" onclick="groupSelected()">🔗 Kijelöltek Csoportosítása</button>
+        <div class="no-print" style="background:#e0f2fe; padding:10px 15px; border:1px solid #bae6fd; border-radius:6px; margin-bottom:15px; color:#0369a1; font-size:14px;">
+            💡 <b>Tipp:</b> A lenyíló ablakokban lévő hibakártyákat egérrel <b>egymásra húzva (Drag & Drop)</b> tudod csoportosítani!
         </div>
 
         <div id="paretoContainer" style="margin-bottom: 40px;">
-            <!-- Ide generáljuk a lenyíló gépeket -->
+            <!-- Ide generáljuk a lenyíló gépeket csempékkel -->
         </div>
 
         <!-- FOLYAMATOS FEJLESZTÉS: VISSZATÉRŐ HIBÁK -->
         <div class="section-title" style="color: var(--pri-high); border-color: var(--pri-high);">
-            <div>🔁 Visszatérő problémák (Ugyanazon gép, azonos hiba!)</div>
+            <div>🔁 Visszatérő problémák összesítője</div>
             <div style="font-size:14px; color:var(--text-muted); font-weight:normal;">Ideális jelöltek új preventív feladatok létrehozására.</div>
         </div>
-        <div id="recurringIssuesContainer" style="margin-bottom: 40px;">
-            <!-- Ide generáljuk a visszatérőket -->
+        <div id="recurringIssuesContainer" style="margin-bottom: 40px; border-left: 4px solid var(--pri-high); padding-left: 15px;">
+            <!-- Ide generáljuk a visszatérőket (Kizárólag a Csoport csempéket) -->
         </div>
 
         <!-- INTERAKTÍV AKCIÓTERV -->
@@ -196,8 +206,8 @@
     let currentDateTo = "";
 
     // Memóriában tároljuk a manuális csoportosításokat
-    // Formátum: { manualGroups: [ {id, name, gep, taskIds: []} ], ungrouped: ["KB-123", ...] }
     let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [] };
+    let currentAutoGroups = {}; // Futásidőben tárolt auto-csoportok a D&D műveletekhez
 
     function toISO(d) {
         return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
@@ -230,51 +240,12 @@
         else alert("Sikeresen nullázva!");
     }
 
-    // GOMB: Kijelöltek Csoportosítása
-    function groupSelected() {
-        let checkboxes = document.querySelectorAll('.group-cb:checked');
-        if(checkboxes.length < 2) { alert("Legalább 2 hibát válassz ki az összevonáshoz!"); return; }
-        
-        let name = prompt("Mi legyen a közös hiba megnevezése?");
-        if(!name) return;
-
-        let ids = Array.from(checkboxes).map(cb => cb.value);
-        let gep = checkboxes[0].dataset.gep; 
-
-        let newGroup = { id: 'MG-' + Date.now(), name: name, taskIds: ids, gep: gep };
-        groupingState.manualGroups.push(newGroup);
-        
-        // Ha auto-csoportból bontottuk ki régen, most már kivehetjük az ungrouped listából
-        groupingState.ungrouped = groupingState.ungrouped.filter(id => !ids.includes(id));
-        
-        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
-        processReportData(globalReportData, currentDateFrom, currentDateTo);
-    }
-
-    // GOMB: Csoport Szétbontása
-    function ungroup(groupId, isManual, taskIdsStr, event) {
-        event.stopPropagation();
-        if(!confirm("Biztosan szétbontod ezt a csoportot? A hibák újra önállóként fognak megjelenni a listában.")) return;
-        
-        if(isManual) {
-            groupingState.manualGroups = groupingState.manualGroups.filter(g => g.id !== String(groupId));
-        } else {
-            let ids = taskIdsStr.split(',');
-            ids.forEach(id => {
-                if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id);
-            });
-        }
-        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
-        processReportData(globalReportData, currentDateFrom, currentDateTo);
-    }
-
     async function fetchDataFromSystem() {
         const err = document.getElementById('errorMsg');
         const dateFrom = document.getElementById('dateFrom').value;
         const dateTo = document.getElementById('dateTo').value;
 
-        if (!dateFrom || !dateTo) { err.style.color = "var(--pri-crit)"; err.innerText = "Kérlek, válaszd ki az időszakot!"; return; }
-
+        if (!dateFrom || !dateTo) { err.style.color = "var(--pri-crit)"; err.innerText = "Kérlek, válaszd ki az időszakot a lekérdezés előtt!"; return; }
         err.style.color = "var(--pri-normal)"; err.innerText = "⏳ Adatok letöltése az Élő Rendszerből... (Ez eltarthat pár másodpercig)";
 
         try {
@@ -306,7 +277,7 @@
         } catch(e) { err.style.color = "var(--pri-crit)"; err.innerText = "Hálózati hiba a letöltés során."; }
     }
 
-    // CSV Feldolgozó maradék vésztartaléknak
+    // CSV Feldolgozó maradék
     function parseCSV(text) {
         text = text.replace(/^\uFEFF/, '').replace(/\r/g, '');
         let lines = text.split('\n'); let result = []; let headers = [];
@@ -348,11 +319,90 @@
         reader.readAsText(file, 'utf-8');
     }
 
-    // FŐ ADATFELDOLGOZÓ (Pareto és Visszatérő logikával)
+    // --- DRAG AND DROP ESEMÉNYKEZELŐK ---
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('drag-over');
+    }
+    
+    function dragLeave(ev) {
+        ev.currentTarget.classList.remove('drag-over');
+    }
+
+    function drag(ev) {
+        ev.dataTransfer.setData("text", ev.currentTarget.dataset.id);
+        ev.dataTransfer.setData("type", ev.currentTarget.dataset.type);
+    }
+
+    function drop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.remove('drag-over');
+        
+        let sourceId = ev.dataTransfer.getData("text");
+        let targetType = ev.currentTarget.dataset.type;
+        let targetId = ev.currentTarget.dataset.id;
+        
+        if (sourceId === targetId) return;
+
+        if (targetType === "group") {
+            // A célpont egy meglévő Csoport
+            let isManual = ev.currentTarget.dataset.ismanual === "true";
+            if (isManual) {
+                // Csak hozzáadjuk a manuális csoporthoz
+                let origId = ev.currentTarget.dataset.origid;
+                let grp = groupingState.manualGroups.find(g => g.id === origId);
+                if (grp && !grp.taskIds.includes(sourceId)) {
+                    grp.taskIds.push(sourceId);
+                }
+            } else {
+                // Egy Automatikus csoportra húzták -> Manuálissá kell alakítani
+                let name = prompt("Automatikus csoport kibővítése. Mi legyen a végleges megnevezés?", ev.currentTarget.dataset.name);
+                if (!name) return;
+                let autoTaskIds = ev.currentTarget.dataset.taskids.split(',');
+                let gep = ev.currentTarget.dataset.gep;
+                let newGrp = { id: 'MG-' + Date.now(), name: name, gep: gep, taskIds: [...autoTaskIds, sourceId] };
+                groupingState.manualGroups.push(newGrp);
+            }
+        } else {
+            // A célpont egy sima feladatkártya -> Új csoport jön létre kettőjükből
+            let name = prompt("Két hiba összevonása. Mi legyen a közös probléma megnevezése?");
+            if (!name) return;
+            let gep = ev.currentTarget.dataset.gep;
+            let newGrp = { id: 'MG-' + Date.now(), name: name, gep: gep, taskIds: [sourceId, targetId] };
+            groupingState.manualGroups.push(newGrp);
+            
+            // Ha auto-csoportokból jöttek vagy korábban szétbontottak voltak, takarítunk
+            groupingState.ungrouped = groupingState.ungrouped.filter(id => id !== sourceId && id !== targetId);
+        }
+        
+        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+        processReportData(globalReportData, currentDateFrom, currentDateTo);
+    }
+
+    // GOMB: Csoport Szétbontása
+    function ungroup(groupId, isManual, taskIdsStr, event) {
+        event.stopPropagation();
+        if(!confirm("Biztosan szétbontod ezt a csoportot? A hibák újra önálló kártyaként fognak megjelenni a gépeknél.")) return;
+        
+        if(isManual) {
+            groupingState.manualGroups = groupingState.manualGroups.filter(g => g.id !== String(groupId));
+        } else {
+            // Automatikus csoport szétbontásának megjegyzése
+            let ids = taskIdsStr.split(',');
+            ids.forEach(id => {
+                if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id);
+            });
+        }
+        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+        processReportData(globalReportData, currentDateFrom, currentDateTo);
+    }
+
+    // --- FŐ ADATFELDOLGOZÓ ÉS RENDERELŐ ---
     function processReportData(data, dateFrom, dateTo) {
         globalReportData = data; 
         currentDateFrom = dateFrom; 
         currentDateTo = dateTo;
+        currentAutoGroups = {}; // Töröljük a memóriát újrarajzolás előtt
 
         let filtered = data.filter(row => {
             if (!row['Időpont'] || row['Státusz'] !== 'Lezárt') return false; 
@@ -369,6 +419,7 @@
         let esetiDb = 0; let prevDb = 0; let totalDowntime = 0; let totalJavitas = 0;
         let machineGroups = {}; 
         let recurringGroups = {}; 
+        let taskGroupIdMap = {};
 
         filtered.forEach(row => {
             let id = row['ID'];
@@ -385,40 +436,44 @@
                 totalDowntime += downtime;
                 totalJavitas += javitas;
 
-                // Gépek gyűjtése (Pareto)
                 if(!machineGroups[gep]) machineGroups[gep] = { count: 0, downtime: 0, items: [] };
                 machineGroups[gep].count++;
                 machineGroups[gep].downtime += downtime;
                 machineGroups[gep].items.push(row);
 
-                // --- Visszatérő / Csoportosított hibák vizsgálata ---
+                // --- Csoportosítás Logika ---
                 let mGroup = groupingState.manualGroups.find(g => g.taskIds.includes(id));
+                let gId = null;
+
                 if (mGroup) {
-                    let recKey = "MANUAL_" + mGroup.id;
-                    if(!recurringGroups[recKey]) recurringGroups[recKey] = { isManual: true, id: mGroup.id, gep: mGroup.gep, hibaEredeti: mGroup.name, count: 0, items: [] };
-                    recurringGroups[recKey].count++;
-                    recurringGroups[recKey].items.push(row);
+                    gId = "MANUAL_" + mGroup.id;
+                    if(!recurringGroups[gId]) recurringGroups[gId] = { isManual: true, originalId: mGroup.id, name: mGroup.name, gep: mGroup.gep, count: 0, downtime: 0, items: [], taskIds: [] };
                 } 
                 else if (!groupingState.ungrouped.includes(id)) {
-                    // Automatikus csoportosítás azonos szöveg alapján
                     let hibaKulcs = hibaSzoveg.toLowerCase().replace(/[^a-z0-9áéíóöőúüű]/g, ''); 
                     if(hibaKulcs.length > 3) {
-                        let recKey = gep + "|||" + hibaKulcs;
-                        if(!recurringGroups[recKey]) recurringGroups[recKey] = { isManual: false, id: recKey, gep: gep, hibaEredeti: hibaSzoveg, count: 0, items: [] };
-                        recurringGroups[recKey].count++;
-                        recurringGroups[recKey].items.push(row);
+                        gId = "AUTO_" + gep + "|||" + hibaKulcs;
+                        if(!recurringGroups[gId]) recurringGroups[gId] = { isManual: false, originalId: gId, name: hibaSzoveg, gep: gep, count: 0, downtime: 0, items: [], taskIds: [] };
+                        currentAutoGroups[gId] = recurringGroups[gId]; // Eltesszük memóriába is
                     }
+                }
+
+                if(gId) {
+                    recurringGroups[gId].count++;
+                    recurringGroups[gId].downtime += downtime;
+                    recurringGroups[gId].items.push(row);
+                    recurringGroups[gId].taskIds.push(id);
+                    taskGroupIdMap[id] = gId;
                 }
             }
         });
 
-        // 1. KPI-ok
         document.getElementById('kpiEseti').innerText = esetiDb;
         document.getElementById('kpiPrev').innerText = prevDb;
         document.getElementById('kpiKieses').innerText = Math.round(totalDowntime);
         document.getElementById('kpiJavitas').innerText = Math.round(totalJavitas);
 
-        // --- 2. GÉPEK PARETO LISTÁJA (Accordion HTML generálás) ---
+        // --- GÉPEK PARETO LISTÁJA CSEMPÉKKEL ---
         let sortedMachines = Object.values(machineGroups).sort((a, b) => {
             if (b.count !== a.count) return b.count - a.count;
             return b.downtime - a.downtime;
@@ -437,61 +492,44 @@
                     <div class="summary-stats">${badgeHtml} <span>▼</span></div>
                 </summary>
                 <div class="details-content">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width:30px; text-align:center;" class="no-print">Csop.</th>
-                                <th style="width:120px;">Dátum</th>
-                                <th style="width:100px;">Prioritás</th>
-                                <th>Hiba Leírása</th>
-                                <th>Megoldás & Felelős</th>
-                                <th style="width:80px; text-align:center;">Kiesés</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${generateTableRows(m.items)}
-                        </tbody>
-                    </table>
-                </div>
-            </details>`;
+                    <div class="tile-grid">`;
+            
+            // Csempék generálása a géphez
+            let displayedGroupIds = new Set();
+            m.items.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont'])); // Dátum csökkenő
+            
+            m.items.forEach(t => {
+                let gId = taskGroupIdMap[t['ID']];
+                let group = recurringGroups[gId];
+
+                if (group && group.count > 1) { // Ha csoport és tényleg van benne legalább 2 elem
+                    if(!displayedGroupIds.has(gId)) {
+                        mHtml += generateGroupTileHtml(group);
+                        displayedGroupIds.add(gId);
+                    }
+                } else { // Egyedi elemkártya
+                    mHtml += generateTaskTileHtml(t);
+                }
+            });
+
+            mHtml += `</div></div></details>`;
         });
         document.getElementById('paretoContainer').innerHTML = mHtml || "<p>Nincs eseti meghibásodás.</p>";
 
-        // --- 3. VISSZATÉRŐ HIBÁK (Ahol a count > 1) ---
+        // --- VISSZATÉRŐ HIBÁK (Csak a megkreált csoportok kilistázása) ---
         let recurringList = Object.values(recurringGroups).filter(rg => rg.count > 1).sort((a, b) => b.count - a.count);
         let rHtml = "";
         
         if (recurringList.length === 0) {
-            rHtml = "<p style='padding:15px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; color:#166534;'>🎉 A vizsgált időszakban nincs azonosított ismétlődő hiba!</p>";
+            rHtml = "<p style='color:var(--pri-normal); font-weight:bold;'>🎉 Jelenleg nincs ismétlődő hiba a rendszerben!</p>";
         } else {
             document.getElementById('meetingNotesArea').innerHTML = `<li><b>FIGYELEM:</b> A rendszer azonosított ${recurringList.length} db visszatérő problémát! Értékelni kell az új Ismétlődő Feladatok bevezetésének szükségességét!</li>`;
 
+            rHtml += `<div class="tile-grid">`;
             recurringList.forEach(rg => {
-                let taskIdsStr = rg.items.map(i => i['ID']).join(',');
-                let btnHtml = `<button class="no-print" onclick="ungroup('${rg.id}', ${rg.isManual}, '${taskIdsStr}', event)" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left:15px;">Szétbontás</button>`;
-
-                rHtml += `
-                <details style="border-left: 4px solid var(--pri-high);">
-                    <summary>
-                        <div class="summary-title">⚠️ ${rg.gep} <span style="font-weight:normal; color:var(--text-muted);">"${rg.hibaEredeti}"</span></div>
-                        <div class="summary-stats"><span class="summary-badge warn">${rg.count} alkalommal!</span> ${btnHtml} <span>▼</span></div>
-                    </summary>
-                    <div class="details-content">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width:120px;">Dátum</th>
-                                    <th>Hiba Leírása</th>
-                                    <th>Megoldás & Felelős</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${generateTableRowsSimple(rg.items)}
-                            </tbody>
-                        </table>
-                    </div>
-                </details>`;
+                rHtml += generateGroupTileHtml(rg);
             });
+            rHtml += `</div>`;
         }
         document.getElementById('recurringIssuesContainer').innerHTML = rHtml;
 
@@ -499,56 +537,54 @@
         document.getElementById('reportContainer').style.display = 'block';
         document.getElementById('btnPrint').style.display = 'inline-block';
         document.getElementById('btnExpandAll').style.display = 'inline-block';
-        document.querySelector('.no-print').style.display = 'flex';
+        document.querySelector('.no-print').style.display = 'block';
         
         document.getElementById('reportContainer').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Táblázat sor generáló segédfüggvény (A lenyíló ablakokba)
-    function generateTableRows(itemsArr) {
-        itemsArr.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
-        let html = "";
-        itemsArr.forEach(t => {
-            let dObj = new Date(t['Időpont']);
-            let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
-            
-            let pStr = String(t['Prioritás']);
-            let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : (pStr.toLowerCase().includes("magas") ? "badge-high" : (pStr.toLowerCase().includes("megfigyelés") ? "badge-obs" : "badge-normal"));
-            let pTxt = pStr.toLowerCase().includes("leállás") ? "Leállás" : (pStr.toLowerCase().includes("magas") ? "Sürgős" : "Normál");
+    // HTML Generátor: Sima Hibakártya
+    function generateTaskTileHtml(t) {
+        let dObj = new Date(t['Időpont']);
+        let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
+        
+        let pStr = String(t['Prioritás']);
+        let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : (pStr.toLowerCase().includes("magas") ? "badge-high" : (pStr.toLowerCase().includes("megfigyelés") ? "badge-obs" : "badge-normal"));
+        let pTxt = pStr.toLowerCase().includes("leállás") ? "Leállás" : (pStr.toLowerCase().includes("magas") ? "Sürgős" : "Normál");
 
-            let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
+        let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
+        let downtimeHtml = parseFloat(t['Kiesés (perc)']) > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)']}p kiesés</span>` : ``;
 
-            // Csoportosítás Checkbox Logika
-            let isGrouped = groupingState.manualGroups.some(g => g.taskIds.includes(t['ID']));
-            let cbHtml = isGrouped ? `<span style="font-size:10px; color:var(--pri-normal); font-weight:bold;">✓ Csop.</span>` : `<input type="checkbox" class="group-cb" value="${t['ID']}" data-gep="${t['Gép']}">`;
-
-            html += `<tr>
-                        <td style="text-align:center; vertical-align:middle;" class="no-print">${cbHtml}</td>
-                        <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
-                        <td><span class="badge ${badge}">${pTxt}</span></td>
-                        <td>${t['Hiba']}</td>
-                        <td style="font-size:13px; color:var(--text-main);"><i>${megSzoveg}</i> <br><div style="margin-top:5px; font-weight:bold; color:var(--accent);">👤 ${t['Lezárta'] || t['Felelős']}</div></td>
-                        <td style="text-align:center; color:var(--pri-crit); font-weight:bold; vertical-align:middle;">${parseFloat(t['Kiesés (perc)']) > 0 ? t['Kiesés (perc)'] + ' p' : '-'}</td>
-                      </tr>`;
-        });
-        return html;
+        return `
+        <div class="ticket-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${t['ID']}" data-type="task" data-gep="${t['Gép']}">
+           <div class="tile-header">
+              <span>${dateF}</span> <span class="badge ${badge}">${pTxt}</span>
+           </div>
+           <div class="tile-title">${t['Hiba']}</div>
+           <div class="tile-solution">${megSzoveg.substring(0, 80)}...</div>
+           <div class="tile-footer">
+              <span style="color:var(--accent); font-weight:bold;">👤 ${t['Lezárta'] || t['Felelős']}</span>
+              ${downtimeHtml}
+           </div>
+        </div>`;
     }
 
-    function generateTableRowsSimple(itemsArr) {
-        itemsArr.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
-        let html = "";
-        itemsArr.forEach(t => {
-            let dObj = new Date(t['Időpont']);
-            let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
-            let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
+    // HTML Generátor: Csoport Csempe
+    function generateGroupTileHtml(group) {
+        let taskIdsStr = group.taskIds.join(',');
+        let downtimeHtml = group.downtime > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">Össz kiesés: ${group.downtime}p</span>` : ``;
 
-            html += `<tr>
-                        <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
-                        <td>${t['Hiba']}</td>
-                        <td style="font-size:13px; color:var(--text-main);"><i>${megSzoveg}</i> <br><div style="margin-top:5px; font-weight:bold; color:var(--accent);">👤 ${t['Lezárta'] || t['Felelős']}</div></td>
-                      </tr>`;
-        });
-        return html;
+        return `
+        <div class="ticket-tile group-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${group.originalId}" data-type="group" data-ismanual="${group.isManual}" data-name="${group.name}" data-taskids="${taskIdsStr}" data-gep="${group.gep}">
+           <div class="tile-header" style="justify-content:space-between;">
+               <span class="badge badge-high" style="font-size:12px;">🔗 ${group.count} DB HIBA</span>
+               <button class="no-print" onclick="ungroup('${group.originalId}', ${group.isManual}, '${taskIdsStr}', event)" style="background:#ef4444; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Bontás</button>
+           </div>
+           <div class="tile-title" style="font-size:16px; margin: 15px 0;">${group.name}</div>
+           <div class="tile-footer" style="border-top-color: var(--pri-high);">
+              <span style="color:var(--text-muted); font-size:11px;">Gép: ${group.gep}</span>
+              ${downtimeHtml}
+           </div>
+        </div>`;
     }
 
 </script>
