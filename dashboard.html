@@ -118,7 +118,7 @@
     <div id="startupBanner">
         <div class="startup-box">
             <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 200px; margin-bottom: 20px;">
-            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.12)</span></h2>
+            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.13)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn start" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -209,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- NAPTÁR ÉS ECSET KONTÉNER -->
             <div id="scheduleViewDash" style="display:none;">
                 <div id="dashPaintbrushPanel" style="display:none; background:var(--surface); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
                     <div style="color:var(--pri-crit); font-weight:bold; margin-bottom:10px; font-size:16px;">
@@ -249,12 +248,12 @@
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
-                <!-- MODAL BEJELENTKEZÉS LEGÖRDÜLŐVEL -->
+                <!-- BEJELENTKEZÉS LEGÖRDÜLŐ NÉVVEL -->
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
                     <div class="login-input-group" style="position:relative; margin-bottom:10px;">
                         <select id="dashLoginNevSelect" class="dash-input" onchange="checkDashLoginCustom(this)" style="margin-bottom:0;">
-                            <option value="">Betöltés...</option>
+                            <option value="">Név kiválasztása betöltés alatt...</option>
                         </select>
                         <input type="text" id="dashLoginNev" class="dash-input" placeholder="Vagy gépeld be a neved..." style="display:none; margin-top:10px;">
                     </div>
@@ -424,9 +423,10 @@
                 
                 if(currentDashView === 'schedule') renderScheduleDash();
             }
+
         } catch (e) { console.error("Hiba:", e); }
     }
-    
+
     function toggleDashView(view) {
         currentDashView = view;
         document.getElementById('btnDashOpen').style.background = (view === 'open') ? 'var(--pri-high)' : 'var(--border)';
@@ -449,7 +449,6 @@
         else renderScheduleDash();
     }
 
-    // --- ECSET FUNKCIÓK A DASHBOARDON ÉS NAPTÁR ---
     function setBrush(tipus, btnObj) {
         activeBrush = tipus;
         document.querySelectorAll('.brush-btn').forEach(b => {
@@ -464,11 +463,10 @@
     function paintCell(user, dateStr, tdId) {
         if(!activeBrush || sessionRole !== 'superuser') return;
         
-        // ÜGYELET LOGIKA
         if (activeBrush === 'Ügyelet') {
             if (user === '__UGYELET__') return; 
             
-            let topTdId = tdId.replace(`cell_${user.replace(/\s+/g,'_')}`, 'cell___UGYELET__'); 
+            let topTdId = tdId.replace(`maincell_${user.replace(/\s+/g,'_')}`, 'maincell___UGYELET__'); 
             let topEl = document.getElementById(topTdId);
             
             if (topEl) {
@@ -520,11 +518,8 @@
         }
 
         let existingIdx = paintedChanges.findIndex(x => x.user === user && x.datum === dateStr);
-        if(existingIdx > -1) {
-            paintedChanges[existingIdx].tipus = activeBrush;
-        } else {
-            paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
-        }
+        if(existingIdx > -1) paintedChanges[existingIdx].tipus = activeBrush;
+        else paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
 
         let gsIdx = globalSchedule.findIndex(x => x.user === user && x.datum === dateStr);
         if(activeBrush === 'Törlés') {
@@ -559,10 +554,7 @@
             document.querySelectorAll('.brush-btn').forEach(b => { b.style.outline = 'none'; b.style.transform = 'scale(1)'; });
             document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
             document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások sikeresen mentve!";
-            setTimeout(()=> { 
-                document.getElementById('activeBrushDisplay').style.color = "var(--text-main)";
-                document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs"; 
-            }, 3000);
+            setTimeout(()=> { location.reload(); }, 1500); // TELJES ÚJRATÖLTÉS!
         } catch(e) {
             document.getElementById('activeBrushDisplay').innerText = "❌ Hálózati hiba mentéskor!";
         }
@@ -605,7 +597,7 @@
             let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
             let text = match ? match.tipus : '';
             let cls = match ? 'cell-ugy' : '';
-            let tdId = `cell___UGYELET___${dIso}`;
+            let tdId = `maincell___UGYELET___${dIso}`;
             let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('__UGYELET__', '${dIso}', '${tdId}')"` : '';
             html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
         });
@@ -628,7 +620,7 @@
                 else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
                 else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'Nappali'; }
                 
-                let tdId = `cell_${u.replace(/\s+/g,'_')}_${dIso}`;
+                let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`;
                 let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : '';
                 html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
             });
@@ -637,7 +629,6 @@
         html += `</tbody></table></div>`;
         c.innerHTML = html;
     }
-
 
     function checkMissingShiftLogsAndApprovals() {
         let missingLogs = [];
@@ -703,11 +694,10 @@
         let myUnapprovedCount = 0;
         let myUnapprovedLogs = [];
         let currentUser = String(localStorage.getItem("activeUser")).trim();
-        let role = String(localStorage.getItem("activeRole")).toLowerCase();
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
         
-        let isApprover = (role === "maintenance" || role === "superuser");
+        let isApprover = (sessionRole === "maintenance" || sessionRole === "superuser");
         if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
             expectedApproversClean.push(currentUser);
         }
@@ -730,7 +720,6 @@
                 });
 
                 let expectedLower = expectedForThisLog.map(x=>x.toLowerCase());
-
                 let unapproved = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
@@ -782,7 +771,7 @@
         const btn = document.getElementById('apprBtnDash_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
-        fetchDashboardData();
+        location.reload(); // TELJES ÚJRATÖLTÉS
     }
 
     function processData(allTasks) {
@@ -790,7 +779,6 @@
         globalClosedTasks = allTasks.filter(t => t.statusz === "Lezárt");
 
         let hasNewAdHoc = false;
-
         let cCrit = 0, cHigh = 0, cProg = 0, cInfo = 0;
 
         currentActiveTasks.forEach(t => {
@@ -1123,7 +1111,7 @@
         if(!sessionUser || !activeTaskId) return;
         document.getElementById('btnDashStart').innerText = "Feldolgozás...";
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
-        fetchDashboardData(); closeModal(true);
+        location.reload(); // TELJES ÚJRATÖLTÉS
     }
 
     async function dashCloseTask() {
@@ -1132,7 +1120,7 @@
         if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
         
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser }) }); 
-        fetchDashboardData(); closeModal(true);
+        location.reload(); // TELJES ÚJRATÖLTÉS
     }
 
 </script>
