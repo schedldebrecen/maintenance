@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karbantartási Értékelő és Prezentáció</title>
+    <title>CMMS Continuous Improvement Prezentáció</title>
     <style>
         :root {
             --bg-dark: #0f172a; --surface: #ffffff; --primary: #1e293b; 
@@ -14,20 +14,20 @@
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: var(--text-main); margin: 0; padding: 20px; }
         
-        .control-panel { background: var(--surface); padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 1000px; margin: 0 auto 30px auto; border: 1px solid var(--border); }
-        .control-panel h2 { margin-top: 0; color: var(--primary); font-size: 22px; }
+        .control-panel { background: var(--surface); padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 1200px; margin: 0 auto 30px auto; border: 1px solid var(--border); }
+        .control-panel h2 { margin-top: 0; color: var(--primary); font-size: 24px; display:flex; align-items:center; gap:10px; }
         
         .flex-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
         .btn-quick { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 13px; }
         .btn-quick:hover { background: #cbd5e1; }
         
-        input[type="date"], input[type="file"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: inherit; }
+        input[type="date"], input[type="file"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: inherit; font-size: 14px; background: #fff; color:#000; }
         
-        .btn-generate { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .btn-generate { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.2s; }
         .btn-generate:hover { background: #0369a1; }
         .btn-print { background: var(--pri-normal); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; display: none; }
         
-        #reportContainer { display: none; background: white; padding: 40px; max-width: 1100px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; border-top: 8px solid var(--primary); }
+        #reportContainer { display: none; background: white; padding: 40px; max-width: 1200px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; border-top: 8px solid var(--primary); }
         
         .report-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 30px; }
         .report-header h1 { margin: 0; color: var(--primary); font-size: 32px; text-transform: uppercase; letter-spacing: 1px; }
@@ -41,24 +41,40 @@
         .kpi-box.warn { border-bottom-color: var(--pri-high); } .kpi-box.warn .val { color: var(--pri-high); }
         .kpi-box.prev { border-bottom-color: var(--prev); } .kpi-box.prev .val { color: var(--prev); }
 
-        .section-title { font-size: 22px; color: var(--primary); margin: 30px 0 15px 0; border-bottom: 2px solid var(--border); padding-bottom: 5px; display: flex; align-items: center; gap: 10px; }
+        .section-title { font-size: 22px; color: var(--primary); margin: 30px 0 15px 0; border-bottom: 2px solid var(--border); padding-bottom: 5px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
-        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
+        /* ÖSSZECSUKHATÓ (ACCORDION) STÍLUSOK A FOLYAMATOS FEJLESZTÉSHEZ */
+        details { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; transition: all 0.3s ease; }
+        details[open] { box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: var(--accent); }
+        summary { padding: 15px 20px; font-weight: bold; font-size: 16px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; color: var(--primary); }
+        summary::-webkit-details-marker { display: none; }
+        summary:hover { background: #f1f5f9; }
+        
+        .summary-title { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .summary-stats { display: flex; gap: 15px; align-items: center; font-size: 14px; }
+        .summary-badge { background: var(--bg-dark); color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .summary-badge.crit { background: var(--pri-crit); }
+        .summary-badge.warn { background: var(--pri-high); color: #000; }
+        
+        .details-content { padding: 15px; border-top: 1px solid var(--border); background: #ffffff; border-radius: 0 0 6px 6px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: top; }
         th { background: #e2e8f0; color: var(--primary); font-weight: bold; }
         tr:nth-child(even) { background: #f8fafc; }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; white-space: nowrap; }
         .badge-crit { background: var(--pri-crit); }
         .badge-high { background: var(--pri-high); }
+        .badge-obs { background: var(--pri-obs); }
+        .badge-normal { background: var(--pri-normal); color: #000; border: 1px solid #cbd5e1; }
         
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
-        
-        .action-plan { background: #fffbeb; border: 1px dashed #f59e0b; padding: 20px; border-radius: 8px; }
-        .action-plan h3 { color: #d97706; margin-top: 0; display: flex; align-items: center; gap: 8px; }
-        .editable-area { min-height: 150px; background: white; border: 1px solid #fcd34d; padding: 15px; border-radius: 5px; font-size: 16px; line-height: 1.6; outline: none; }
+        /* INTERAKTÍV JEGYZET DOBOZ MEETINGRE */
+        .action-plan { background: #fffbeb; border: 1px dashed #f59e0b; padding: 25px; border-radius: 8px; margin-top: 40px; }
+        .action-plan h3 { color: #d97706; margin-top: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; }
+        .editable-area { min-height: 200px; background: white; border: 1px solid #fcd34d; padding: 20px; border-radius: 5px; font-size: 16px; line-height: 1.6; outline: none; }
         .editable-area:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); }
-        .editable-area li { margin-bottom: 8px; }
+        .editable-area li { margin-bottom: 10px; }
 
         @media print {
             body { padding: 0; background: white; }
@@ -66,14 +82,16 @@
             #reportContainer { box-shadow: none; border-top: none; padding: 0; max-width: 100%; }
             .editable-area { border: 1px solid #eee; }
             .page-break { page-break-before: always; }
+            details { break-inside: avoid; }
+            details[open] .details-content { display: block; }
         }
     </style>
 </head>
 <body>
 
     <div class="control-panel" id="controls">
-        <h2>📊 CMMS Prezentáció és Értékelő Generátor</h2>
-        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot, és készítsd el a vezetői / heti meeting anyagot az Élő rendszerből letöltve (vagy tölts fel egy CSV fájlt manuálisan)!</p>
+        <h2>📈 Folyamatos Fejlesztés (CI) - Karbantartási Értékelő</h2>
+        <p style="color:var(--text-muted); margin-bottom:20px;">Ez a modul abban segít, hogy a heti/havi meetingeken azonnal rátapintsatok a leggyakoribb, legtöbb kiesést okozó, vagy visszatérő problémákra a gépeknél. Válaszd ki az időszakot a generáláshoz!</p>
 
         <div class="flex-row" style="background:#f1f5f9; padding:15px; border-radius:6px; border:1px solid var(--border);">
             <div style="font-weight:bold; width:100%;">Időszak kiválasztása:</div>
@@ -88,7 +106,7 @@
         </div>
         
         <div class="flex-row" style="margin-top:20px; align-items:flex-end;">
-            <button class="btn-generate" style="background: var(--pri-prog);" onclick="fetchDataFromSystem()">⬇️ Lekérdezés az Élő Rendszerből</button>
+            <button class="btn-generate" style="background: var(--pri-prog);" onclick="fetchDataFromSystem()">⬇️ Elemzés generálása az Élő Rendszerből</button>
             <div style="margin:0 15px; font-weight:bold; color:var(--text-muted);">VAGY</div>
             <div>
                 <div style="font-size:12px; margin-bottom:5px; color:var(--text-muted);">CSV feltöltése manuálisan:</div>
@@ -96,7 +114,10 @@
                 <button class="btn-generate" style="padding: 10px 15px;" onclick="generateReportFromCSV()">Generálás CSV-ből</button>
             </div>
             
-            <button class="btn-print" id="btnPrint" onclick="window.print()" style="margin-left:auto;">🖨️ Mentés PDF-be</button>
+            <div style="margin-left:auto; display:flex; gap:10px;">
+                <button class="btn-quick" id="btnExpandAll" style="display:none; border:1px solid var(--accent); color:var(--accent);" onclick="toggleAllDetails(true)">Mindent kinyit</button>
+                <button class="btn-print" id="btnPrint" onclick="window.print()">🖨️ Mentés PDF-be</button>
+            </div>
         </div>
         
         <div id="errorMsg" style="color:var(--pri-crit); font-weight:bold; margin-top:15px;"></div>
@@ -106,8 +127,8 @@
     <div id="reportContainer">
         <div class="report-header">
             <div>
-                <h1>Karbantartási Jelentés</h1>
-                <div style="color:var(--primary); font-size:18px; margin-top:5px;">Heti / Havi áttekintés és Akcióterv</div>
+                <h1>Continuous Improvement Jelentés</h1>
+                <div style="color:var(--primary); font-size:18px; margin-top:5px;">Eseti meghibásodások és Visszatérő problémák elemzése</div>
             </div>
             <div class="date-range" id="reportDateRange">2026.09.01 - 2026.09.10</div>
         </div>
@@ -121,56 +142,41 @@
                 <h4>Elvégzett Preventív</h4>
                 <div class="val" id="kpiPrev">0</div>
             </div>
-            <div class="kpi-box crit">
-                <h4>Termeléskiesés (Perc)</h4>
-                <div class="val" id="kpiKieses">0</div>
-            </div>
             <div class="kpi-box warn">
                 <h4>Eseti Javítási Idő (Perc)</h4>
                 <div class="val" id="kpiJavitas">0</div>
             </div>
-        </div>
-
-        <div class="two-col">
-            <div>
-                <h3 class="section-title">⚙️ Top 5 Legproblémásabb Gép</h3>
-                <table id="topMachinesTable">
-                    <thead><tr><th>Gép Név</th><th>Hibák száma</th><th>Kiesés (perc)</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div>
-                <h3 class="section-title">👥 Operátori (Beküldői) Aktivitás</h3>
-                <table id="topUsersTable">
-                    <thead><tr><th>Beküldő Neve</th><th>Bejelentett Hibák</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+            <div class="kpi-box crit">
+                <h4>Teljes Termeléskiesés</h4>
+                <div class="val" id="kpiKieses">0</div>
             </div>
         </div>
 
-        <h3 class="section-title">🚨 Kritikus Meghibásodások (Leállás & Sürgős)</h3>
-        <table id="criticalTasksTable">
-            <thead>
-                <tr>
-                    <th style="width:120px;">Dátum</th>
-                    <th style="width:100px;">Prioritás</th>
-                    <th style="width:200px;">Gép</th>
-                    <th>Hiba Leírása</th>
-                    <th>Megoldás & Felelős</th>
-                    <th style="width:80px;">Kiesés</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- FOLYAMATOS FEJLESZTÉS: GÉPEK RANGSORA -->
+        <div class="section-title">
+            <div>⚙️ Gépek rangsora meghibásodás szerint (Kattints a részletekért!)</div>
+            <div style="font-size:14px; color:var(--text-muted); font-weight:normal;">A legproblémásabb gépek elöl.</div>
+        </div>
+        <div id="paretoContainer" style="margin-bottom: 40px;">
+            <!-- Ide generáljuk a lenyíló gépeket -->
+        </div>
+
+        <!-- FOLYAMATOS FEJLESZTÉS: VISSZATÉRŐ HIBÁK -->
+        <div class="section-title" style="color: var(--pri-high); border-color: var(--pri-high);">
+            <div>🔁 Visszatérő problémák (Ugyanazon gép, azonos hiba!)</div>
+            <div style="font-size:14px; color:var(--text-muted); font-weight:normal;">Ideális jelöltek új preventív feladatok létrehozására.</div>
+        </div>
+        <div id="recurringIssuesContainer" style="margin-bottom: 40px;">
+            <!-- Ide generáljuk a visszatérőket -->
+        </div>
 
         <!-- INTERAKTÍV AKCIÓTERV -->
         <div class="page-break"></div>
         <div class="action-plan">
-            <h3>💡 Megbeszélés jegyzet / Preventív Karbantartási Javaslatok</h3>
+            <h3>💡 Megbeszélés jegyzet / Gyökerok elemzés (Root Cause) és Akcióterv</h3>
             <p style="font-size:14px; margin-top:0; color:#b45309;">(Kattints ide és gépeld be a meeting alatt megállapított új feladatokat, majd nyomtasd PDF-be!)</p>
-            <ul class="editable-area" contenteditable="true">
-                <li>Beszéljük át a Top 1 legproblémásabb gép okait...</li>
-                <li>Új ismétlődő napi ellenőrzés szükséges az alábbi gépre: </li>
+            <ul class="editable-area" contenteditable="true" id="meetingNotesArea">
+                <li><b>Gép:</b> [Gép neve] | <b>Ok:</b> ... | <b>Akció:</b> [Ide írd, mit kell tenni] | <b>Felelős:</b> [Név] | <b>Határidő:</b> [Dátum]</li>
                 <li>...</li>
             </ul>
         </div>
@@ -208,27 +214,27 @@
         document.getElementById('dateTo').value = toISO(toDate);
     }
 
-    // --- KÖZVETLEN LEKÉRDEZÉS AZ ÉLŐ RENDSZERBŐL ---
+    function toggleAllDetails(state) {
+        document.querySelectorAll('details').forEach(d => { d.open = state; });
+    }
+
     async function fetchDataFromSystem() {
         const err = document.getElementById('errorMsg');
         const dateFrom = document.getElementById('dateFrom').value;
         const dateTo = document.getElementById('dateTo').value;
 
         if (!dateFrom || !dateTo) {
-            err.style.color = "var(--pri-crit)";
-            err.innerText = "Kérlek, válaszd ki az időszakot a lekérdezés előtt!";
-            return;
+            err.style.color = "var(--pri-crit)"; err.innerText = "Kérlek, válaszd ki az időszakot a lekérdezés előtt!"; return;
         }
 
-        err.style.color = "var(--pri-normal)";
-        err.innerText = "⏳ Adatok letöltése a rendszerből folyamatban...";
+        err.style.color = "var(--pri-normal)"; err.innerText = "⏳ Adatok letöltése a rendszerből folyamatban... (Ez eltarthat pár másodpercig)";
 
         try {
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData" }) });
             const result = await res.json();
             
             if (result.status === "success") {
-                let mappedData = result.data.map(t => ({
+                let mappedData = result.data.tasks.map(t => ({
                     'ID': t.id,
                     'Időpont': t.idopont,
                     'Státusz': t.statusz,
@@ -247,36 +253,24 @@
                 document.getElementById('reportDateRange').innerText = `${dateFrom.replace(/-/g, '.')} - ${dateTo.replace(/-/g, '.')}`;
                 processReportData(mappedData, dateFrom, dateTo);
             } else {
-                err.style.color = "var(--pri-crit)";
-                err.innerText = "Hiba történt a letöltéskor: " + result.message;
+                err.style.color = "var(--pri-crit)"; err.innerText = "Hiba történt a letöltéskor: " + result.message;
             }
-        } catch(e) {
-            err.style.color = "var(--pri-crit)";
-            err.innerText = "Hálózati hiba a letöltés során.";
-        }
+        } catch(e) { err.style.color = "var(--pri-crit)"; err.innerText = "Hálózati hiba a letöltés során."; }
     }
 
-    // --- CSV FELTÖLTÉS ALAPÚ FELDOLGOZÁS ---
+    // CSV Feldolgozó maradék vésztartaléknak
     function parseCSV(text) {
         text = text.replace(/^\uFEFF/, '').replace(/\r/g, '');
-        let lines = text.split('\n');
-        let result = [];
-        let headers = [];
-        
+        let lines = text.split('\n'); let result = []; let headers = [];
         if (lines.length > 0) headers = parseCSVRow(lines[0]);
-
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
-            let row = parseCSVRow(lines[i]);
-            let obj = {};
-            headers.forEach((h, index) => {
-                obj[h.trim()] = row[index] ? row[index] : "";
-            });
+            let row = parseCSVRow(lines[i]); let obj = {};
+            headers.forEach((h, index) => { obj[h.trim()] = row[index] ? row[index] : ""; });
             result.push(obj);
         }
         return result;
     }
-
     function parseCSVRow(str) {
         let arr = []; let quote = false; let col = '';
         for (let i = 0; i < str.length; i++) {
@@ -286,43 +280,27 @@
             else if (c === ';' && !quote) { arr.push(col); col = ''; }
             else { col += c; }
         }
-        arr.push(col);
-        return arr;
+        arr.push(col); return arr;
     }
 
     function generateReportFromCSV() {
         const fileInput = document.getElementById('csvFileInput');
-        const err = document.getElementById('errorMsg');
-        err.innerText = "";
-
-        if (fileInput.files.length === 0) {
-            err.style.color = "var(--pri-crit)";
-            err.innerText = "Kérlek, töltsd fel a Statisztika_Teteles_Reszletek.csv fájlt!";
-            return;
-        }
-
+        const err = document.getElementById('errorMsg'); err.innerText = "";
         const dateFrom = document.getElementById('dateFrom').value;
         const dateTo = document.getElementById('dateTo').value;
 
-        if (!dateFrom || !dateTo) {
-            err.style.color = "var(--pri-crit)";
-            err.innerText = "Kérlek, válassz egy időszakot!";
-            return;
-        }
+        if (fileInput.files.length === 0) { err.style.color="var(--pri-crit)"; err.innerText="Kérlek, töltsd fel a fájlt!"; return; }
+        if (!dateFrom || !dateTo) { err.style.color="var(--pri-crit)"; err.innerText="Kérlek, válassz időszakot!"; return; }
 
         document.getElementById('reportDateRange').innerText = `${dateFrom.replace(/-/g, '.')} - ${dateTo.replace(/-/g, '.')}`;
 
         const file = fileInput.files[0];
         const reader = new FileReader();
-
-        reader.onload = function(e) {
-            const data = parseCSV(e.target.result);
-            processReportData(data, dateFrom, dateTo);
-        };
+        reader.onload = function(e) { processReportData(parseCSV(e.target.result), dateFrom, dateTo); };
         reader.readAsText(file, 'utf-8');
     }
 
-    // --- KÖZÖS ADATFELDOLGOZÓ ---
+    // FŐ ADATFELDOLGOZÓ (Pareto és Visszatérő logikával)
     function processReportData(data, dateFrom, dateTo) {
         let filtered = data.filter(row => {
             if (!row['Időpont'] || row['Státusz'] !== 'Lezárt') return false; 
@@ -336,22 +314,17 @@
             return;
         }
 
-        let esetiDb = 0;
-        let prevDb = 0;
-        let totalDowntime = 0;
-        let totalJavitas = 0;
-
-        let machineStats = {};
-        let userStats = {};
-        let criticalTasks = [];
+        let esetiDb = 0; let prevDb = 0; let totalDowntime = 0; let totalJavitas = 0;
+        
+        let machineGroups = {}; // Gép alapú csoportosítás (Pareto)
+        let recurringGroups = {}; // Visszatérő hiba csoportosítás (Gép + Hiba szöveg)
 
         filtered.forEach(row => {
             let isPrev = String(row['ID']).startsWith("PREV-");
-            let prio = String(row['Prioritás']).toLowerCase();
             let downtime = parseFloat(row['Kiesés (perc)']) || 0;
             let javitas = parseFloat(row['Javítás (perc)']) || 0;
-            let gep = row['Gép'] || "Ismeretlen";
-            let bekuldo = row['Beküldő'] || "Ismeretlen";
+            let gep = row['Gép'] || "Ismeretlen gép";
+            let hibaSzoveg = String(row['Hiba'] || "").trim();
 
             if (isPrev) {
                 prevDb++;
@@ -360,83 +333,152 @@
                 totalDowntime += downtime;
                 totalJavitas += javitas;
 
-                if(gep && gep !== "-") {
-                    if(!machineStats[gep]) machineStats[gep] = { count: 0, downtime: 0 };
-                    machineStats[gep].count++;
-                    machineStats[gep].downtime += downtime;
-                }
+                // Gépek gyűjtése
+                if(!machineGroups[gep]) machineGroups[gep] = { count: 0, downtime: 0, items: [] };
+                machineGroups[gep].count++;
+                machineGroups[gep].downtime += downtime;
+                machineGroups[gep].items.push(row);
 
-                if(bekuldo) {
-                    userStats[bekuldo] = (userStats[bekuldo] || 0) + 1;
-                }
-
-                if (prio.includes("leállás") || prio.includes("magas")) {
-                    criticalTasks.push(row);
+                // Visszatérő hibák keresése (Azonos gép + teljesen azonos vagy nagyon hasonló hibaleírás)
+                let hibaKulcs = hibaSzoveg.toLowerCase().replace(/[^a-z0-9áéíóöőúüű]/g, ''); 
+                if(hibaKulcs.length > 3) {
+                    let recKey = gep + "|||" + hibaKulcs;
+                    if(!recurringGroups[recKey]) recurringGroups[recKey] = { gep: gep, hibaEredeti: hibaSzoveg, count: 0, items: [] };
+                    recurringGroups[recKey].count++;
+                    recurringGroups[recKey].items.push(row);
                 }
             }
         });
 
+        // 1. KPI-ok frissítése
         document.getElementById('kpiEseti').innerText = esetiDb;
         document.getElementById('kpiPrev').innerText = prevDb;
         document.getElementById('kpiKieses').innerText = Math.round(totalDowntime);
         document.getElementById('kpiJavitas').innerText = Math.round(totalJavitas);
 
-        let sortedMachines = Object.entries(machineStats).sort((a, b) => b[1].count - a[1].count).slice(0, 5);
+        // --- 2. GÉPEK PARETO LISTÁJA (Accordion HTML generálás) ---
+        // Sorbarendezés (Hiba darabszám, azon belül Kiesés szerint)
+        let sortedMachines = Object.values(machineGroups).sort((a, b) => {
+            if (b.count !== a.count) return b.count - a.count;
+            return b.downtime - a.downtime;
+        });
+
         let mHtml = "";
-        if (sortedMachines.length === 0) mHtml = "<tr><td colspan='3'>Nincs eseti meghibásodás.</td></tr>";
         sortedMachines.forEach((m, idx) => {
-            let medal = idx === 0 ? "🔴" : "🟠";
-            mHtml += `<tr>
-                        <td><b>${medal} ${m[0]}</b></td>
-                        <td style="text-align:center; font-weight:bold; font-size:16px;">${m[1].count}</td>
-                        <td style="text-align:center; color:var(--pri-crit);">${m[1].downtime} p</td>
-                      </tr>`;
-        });
-        document.querySelector('#topMachinesTable tbody').innerHTML = mHtml;
+            let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : "🔹"));
+            let badgeHtml = `<span class="summary-badge warn">${m.count} hiba</span>`;
+            if (m.downtime > 0) badgeHtml += `<span class="summary-badge crit">${m.downtime} perc állásidő</span>`;
 
-        let sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        let uHtml = "";
-        if (sortedUsers.length === 0) uHtml = "<tr><td colspan='2'>Nincs adat.</td></tr>";
-        sortedUsers.forEach(u => {
-            uHtml += `<tr>
-                        <td>👤 ${u[0]}</td>
-                        <td style="text-align:center; font-weight:bold;">${u[1]} db</td>
-                      </tr>`;
+            mHtml += `
+            <details>
+                <summary>
+                    <div class="summary-title">${medal} ${m.items[0]['Gép']}</div>
+                    <div class="summary-stats">${badgeHtml} <span>▼</span></div>
+                </summary>
+                <div class="details-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:120px;">Dátum</th>
+                                <th style="width:100px;">Prioritás</th>
+                                <th>Hiba Leírása</th>
+                                <th>Megoldás & Felelős</th>
+                                <th style="width:80px; text-align:center;">Kiesés</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${generateTableRows(m.items)}
+                        </tbody>
+                    </table>
+                </div>
+            </details>`;
         });
-        document.querySelector('#topUsersTable tbody').innerHTML = uHtml;
+        document.getElementById('paretoContainer').innerHTML = mHtml || "<p>Nincs eseti meghibásodás.</p>";
 
-        criticalTasks.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
-        let cHtml = "";
-        if (criticalTasks.length === 0) {
-            cHtml = `<tr><td colspan='6' style="text-align:center; padding:20px;">🎉 Nincs regisztrált kritikus meghibásodás ebben az időszakban!</td></tr>`;
+        // --- 3. VISSZATÉRŐ HIBÁK (Ahol a count > 1) ---
+        let recurringList = Object.values(recurringGroups).filter(rg => rg.count > 1).sort((a, b) => b.count - a.count);
+        let rHtml = "";
+        
+        if (recurringList.length === 0) {
+            rHtml = "<p style='padding:15px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; color:#166534;'>🎉 A vizsgált időszakban a rendszer nem talált többször ismétlődő, azonos hibaleírást ugyanazon a gépen!</p>";
         } else {
-            criticalTasks.forEach(t => {
-                let dObj = new Date(t['Időpont']);
-                let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
-                
-                let pStr = String(t['Prioritás']);
-                let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : "badge-high";
-                let pTxt = pStr.toLowerCase().includes("leállás") ? "Leállás" : "Sürgős";
-
-                let hibaSzoveg = String(t['Hiba']);
-                let megSzoveg = String(t['Megoldás']);
-                megSzoveg = megSzoveg.replace(/✅ \[.*?\]: /g, ''); // Tisztítjuk a megoldás szöveget
-
-                cHtml += `<tr>
-                            <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
-                            <td><span class="badge ${badge}">${pTxt}</span></td>
-                            <td style="font-weight:bold;">${t['Gép']}</td>
-                            <td>${hibaSzoveg}</td>
-                            <td style="font-size:13px;"><i>${megSzoveg}</i> <br><br><b>Felelős:</b> ${t['Lezárta'] || t['Felelős']}</td>
-                            <td style="text-align:center; color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)'] || 0} p</td>
-                          </tr>`;
+            recurringList.forEach(rg => {
+                rHtml += `
+                <details style="border-left: 4px solid var(--pri-high);">
+                    <summary>
+                        <div class="summary-title">⚠️ ${rg.gep} <span style="font-weight:normal; color:var(--text-muted);">"${rg.hibaEredeti}"</span></div>
+                        <div class="summary-stats"><span class="summary-badge warn">${rg.count} alkalommal!</span> <span>▼</span></div>
+                    </summary>
+                    <div class="details-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:120px;">Dátum</th>
+                                    <th>Hiba Leírása</th>
+                                    <th>Megoldás & Felelős</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${generateTableRowsSimple(rg.items)}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>`;
             });
+            
+            // Ha van visszatérő hiba, beírunk egy emlékeztetőt az Akciótervbe!
+            document.getElementById('meetingNotesArea').innerHTML += `<li style="color:var(--pri-crit);"><b>FIGYELEM:</b> A rendszer azonosított ${recurringList.length} db visszatérő problémát! Kérjük, értékeljétek az új Ismétlődő Feladatok bevezetésének szükségességét!</li>`;
         }
-        document.querySelector('#criticalTasksTable tbody').innerHTML = cHtml;
+        document.getElementById('recurringIssuesContainer').innerHTML = rHtml;
 
+        // Megjelenítés & Gombok
         document.getElementById('reportContainer').style.display = 'block';
         document.getElementById('btnPrint').style.display = 'inline-block';
+        document.getElementById('btnExpandAll').style.display = 'inline-block';
+        
         document.getElementById('reportContainer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Táblázat sor generáló segédfüggvény (A lenyíló ablakokba)
+    function generateTableRows(itemsArr) {
+        itemsArr.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
+        let html = "";
+        itemsArr.forEach(t => {
+            let dObj = new Date(t['Időpont']);
+            let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
+            
+            let pStr = String(t['Prioritás']);
+            let badge = pStr.toLowerCase().includes("leállás") ? "badge-crit" : (pStr.toLowerCase().includes("magas") ? "badge-high" : (pStr.toLowerCase().includes("megfigyelés") ? "badge-obs" : "badge-normal"));
+            let pTxt = pStr.toLowerCase().includes("leállás") ? "Leállás" : (pStr.toLowerCase().includes("magas") ? "Sürgős" : "Normál");
+
+            let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
+
+            html += `<tr>
+                        <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
+                        <td><span class="badge ${badge}">${pTxt}</span></td>
+                        <td>${t['Hiba']}</td>
+                        <td style="font-size:13px; color:var(--text-main);"><i>${megSzoveg}</i> <br><div style="margin-top:5px; font-weight:bold; color:var(--accent);">👤 ${t['Lezárta'] || t['Felelős']}</div></td>
+                        <td style="text-align:center; color:var(--pri-crit); font-weight:bold;">${parseFloat(t['Kiesés (perc)']) > 0 ? t['Kiesés (perc)'] + ' p' : '-'}</td>
+                      </tr>`;
+        });
+        return html;
+    }
+
+    function generateTableRowsSimple(itemsArr) {
+        itemsArr.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
+        let html = "";
+        itemsArr.forEach(t => {
+            let dObj = new Date(t['Időpont']);
+            let dateF = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}) + " " + dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
+            let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
+
+            html += `<tr>
+                        <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
+                        <td>${t['Hiba']}</td>
+                        <td style="font-size:13px; color:var(--text-main);"><i>${megSzoveg}</i> <br><div style="margin-top:5px; font-weight:bold; color:var(--accent);">👤 ${t['Lezárta'] || t['Felelős']}</div></td>
+                      </tr>`;
+        });
+        return html;
     }
 
 </script>
