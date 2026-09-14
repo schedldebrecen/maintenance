@@ -79,12 +79,16 @@
         .badge-obs { background: var(--pri-obs); }
         .badge-normal { background: var(--bg-dark); }
         
-        /* INTERAKTÍV JEGYZET DOBOZ MEETINGRE */
-        .action-plan { background: #fffbeb; border: 1px dashed #f59e0b; padding: 25px; border-radius: 8px; margin-top: 40px; }
-        .action-plan h3 { color: #d97706; margin-top: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; }
-        .editable-area { min-height: 200px; background: white; border: 1px solid #fcd34d; padding: 20px; border-radius: 5px; font-size: 16px; line-height: 1.6; outline: none; }
-        .editable-area:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); }
+        /* INTERAKTÍV JEGYZET DOBOZ ÉS TÁBLÁZAT */
+        .action-plan { background: #f8fafc; border: 1px solid var(--border); padding: 25px; border-radius: 8px; margin-top: 40px; }
+        .action-plan h3 { color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .editable-area { min-height: 100px; background: white; border: 1px dashed #cbd5e1; padding: 20px; border-radius: 5px; font-size: 15px; line-height: 1.6; outline: none; }
+        .editable-area:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2); }
         .editable-area li { margin-bottom: 10px; }
+
+        .action-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px; background: white; }
+        .action-table th, .action-table td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
+        .action-table th { background: #fef3c7; color: #b45309; font-weight: bold; }
 
         .no-print { display: flex; }
         @media print {
@@ -103,7 +107,7 @@
 
     <div class="control-panel" id="controls">
         <h2>📈 Folyamatos Fejlesztés (CI) - Karbantartási Értékelő</h2>
-        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot a generáláshoz! Az azonos hibákat <b>Drag & Drop</b> módszerrel tudod csoportosítani a gépek lenyíló ablakában. A meetinghez nem tartozó hibákat az Elrejtés gombbal átmenetileg kiveheted a listából.</p>
+        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot a generáláshoz! Az azonos hibákat <b>Drag & Drop</b> módszerrel tudod csoportosítani a gépek lenyíló ablakában. Az egyes csempéknél megadhatsz azonnali Akciókat is!</p>
 
         <div class="flex-row" style="background:#f1f5f9; padding:15px; border-radius:6px; border:1px solid var(--border);">
             <div style="font-weight:bold; width:100%;">Időszak kiválasztása:</div>
@@ -172,7 +176,7 @@
         </div>
         
         <div class="no-print" style="background:#e0f2fe; padding:10px 15px; border:1px solid #bae6fd; border-radius:6px; margin-bottom:15px; color:#0369a1; font-size:14px;">
-            💡 <b>Tipp:</b> A lenyíló ablakokban lévő hibakártyákat egérrel <b>egymásra húzva (Drag & Drop)</b> tudod csoportosítani! A nem ide illő hibákat az 👁️ ikonnal elrejtheted.
+            💡 <b>Tipp:</b> A lenyíló ablakokban lévő hibakártyákat egérrel <b>egymásra húzva (Drag & Drop)</b> tudod csoportosítani! A nem ide illő hibákat az 👁️ ikonnal elrejtheted, a ➕ Akció gombbal pedig feladatot oszthatsz ki!
         </div>
 
         <div id="paretoContainer" style="margin-bottom: 40px;">
@@ -185,16 +189,29 @@
             <div style="font-size:14px; color:var(--text-muted); font-weight:normal;">Ideális jelöltek új preventív feladatok létrehozására.</div>
         </div>
         <div id="recurringIssuesContainer" style="margin-bottom: 40px; border-left: 4px solid var(--pri-high); padding-left: 15px;">
-            <!-- Ide generáljuk a visszatérőket (Kizárólag a Csoport csempéket) -->
+            <!-- Ide generáljuk a visszatérőket -->
         </div>
 
         <!-- INTERAKTÍV AKCIÓTERV -->
         <div class="page-break"></div>
         <div class="action-plan">
-            <h3>💡 Megbeszélés jegyzet / Gyökerok elemzés (Root Cause) és Akcióterv</h3>
-            <p style="font-size:14px; margin-top:0; color:#b45309;">(Kattints ide és gépeld be a meeting alatt megállapított új feladatokat, majd nyomtasd PDF-be!)</p>
+            <h3>🎯 Generált Akcióterv (A csempéknél megadott akciók alapján)</h3>
+            <table class="action-table" id="generatedActionTable">
+                <thead>
+                    <tr>
+                        <th style="width:25%;">Érintett Gép</th>
+                        <th style="width:35%;">Azonosított Probléma</th>
+                        <th style="width:40%;">Végrehajtandó Akció & Felelős</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JS generálja a csempéken lévő Akciók alapján -->
+                </tbody>
+            </table>
+
+            <h3 style="margin-top:30px;">💡 Egyéb megbeszélés jegyzetek (Szabadon szerkeszthető)</h3>
             <ul class="editable-area" contenteditable="true" id="meetingNotesArea">
-                <li><b>Gép:</b> [Gép neve] | <b>Ok:</b> ... | <b>Akció:</b> [Ide írd, mit kell tenni] | <b>Felelős:</b> [Név] | <b>Határidő:</b> [Dátum]</li>
+                <li style="color:var(--text-muted);">[Kattints ide a szabad szavas jegyzeteléshez...]</li>
             </ul>
         </div>
     </div>
@@ -206,11 +223,13 @@
     let currentDateFrom = "";
     let currentDateTo = "";
 
-    // Memóriában tároljuk a manuális csoportosításokat ÉS a rejtett hibákat
-    let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [], hiddenTasks: [] };
-    if (!groupingState.hiddenTasks) groupingState.hiddenTasks = []; // Kompatibilitás miatt
+    // Memóriában tároljuk a manuális csoportosításokat, a rejtett hibákat ÉS az AKCIÓKAT
+    let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [], hiddenTasks: [], actions: {} };
+    if (!groupingState.hiddenTasks) groupingState.hiddenTasks = []; 
+    if (!groupingState.actions) groupingState.actions = {};
 
-    let currentAutoGroups = {}; // Futásidőben tárolt auto-csoportok a D&D műveletekhez
+    let currentAutoGroups = {}; 
+    let currentDisplayedActions = []; // Ide gyűjtjük rendereléskor a megjelenített akciókat
 
     function toISO(d) {
         return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
@@ -236,14 +255,35 @@
     }
 
     function resetGrouping() {
-        if(!confirm("Biztosan törlöd az összes eddigi kézi csoportosítást, szétbontást és elrejtést?")) return;
+        if(!confirm("Biztosan törlöd az összes eddigi kézi csoportosítást, szétbontást, elrejtést ÉS AKCIÓT?")) return;
         localStorage.removeItem('cmms_grouping');
-        groupingState = { manualGroups: [], ungrouped: [], hiddenTasks: [] };
+        groupingState = { manualGroups: [], ungrouped: [], hiddenTasks: [], actions: {} };
         if(globalReportData.length > 0) processReportData(globalReportData, currentDateFrom, currentDateTo);
         else alert("Sikeresen nullázva!");
     }
 
-    // --- ELREJTÉS ÉS VISSZAÁLLÍTÁS LOGIKA ---
+    // --- AKCIÓ (ACTION) HOZZÁADÁSA ---
+    function addAction(btn, id, event) {
+        event.stopPropagation();
+        let tile = btn.closest('.ticket-tile');
+        let gep = tile.dataset.gep;
+        let hiba = tile.querySelector('.tile-title').innerText;
+        
+        let currentAction = groupingState.actions[id] ? groupingState.actions[id].text : "";
+        let newAction = prompt(`Mi az akció a(z) ${gep} gép hibájához?\n(${hiba})\n\nÍrd be a feladatot és a felelőst (pl. Szenzor rendelése - Kovács J.):`, currentAction);
+        
+        if (newAction !== null) {
+            if (newAction.trim() === "") {
+                delete groupingState.actions[id];
+            } else {
+                groupingState.actions[id] = { text: newAction.trim(), gep: gep, hiba: hiba };
+            }
+            localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+            processReportData(globalReportData, currentDateFrom, currentDateTo);
+        }
+    }
+
+    // --- ELREJTÉS ÉS VISSZAÁLLÍTÁS ---
     function hideTask(id, isGroup, taskIdsStr, event) {
         event.stopPropagation();
         if(!confirm("Biztosan elrejted ezt a tételt a prezentációból? (Ezután a statisztikába sem fog beleszámítani)")) return;
@@ -306,7 +346,7 @@
         } catch(e) { err.style.color = "var(--pri-crit)"; err.innerText = "Hálózati hiba a letöltés során."; }
     }
 
-    // CSV Feldolgozó maradék vésztartaléknak
+    // CSV Feldolgozó maradék
     function parseCSV(text) {
         text = text.replace(/^\uFEFF/, '').replace(/\r/g, '');
         let lines = text.split('\n'); let result = []; let headers = [];
@@ -353,16 +393,13 @@
         ev.preventDefault();
         ev.currentTarget.classList.add('drag-over');
     }
-    
     function dragLeave(ev) {
         ev.currentTarget.classList.remove('drag-over');
     }
-
     function drag(ev) {
         ev.dataTransfer.setData("text", ev.currentTarget.dataset.id);
         ev.dataTransfer.setData("type", ev.currentTarget.dataset.type);
     }
-
     function drop(ev) {
         ev.preventDefault();
         ev.currentTarget.classList.remove('drag-over');
@@ -403,7 +440,6 @@
         processReportData(globalReportData, currentDateFrom, currentDateTo);
     }
 
-    // GOMB: Csoport Szétbontása
     function ungroup(groupId, isManual, taskIdsStr, event) {
         event.stopPropagation();
         if(!confirm("Biztosan szétbontod ezt a csoportot? A hibák újra önálló kártyaként fognak megjelenni a gépeknél.")) return;
@@ -416,6 +452,10 @@
                 if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id);
             });
         }
+        // Töröljük a csoporthoz kötődő esetleges Akciót is
+        if(groupingState.actions[groupId]) delete groupingState.actions[groupId];
+        if(groupingState.actions["MANUAL_"+groupId]) delete groupingState.actions["MANUAL_"+groupId];
+
         localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
         processReportData(globalReportData, currentDateFrom, currentDateTo);
     }
@@ -426,6 +466,7 @@
         currentDateFrom = dateFrom; 
         currentDateTo = dateTo;
         currentAutoGroups = {}; 
+        currentDisplayedActions = []; // Nullázzuk a listát minden rajzolásnál
 
         // Gomb megjelenítése, ha van elrejtett hiba
         let unhideBtn = document.getElementById('btnUnhideAll');
@@ -442,7 +483,7 @@
             let rowDate = String(row['Időpont']).substring(0, 10);
             if (rowDate < dateFrom || rowDate > dateTo) return false;
             
-            if (groupingState.hiddenTasks.includes(row['ID'])) return false; // ELREJTVE!
+            if (groupingState.hiddenTasks.includes(row['ID'])) return false; // ELREJTVE
             
             return true;
         });
@@ -560,8 +601,6 @@
         if (recurringList.length === 0) {
             rHtml = "<p style='color:var(--pri-normal); font-weight:bold;'>🎉 Jelenleg nincs ismétlődő hiba a rendszerben!</p>";
         } else {
-            document.getElementById('meetingNotesArea').innerHTML = `<li><b>FIGYELEM:</b> A rendszer azonosított ${recurringList.length} db visszatérő problémát! Értékelni kell az új Ismétlődő Feladatok bevezetésének szükségességét!</li>`;
-
             rHtml += `<div class="tile-grid">`;
             recurringList.forEach(rg => {
                 rHtml += generateGroupTileHtml(rg);
@@ -569,6 +608,21 @@
             rHtml += `</div>`;
         }
         document.getElementById('recurringIssuesContainer').innerHTML = rHtml;
+
+        // --- AKCIÓTERV TÁBLÁZAT GENERÁLÁSA ---
+        let actionTbody = "";
+        if (currentDisplayedActions.length === 0) {
+            actionTbody = "<tr><td colspan='3' style='text-align:center; color:var(--text-muted);'>Még nincs kiosztva akció egyetlen hibához sem. Kattints a csempéken a ➕ Akció hozzáadása gombra!</td></tr>";
+        } else {
+            currentDisplayedActions.forEach(a => {
+                actionTbody += `<tr>
+                                    <td><b>${a.gep}</b></td>
+                                    <td>${a.hiba}</td>
+                                    <td style='color:#b45309; font-weight:bold;'>⚡ ${a.text}</td>
+                                </tr>`;
+            });
+        }
+        document.querySelector('#generatedActionTable tbody').innerHTML = actionTbody;
 
         // Megjelenítés & Gombok
         document.getElementById('reportContainer').style.display = 'block';
@@ -591,6 +645,14 @@
         let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
         let downtimeHtml = parseFloat(t['Kiesés (perc)']) > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)']}p kiesés</span>` : ``;
 
+        // Akció UI
+        let actionData = groupingState.actions[t['ID']];
+        if (actionData) currentDisplayedActions.push(actionData);
+        
+        let actionHtml = actionData 
+            ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;"><b>⚡ Akció:</b> ${actionData.text} <button class="no-print" onclick="addAction(this, '${t['ID']}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button></div>` 
+            : `<button class="no-print" onclick="addAction(this, '${t['ID']}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
+
         return `
         <div class="ticket-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${t['ID']}" data-type="task" data-gep="${t['Gép']}">
            <div class="tile-header" style="align-items:center;">
@@ -603,6 +665,7 @@
               <span style="color:var(--accent); font-weight:bold;">👤 ${t['Lezárta'] || t['Felelős']}</span>
               ${downtimeHtml}
            </div>
+           ${actionHtml}
         </div>`;
     }
 
@@ -610,6 +673,15 @@
     function generateGroupTileHtml(group) {
         let taskIdsStr = group.taskIds.join(',');
         let downtimeHtml = group.downtime > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">Össz kiesés: ${group.downtime}p</span>` : ``;
+
+        // Akció UI (A csoport eredeti ID-jére mentjük)
+        let actionId = group.isManual ? "MANUAL_" + group.originalId : group.originalId;
+        let actionData = groupingState.actions[actionId];
+        if (actionData) currentDisplayedActions.push(actionData);
+        
+        let actionHtml = actionData 
+            ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;"><b>⚡ Akció:</b> ${actionData.text} <button class="no-print" onclick="addAction(this, '${actionId}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button></div>` 
+            : `<button class="no-print" onclick="addAction(this, '${actionId}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
 
         return `
         <div class="ticket-tile group-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${group.originalId}" data-type="group" data-ismanual="${group.isManual}" data-name="${group.name}" data-taskids="${taskIdsStr}" data-gep="${group.gep}">
@@ -625,6 +697,7 @@
               <span style="color:var(--text-muted); font-size:11px;">Gép: ${group.gep}</span>
               ${downtimeHtml}
            </div>
+           ${actionHtml}
         </div>`;
     }
 
