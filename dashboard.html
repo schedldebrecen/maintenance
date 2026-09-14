@@ -19,7 +19,6 @@
         .live-badge { background: #10b981; color: #022c22; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; animation: blink 2s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* FIXÁLT ÓRA */
         .time-group { flex-shrink: 0; display: flex; align-items: center; gap: 20px; justify-content: flex-end; min-width: 280px; }
         .clock { font-size: 24px; font-weight: bold; letter-spacing: 2px; font-family: monospace; min-width: 125px; text-align: right; display: inline-block; }
         .refresh-info { font-size: 12px; color: var(--text-muted); margin-top: 5px; text-align: right; }
@@ -86,7 +85,6 @@
 
         #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 
-        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -104,6 +102,8 @@
         .sched-cell.hoverable:hover { opacity: 0.6; }
 
         .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
+        
+        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center; background-size: 20px; }
 
         @media (max-width: 768px) {
             .top-bar { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
@@ -118,7 +118,7 @@
     <div id="startupBanner">
         <div class="startup-box">
             <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 200px; margin-bottom: 20px;">
-            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.11)</span></h2>
+            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.12)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn start" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -141,7 +141,6 @@
 
     <div id="dashboardMainUI">
         <div class="top-bar">
-            <!-- FÜLEK A FEJLÉCBEN -->
             <div class="title-group">
                 <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="height: 32px; background: white; padding: 2px 8px; border-radius: 4px;">
                 <div class="live-badge">ÉLŐ</div>
@@ -153,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- FIXÁLT ÓRA -->
             <div class="time-group">
                 <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
                     <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
@@ -189,7 +187,6 @@
 
         <div class="dashboard-container" style="padding-top:20px;">
             
-            <!-- KERESŐ ÉS SZŰRŐK A LEZÁRT NÉZETHEZ -->
             <div id="dashSearchContainer" style="display:none; margin-bottom:20px; background:var(--surface); padding:15px; border-radius:8px; border:1px solid var(--border);">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                     <input type="text" id="dashSearchInput" class="dash-input" style="flex:1; min-width:200px; margin:0;" placeholder="🔍 Keresés hiba leírásában, megoldásban, beküldőben..." onkeyup="renderGrid()">
@@ -252,9 +249,15 @@
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
+                <!-- MODAL BEJELENTKEZÉS LEGÖRDÜLŐVEL -->
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
-                    <input type="text" id="dashLoginNev" class="dash-input" placeholder="Felhasználónév (pl. Admin)">
+                    <div class="login-input-group" style="position:relative; margin-bottom:10px;">
+                        <select id="dashLoginNevSelect" class="dash-input" onchange="checkDashLoginCustom(this)" style="margin-bottom:0;">
+                            <option value="">Betöltés...</option>
+                        </select>
+                        <input type="text" id="dashLoginNev" class="dash-input" placeholder="Vagy gépeld be a neved..." style="display:none; margin-top:10px;">
+                    </div>
                     <input type="password" id="dashLoginPin" class="dash-input" placeholder="PIN kód">
                     <button class="dash-btn start" onclick="dashLogin()">Belépés</button>
                     <div id="dashLoginStatus" style="color:var(--pri-crit); font-size:12px; margin-top:5px;"></div>
@@ -305,7 +308,6 @@
     let globalSchedule = [];
     let expectedApprovers = [];
 
-    // ECSET VÁLTOZÓK
     let activeBrush = null;
     let paintedChanges = [];
 
@@ -341,6 +343,35 @@
         }
     });
 
+    async function loadUserListDash() {
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) });
+            const r = await res.json();
+            if (r.status === "success" && r.data.length > 0) {
+                const sel = document.getElementById('dashLoginNevSelect');
+                sel.innerHTML = '<option value="">Név kiválasztása...</option>';
+                r.data.forEach(user => sel.add(new Option(user, user)));
+                sel.add(new Option("--- Egyéb (kézi megadás) ---", "custom"));
+            } else {
+                document.getElementById('dashLoginNevSelect').style.display = 'none';
+                document.getElementById('dashLoginNev').style.display = 'block';
+            }
+        } catch(e) {
+            document.getElementById('dashLoginNevSelect').style.display = 'none';
+            document.getElementById('dashLoginNev').style.display = 'block';
+        }
+    }
+
+    function checkDashLoginCustom(sel) {
+        if(sel.value === "custom") {
+            sel.style.display = 'none';
+            document.getElementById('dashLoginNev').style.display = 'block';
+            document.getElementById('dashLoginNev').focus();
+        } else {
+            document.getElementById('dashLoginNev').value = sel.value;
+        }
+    }
+
     function initDashboard(sound, flash) {
         optSound = sound; optFlash = flash;
         document.getElementById('startupBanner').style.display = 'none';
@@ -349,6 +380,8 @@
             if(AudioContext) audioCtx = new AudioContext();
         }
         
+        loadUserListDash();
+
         const savedUser = localStorage.getItem("activeUser");
         if(savedUser) { 
             sessionUser = savedUser; 
@@ -439,7 +472,7 @@
         
         // ÜGYELET LOGIKA
         if (activeBrush === 'Ügyelet') {
-            if (user === '__UGYELET__') return; // Ne lehessen önmagára kattintani
+            if (user === '__UGYELET__') return; 
             
             let topTdId = tdId.replace(`cell_${user.replace(/\s+/g,'_')}`, 'cell___UGYELET__'); 
             let topEl = document.getElementById(topTdId);
@@ -457,7 +490,6 @@
             if(gsIdx > -1) globalSchedule[gsIdx].tipus = user;
             else globalSchedule.push({user: '__UGYELET__', datum: dateStr, tipus: user});
 
-            // Vizuális visszajelzés a rákattintott cellán is (kicsit felvillan)
             let el = document.getElementById(tdId);
             if(el) {
                 let origBg = el.style.backgroundColor;
@@ -467,7 +499,6 @@
             return;
         }
 
-        // TÖRLÉS LOGIKA ÜGYELETRE
         if (activeBrush === 'Törlés' && user === '__UGYELET__') {
             let el = document.getElementById(tdId);
             if(el) { el.innerText = ''; el.className = 'sched-cell hoverable'; }
@@ -480,7 +511,6 @@
 
         if (user === '__UGYELET__') return;
 
-        // NORMÁL MŰSZAK LOGIKA
         let cls = '', text = '';
         if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
         else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
@@ -578,7 +608,6 @@
             let isWorking = isWorkDay(d);
             let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : '';
             let dIso = toLocalISOString(d);
-            // VÁLTOZÁS ITT: 's.user === __UGYELET__' -et keresünk!
             let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
             let text = match ? match.tipus : '';
             let cls = match ? 'cell-ugy' : '';
@@ -707,6 +736,7 @@
                 });
 
                 let expectedLower = expectedForThisLog.map(x=>x.toLowerCase());
+
                 let unapproved = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
                 unapproved.forEach(u => pendingLogUsers.add(u));
 
@@ -969,7 +999,8 @@
     }
 
     async function dashLogin() {
-        const n = document.getElementById('dashLoginNev').value, j = document.getElementById('dashLoginPin').value;
+        const n = document.getElementById('dashLoginNev').value || document.getElementById('dashLoginNevSelect').value;
+        const j = document.getElementById('dashLoginPin').value;
         const stat = document.getElementById('dashLoginStatus'); stat.innerText = "Ellenőrzés...";
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
