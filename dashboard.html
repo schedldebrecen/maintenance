@@ -75,7 +75,11 @@
         .dash-btn { background: var(--border); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; width:100%; margin-bottom:10px; transition: background 0.2s; }
         .dash-btn.start { background: var(--pri-high); }
         .dash-btn:hover { opacity: 0.8; }
-        .dash-input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: white; box-sizing: border-box; font-family: inherit; }
+        
+        /* JAVÍTOTT INPUT MEZŐK FEKETE SZÖVEGGEL */
+        .dash-input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #94a3b8; background: #ffffff; color: #0f172a; box-sizing: border-box; font-family: inherit; font-size: 15px; }
+        .login-input-group { position: relative; margin-bottom: 12px; }
+        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center; background-size: 20px; background-color: #ffffff; }
 
         #startupBanner { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-dark); z-index: 9999; display:flex; flex-direction:column; align-items:center; justify-content:center; }
         .startup-box { background: var(--surface); padding:40px; border-radius:10px; text-align:center; max-width:500px; border:1px solid var(--border); }
@@ -102,8 +106,6 @@
         .sched-cell.hoverable:hover { opacity: 0.6; }
 
         .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
-        
-        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center; background-size: 20px; }
 
         @media (max-width: 768px) {
             .top-bar { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
@@ -118,7 +120,7 @@
     <div id="startupBanner">
         <div class="startup-box">
             <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 200px; margin-bottom: 20px;">
-            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.13)</span></h2>
+            <h2 style="margin-top:0;">Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v3.14)</span></h2>
             <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
             <button class="dash-btn start" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
             <button class="dash-btn" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
@@ -248,12 +250,12 @@
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
-                <!-- BEJELENTKEZÉS LEGÖRDÜLŐ NÉVVEL -->
+                <!-- MODAL BEJELENTKEZÉS FEKETE SZÖVEGGEL -->
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
                     <div class="login-input-group" style="position:relative; margin-bottom:10px;">
                         <select id="dashLoginNevSelect" class="dash-input" onchange="checkDashLoginCustom(this)" style="margin-bottom:0;">
-                            <option value="">Név kiválasztása betöltés alatt...</option>
+                            <option value="">Betöltés...</option>
                         </select>
                         <input type="text" id="dashLoginNev" class="dash-input" placeholder="Vagy gépeld be a neved..." style="display:none; margin-top:10px;">
                     </div>
@@ -554,7 +556,7 @@
             document.querySelectorAll('.brush-btn').forEach(b => { b.style.outline = 'none'; b.style.transform = 'scale(1)'; });
             document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
             document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások sikeresen mentve!";
-            setTimeout(()=> { location.reload(); }, 1500); // TELJES ÚJRATÖLTÉS!
+            setTimeout(()=> { location.reload(); }, 1500); 
         } catch(e) {
             document.getElementById('activeBrushDisplay').innerText = "❌ Hálózati hiba mentéskor!";
         }
@@ -588,7 +590,6 @@
         
         let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
 
-        // Ügyeletes sor
         html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d);
@@ -603,7 +604,6 @@
         });
         html += `</tr>`;
         
-        // Dolgozók
         users.forEach(u => {
             html += `<tr><td class="sticky-col">${u}</td>`;
             dates.forEach(d => {
@@ -771,7 +771,7 @@
         const btn = document.getElementById('apprBtnDash_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
-        location.reload(); // TELJES ÚJRATÖLTÉS
+        location.reload(); 
     }
 
     function processData(allTasks) {
@@ -1111,7 +1111,7 @@
         if(!sessionUser || !activeTaskId) return;
         document.getElementById('btnDashStart').innerText = "Feldolgozás...";
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
-        location.reload(); // TELJES ÚJRATÖLTÉS
+        location.reload(); 
     }
 
     async function dashCloseTask() {
@@ -1120,7 +1120,7 @@
         if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
         
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser }) }); 
-        location.reload(); // TELJES ÚJRATÖLTÉS
+        location.reload(); 
     }
 
 </script>
