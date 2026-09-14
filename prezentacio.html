@@ -238,6 +238,7 @@
     let currentDateFrom = "";
     let currentDateTo = "";
 
+    // Memóriában tároljuk a manuális csoportosításokat, a rejtett hibákat ÉS az AKCIÓKAT
     let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [], hiddenTasks: [], actions: {} };
     if (!groupingState.hiddenTasks) groupingState.hiddenTasks = []; 
     if (!groupingState.actions) groupingState.actions = {};
@@ -276,9 +277,9 @@
         else alert("Sikeresen nullázva!");
     }
 
-    // --- RÉSZLETEK MODAL LOGIKA ---
+    // --- RÉSZLETEK MODAL LOGIKA JAVÍTVA ---
     function showTaskDetails(taskId, ev) {
-        if(ev) ev.stopPropagation();
+        if(ev) { ev.stopPropagation(); ev.preventDefault(); }
         let t = globalReportData.find(x => x['ID'] === taskId);
         if(!t) return;
         
@@ -307,13 +308,12 @@
         document.getElementById('detailsModal').style.display = 'flex';
     }
 
-    function showGroupDetails(groupId, ev) {
-        if(ev) ev.stopPropagation();
+    function showGroupDetails(groupId, isManual, ev) {
+        if(ev) { ev.stopPropagation(); ev.preventDefault(); }
         
         let group = null;
-        if(groupId.startsWith("MANUAL_")) {
-            let mId = groupId.replace("MANUAL_", "");
-            let mGrp = groupingState.manualGroups.find(g => g.id === mId);
+        if(isManual) {
+            let mGrp = groupingState.manualGroups.find(g => g.id === groupId);
             if(mGrp) {
                 group = { name: mGrp.name, gep: mGrp.gep, tasks: globalReportData.filter(x => mGrp.taskIds.includes(x['ID'])) };
             }
@@ -344,7 +344,7 @@
                 </div>
                 <div style="margin-top:10px; font-size:13px; font-weight:bold; color:var(--accent); display:flex; justify-content:space-between;">
                     <span>Felelős: ${t['Lezárta'] || t['Felelős']}</span>
-                    <span>Kiesés: ${t['Kiesés (perc)'] || 0} p</span>
+                    <span>Kiesés: ${parseFloat(t['Kiesés (perc)']) || 0} p</span>
                 </div>
             </div>`;
         });
@@ -549,6 +549,7 @@
             });
         }
         
+        // Töröljük a csoporthoz kötődő esetleges Akciót is
         if(groupingState.actions[groupId]) delete groupingState.actions[groupId];
         if(groupingState.actions["MANUAL_"+groupId]) delete groupingState.actions["MANUAL_"+groupId];
 
@@ -806,7 +807,7 @@
            <div class="tile-header" style="justify-content:space-between; align-items:center;">
                <span class="badge badge-high" style="font-size:12px;">🔗 ${group.count} DB HIBA</span>
                <div style="display:flex; gap:5px; align-items:center;">
-                   <button class="no-print" onclick="showGroupDetails('${group.originalId}', event)" style="background:transparent; border:none; cursor:pointer; font-size:14px;" title="Teljes szöveg megtekintése">🔍</button>
+                   <button class="no-print" onclick="showGroupDetails('${group.originalId}', ${group.isManual}, event)" style="background:transparent; border:none; cursor:pointer; font-size:14px;" title="Teljes szöveg megtekintése">🔍</button>
                    <button class="no-print" onclick="hideTask('${group.originalId}', true, '${taskIdsStr}', event)" style="background:transparent; color:var(--text-muted); border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:10px;" title="Csoport elrejtése">👁️</button>
                    <button class="no-print" onclick="ungroup('${group.originalId}', ${group.isManual}, '${taskIdsStr}', event)" style="background:#ef4444; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Bontás</button>
                </div>
