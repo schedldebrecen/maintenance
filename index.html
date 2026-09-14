@@ -14,6 +14,7 @@
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
         
+        /* LETISZTÍTOTT TOPBAR */
         .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -101,6 +102,7 @@
         .stat-btn:hover { background: var(--bg-color); border-color: var(--accent); }
         .stat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
+        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -119,8 +121,9 @@
 
         .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
 
+        /* Login mező kombináció (Select + Datalist stílus) */
         .login-input-group { position: relative; margin-bottom: 12px; }
-        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center; background-size: 20px; }
+        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center; background-size: 20px; background-color: #ffffff; color: var(--primary); }
 
         @media (min-width: 768px) { 
             .form-grid { grid-template-columns: 1fr 1fr; gap: 15px; } 
@@ -156,6 +159,7 @@
         </h2>
         <div class="user-info">
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
+            <span id="currentUserRole" style="display:none;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
     </div>
@@ -178,7 +182,7 @@
         <div id="ujHiba" class="view active box">
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
-                <div><select id="kategoria" onchange="frissitGepek()"><option value="">Válassz csarnokot...</option></select></div>
+                <div><select id="kategoria" onchange="frissitGepek()"><option value="">Válassz kategóriát...</option></select></div>
                 <div><select id="gep"><option value="">Előbb válassz kategóriát...</option></select></div>
                 <div class="form-full"><input type="text" id="hiba" placeholder="Hiba rövid leírása"></div>
                 <div>
@@ -323,7 +327,7 @@
                 </div>
                 <div class="form-grid">
                     <div class="form-full"><input type="text" id="szuroNyitottSzoveg" placeholder="🔍 Keresés hiba leírásában, gépnévben vagy beküldőben..." onkeyup="renderOpenTasks()"></div>
-                    <select id="szuroNyitottKategoria" onchange="frissitSzuroNyitottGepek()"><option value="">Minden csarnok / kategória...</option></select>
+                    <select id="szuroNyitottKategoria" onchange="frissitSzuroNyitottGepek()"><option value="">Minden kategória...</option></select>
                     <select id="szuroNyitottGep" onchange="renderOpenTasks()"><option value="">Összes gép...</option></select>
                     <select id="szuroNyitottPrioritas" onchange="renderOpenTasks()">
                         <option value="">Összes prioritás</option>
@@ -351,7 +355,7 @@
                 </div>
                 <div class="form-grid">
                     <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="🔍 Keresés leírásban, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
-                    <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden csarnok / kategória...</option></select>
+                    <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden kategória...</option></select>
                     <select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
                     <select id="szuroLezartPrioritas" onchange="renderClosedTasks()">
                         <option value="">Összes prioritás</option>
@@ -513,6 +517,7 @@
 
     const WORK_LAT = 47.53; const WORK_LNG = 21.62; const GEOFENCE_RADIUS_METERS = 3000;
 
+    // --- IT GÉPCSOPORT HOZZÁADVA ---
     const gepAdatbazis = {
         "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ],
         "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ],
@@ -521,6 +526,7 @@
         "Palettázó B&O": [ "Szekventáló robot - B&O" ],
         "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ],
         "Egyéb Facility": [ "Épülettel kapcsolatos dolgok" ],
+        "IT": [ "Szerverek", "Hálózati eszközök (Switch/AP)", "Kliens gépek (PC/Laptop)", "Nyomtatók és szkennerek", "Szoftver és rendszerek", "Egyéb IT eszköz" ],
         "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ],
         "Aggregátor": [] 
     };
@@ -797,11 +803,11 @@
         if (user === '__UGYELET__') return;
 
         let cls = '', text = '';
-        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'Nappali'; }
         else if(activeBrush === 'Törlés') { cls = ''; text = ''; }
         
         let el = document.getElementById(tdId);
@@ -838,7 +844,7 @@
             activeBrush = null;
             document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
             document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások mentve! Frissítés...";
-            setTimeout(()=> { location.reload(); }, 1000);
+            setTimeout(()=> { location.reload(); }, 1000); 
         } catch(e) {
             document.getElementById('activeBrushDisplay').innerText = "❌ Hálózati hiba mentéskor!";
         }
@@ -876,7 +882,7 @@
             let dStr = d.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
             
             let isToday = (toLocalISOString(d) === toLocalISOString(now));
-            if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high); font-weight:bold;';
+            if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high); font-weight:bold; font-size:16px;';
             
             html += `<th style="${bg}">${dStr}</th>`;
         });
@@ -887,7 +893,7 @@
         html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d);
-            let bg = !isWorking ? 'background:rgba(0,0,0,0.05);' : '';
+            let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : '';
             let dIso = toLocalISOString(d);
             let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
             let text = match ? match.tipus : '';
@@ -902,17 +908,17 @@
             html += `<tr><td class="sticky-col">${u}</td>`;
             dates.forEach(d => {
                 let isWorking = isWorkDay(d);
-                let bg = !isWorking ? 'background:rgba(0,0,0,0.05);' : '';
+                let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : '';
                 let dIso = toLocalISOString(d);
-                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__');
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.tipus !== 'Ügyelet');
                 let tipus = match ? match.tipus : '';
                 let cls = ''; let text = '';
                 
-                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'Nappali'; }
                 
                 let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`;
                 let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : '';
@@ -932,7 +938,7 @@
         let p = { action: "addRecurringTask", felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, prioritas: document.getElementById('ismPrioritas').value, ismTipus: document.getElementById('ismTipus').value, checklist: cl, kezdoDatum: kd };
         try {
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) });
-            if((await r.json()).status === "success") { stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Mentve! Frissítés..."; setTimeout(() => location.reload(), 1000); }
+            if((await r.json()).status === "success") { stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Mentve! Frissítés..."; setTimeout(() => location.reload(), 800); }
         } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hálózati hiba."; btn.disabled = false; } 
     }
 
@@ -964,7 +970,7 @@
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", felhasznalo: localStorage.getItem("activeUser"), muszak: document.getElementById('muszakTipus').value, datum: dt, szoveg: sz }) });
             const r = await res.json();
-            if(r.status === "success") { stat.style.color="var(--pri-normal)"; stat.innerText="✅ Mentve! Frissítés..."; setTimeout(()=>location.reload(), 1000); }
+            if(r.status === "success") { stat.style.color="var(--pri-normal)"; stat.innerText="✅ Mentve! Frissítés..."; setTimeout(()=>location.reload(), 800); }
             else { stat.style.color="var(--pri-crit)"; stat.innerText="❌ " + r.message; btn.disabled = false; }
         } catch(e) { stat.style.color="var(--pri-crit)"; stat.innerText="❌ Hálózati hiba!"; btn.disabled = false; } 
     }
@@ -1100,7 +1106,7 @@
 
     async function sendExtraInfo(id) {
         const t = document.getElementById(`extraText_${id}`).value, fi = document.getElementById(`extraKep_${id}`); if (!t && fi.files.length === 0) return;
-        let p = { action: "appendInfo", id: id, felhasznalo: localStorage.getItem("activeUser"), szoveg: t, kepek: [] };
+        let p = { action: "appendInfo", id: id, felhasznalo: localStorage.getItem("activeUser"), szoveg: t, kekepek: [] };
         if (fi.files.length > 0) {
             let promises = Array.from(fi.files).map(f => f.type.startsWith('video/') ? processVideo(f) : compressImage(f));
             p.kepek = (await Promise.all(promises)).filter(x => x !== null);
