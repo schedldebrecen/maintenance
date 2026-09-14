@@ -21,7 +21,9 @@
         .btn-quick { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 13px; transition: 0.2s; }
         .btn-quick:hover { background: #cbd5e1; }
         
-        input[type="date"], input[type="file"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: inherit; font-size: 14px; background: #fff; color:#000; }
+        input[type="date"], input[type="file"], input[type="text"], textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: inherit; font-size: 14px; background: #fff; color:var(--primary); box-sizing: border-box; }
+        .dash-input { width: 100%; margin-bottom: 15px; }
+        .dash-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
         
         .btn-generate { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; transition: 0.2s; }
         .btn-generate:hover { background: #0369a1; }
@@ -90,7 +92,7 @@
         .action-table th, .action-table td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
         .action-table th { background: #fef3c7; color: #b45309; font-weight: bold; }
 
-        /* MODAL KINÉZET RÉSZLETEKHEZ */
+        /* MODAL KINÉZET RÉSZLETEKHEZ ÉS AKCIÓKHOZ */
         .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 10px; border: 1px solid var(--border); max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         .btn-close-modal { background: var(--border); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; width: 100%; margin-top: 20px; }
@@ -140,7 +142,7 @@
                 <button class="btn-quick" id="btnUnhideAll" onclick="unhideAll()" style="display:none; border-color:var(--text-muted); color:var(--text-muted);">👁️ Rejtettek visszaállítása (<span id="hiddenCount">0</span>)</button>
                 <button class="btn-quick" onclick="resetGrouping()" style="border-color:var(--pri-crit); color:var(--pri-crit);">Mentett beállítások nullázása</button>
                 <button class="btn-quick" id="btnExpandAll" style="display:none; border:1px solid var(--accent); color:var(--accent);" onclick="toggleAllDetails(true)">Mindent kinyit</button>
-                <button class="btn-print" id="btnPrint" onclick="window.print()">🖨️ Mentés PDF-be</button>
+                <button class="btn-print" id="btnPrint" onclick="window.print()">🖨️ Teljes Lap Mentése PDF-be</button>
             </div>
         </div>
         
@@ -201,13 +203,31 @@
         <!-- INTERAKTÍV AKCIÓTERV -->
         <div class="page-break"></div>
         <div class="action-plan">
-            <h3>🎯 Generált Akcióterv (A csempéknél megadott akciók alapján)</h3>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="border-bottom:none; padding-bottom:0; margin-bottom:0;">🎯 Generált Akcióterv</h3>
+                
+                <div class="no-print" style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <span style="font-weight:bold; color:var(--text-muted); font-size:12px;">Csak Akcióterv Exportálása:</span>
+                        <button class="btn-quick" style="background:var(--pri-normal); color:white; border:none; margin:0;" onclick="exportActionPlanOnly('csv')">📥 CSV</button>
+                        <button class="btn-quick" style="background:var(--pri-normal); color:white; border:none; margin:0;" onclick="exportActionPlanOnly('pdf')">📄 PDF</button>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <span style="font-weight:bold; color:var(--text-muted); font-size:12px;">Teljes Hibalista + Akciók:</span>
+                        <button class="btn-quick" style="background:var(--pri-info); color:white; border:none; margin:0;" onclick="exportProblemAndActionPlan('csv')">📥 CSV</button>
+                        <button class="btn-quick" style="background:var(--pri-info); color:white; border:none; margin:0;" onclick="exportProblemAndActionPlan('pdf')">📄 PDF</button>
+                    </div>
+                </div>
+            </div>
+
             <table class="action-table" id="generatedActionTable">
                 <thead>
                     <tr>
-                        <th style="width:25%;">Érintett Gép</th>
-                        <th style="width:35%;">Azonosított Probléma</th>
-                        <th style="width:40%;">Végrehajtandó Akció & Felelős</th>
+                        <th style="width:20%;">Érintett Gép</th>
+                        <th style="width:30%;">Azonosított Probléma</th>
+                        <th style="width:30%;">Végrehajtandó Akció</th>
+                        <th style="width:10%;">Felelős</th>
+                        <th style="width:10%;">Határidő</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -231,6 +251,40 @@
         </div>
     </div>
 
+    <!-- MODAL AKCIÓ HOZZÁADÁSÁHOZ -->
+    <div class="modal-overlay" id="actionModal" onclick="closeActionModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 style="margin-top:0; color:var(--pri-high); border-bottom:2px solid var(--border); padding-bottom:10px;">⚡ Akció Hozzáadása</h2>
+            
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:15px; border-radius:6px; margin-bottom:20px; font-size:14px;">
+                <div style="margin-bottom:8px;"><b style="color:var(--text-muted);">Érintett Gép:</b> <span id="actionModalGep" style="font-weight:bold; color:var(--primary);"></span></div>
+                <div><b style="color:var(--text-muted);">Azonosított Probléma:</b> <span id="actionModalHiba" style="color:var(--primary);"></span></div>
+            </div>
+            
+            <input type="hidden" id="actionModalId">
+            
+            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">Végrehajtandó Akció leírása:</label>
+            <textarea id="actionModalText" rows="3" class="dash-input" placeholder="Részletes leírás, hogy mit kell megcsinálni..."></textarea>
+            
+            <div style="display:flex; gap:15px; margin-bottom:10px;">
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">Felelős személy:</label>
+                    <input type="text" id="actionModalFelelos" class="dash-input" placeholder="Pl. Kovács János">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">Határidő:</label>
+                    <input type="date" id="actionModalDeadline" class="dash-input">
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-generate" style="flex:1; margin:0; background:var(--pri-normal);" onclick="saveActionModal()">💾 Mentés</button>
+                <button class="btn-generate" style="flex:1; margin:0; background:var(--pri-crit);" onclick="deleteActionModal()">🗑️ Akció Törlése</button>
+                <button class="btn-close-modal" style="flex:1; margin:0; background:var(--text-muted);" onclick="closeActionModal(true)">Mégsem</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 
@@ -238,13 +292,13 @@
     let currentDateFrom = "";
     let currentDateTo = "";
 
-    // Memóriában tároljuk a manuális csoportosításokat, a rejtett hibákat ÉS az AKCIÓKAT
     let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [], hiddenTasks: [], actions: {} };
     if (!groupingState.hiddenTasks) groupingState.hiddenTasks = []; 
     if (!groupingState.actions) groupingState.actions = {};
 
     let currentAutoGroups = {}; 
     let currentDisplayedActions = []; 
+    let currentExportData = []; 
 
     function toISO(d) {
         return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
@@ -277,7 +331,107 @@
         else alert("Sikeresen nullázva!");
     }
 
-    // --- RÉSZLETEK MODAL LOGIKA JAVÍTVA ---
+    // --- CSV ÉS PDF EXPORTÁLÁS FUNKCIÓK ---
+    function downloadCSV(csv, fn) { 
+        let a = document.createElement("a"); 
+        a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], {type: 'text/csv;charset=utf-8;'})); 
+        a.download = fn; 
+        document.body.appendChild(a); 
+        a.click(); 
+        document.body.removeChild(a); 
+    }
+
+    function printToPDF(tableHtml, title) {
+        let win = window.open('', '_blank');
+        if(!win) { alert("Kérlek, engedélyezd az előugró ablakokat a PDF generáláshoz!"); return; }
+        win.document.write(`
+            <html><head><title>${title}</title>
+            <style>
+                body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; color: #0f172a; }
+                h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
+                th { background-color: #f1f5f9; color: #0f172a; font-weight: bold; }
+                tr:nth-child(even) { background-color: #f8fafc; }
+                @media print {
+                    @page { size: landscape; margin: 10mm; }
+                    body { padding: 0; }
+                }
+            </style>
+            </head><body>
+            <h1>${title}</h1>
+            ${tableHtml}
+            <script>
+                window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }
+            <\/script>
+            </body></html>
+        `);
+        win.document.close();
+    }
+
+    function exportActionPlanOnly(format) {
+        if(currentDisplayedActions.length === 0) return alert("Nincs exportálható akció jelenleg a táblázatban!");
+        
+        if(format === 'csv') {
+            let csv = "Érintett Gép;Azonosított Probléma;Végrehajtandó Akció;Felelős;Határidő\n";
+            currentDisplayedActions.forEach(a => {
+                csv += `"${a.gep}";"${String(a.hiba).replace(/"/g, '""')}";"${String(a.text).replace(/"/g, '""')}";"${a.felelos || ''}";"${a.deadline || ''}"\n`;
+            });
+            downloadCSV(csv, "CMMS_Akcioterv.csv");
+        } else if (format === 'pdf') {
+            let html = `<table><thead><tr><th>Érintett Gép</th><th>Azonosított Probléma</th><th>Végrehajtandó Akció</th><th>Felelős</th><th>Határidő</th></tr></thead><tbody>`;
+            currentDisplayedActions.forEach(a => {
+                let formattedDate = a.deadline ? new Date(a.deadline).toLocaleDateString('hu-HU') : "-";
+                html += `<tr>
+                    <td><b>${a.gep}</b></td>
+                    <td>${a.hiba}</td>
+                    <td style="color:#b45309; font-weight:bold;">${a.text}</td>
+                    <td>${a.felelos || "-"}</td>
+                    <td>${formattedDate}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            printToPDF(html, "Karbantartási Akcióterv - " + document.getElementById('reportDateRange').innerText);
+        }
+    }
+
+    function exportProblemAndActionPlan(format) {
+        if(currentExportData.length === 0) return alert("Nincs megjeleníthető adat az exportáláshoz!");
+        
+        if(format === 'csv') {
+            let csv = "Típus;Gép;Probléma / Hiba leírása;Esetek száma;Össz Kiesés (perc);Végrehajtandó Akció;Felelős;Határidő\n";
+            currentExportData.forEach(d => {
+                let type = d.isGroup ? "Csoportosított / Visszatérő" : "Egyedi Eseti Hiba";
+                let actionText = d.action ? String(d.action.text).replace(/"/g, '""') : "";
+                let actionFelelos = d.action ? (d.action.felelos || "") : "";
+                let actionDeadline = d.action ? (d.action.deadline || "") : "";
+                csv += `"${type}";"${d.gep}";"${String(d.hiba).replace(/"/g, '""')}";"${d.count}";"${d.downtime}";"${actionText}";"${actionFelelos}";"${actionDeadline}"\n`;
+            });
+            downloadCSV(csv, "CMMS_Teljes_Hibalista_Es_Akcioterv.csv");
+        } else if (format === 'pdf') {
+            let html = `<table><thead><tr><th>Típus</th><th>Gép</th><th>Probléma / Hiba leírása</th><th>Esetek (db)</th><th>Kiesés (p)</th><th>Végrehajtandó Akció</th><th>Felelős</th><th>Határidő</th></tr></thead><tbody>`;
+            currentExportData.forEach(d => {
+                let type = d.isGroup ? "Csoportosított" : "Egyedi Eseti";
+                let actionText = d.action ? d.action.text : "-";
+                let actionFelelos = d.action && d.action.felelos ? d.action.felelos : "-";
+                let actionDeadline = d.action && d.action.deadline ? new Date(d.action.deadline).toLocaleDateString('hu-HU') : "-";
+                html += `<tr>
+                    <td>${type}</td>
+                    <td><b>${d.gep}</b></td>
+                    <td>${d.hiba}</td>
+                    <td style="text-align:center;">${d.count}</td>
+                    <td style="text-align:center; color:#ef4444; font-weight:bold;">${d.downtime}</td>
+                    <td style="color:#b45309; font-weight:bold;">${actionText}</td>
+                    <td>${actionFelelos}</td>
+                    <td>${actionDeadline}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            printToPDF(html, "Teljes Hibalista és Akcióterv - " + document.getElementById('reportDateRange').innerText);
+        }
+    }
+
+    // --- RÉSZLETEK MODAL LOGIKA ---
     function showTaskDetails(taskId, ev) {
         if(ev) { ev.stopPropagation(); ev.preventDefault(); }
         let t = globalReportData.find(x => x['ID'] === taskId);
@@ -344,7 +498,7 @@
                 </div>
                 <div style="margin-top:10px; font-size:13px; font-weight:bold; color:var(--accent); display:flex; justify-content:space-between;">
                     <span>Felelős: ${t['Lezárta'] || t['Felelős']}</span>
-                    <span>Kiesés: ${parseFloat(t['Kiesés (perc)']) || 0} p</span>
+                    <span>Kiesés: ${t['Kiesés (perc)'] || 0} p</span>
                 </div>
             </div>`;
         });
@@ -359,25 +513,58 @@
         }
     }
 
-    // --- AKCIÓ (ACTION) HOZZÁADÁSA ---
-    function addAction(btn, id, event) {
-        event.stopPropagation();
-        let tile = btn.closest('.ticket-tile');
-        let gep = tile.dataset.gep;
-        let hiba = tile.querySelector('.tile-title').innerText;
+    // --- AKCIÓ (ACTION) MODAL LOGIKA ---
+    function openActionModal(id, gep, hiba, ev) {
+        if(ev) { ev.stopPropagation(); ev.preventDefault(); }
         
-        let currentAction = groupingState.actions[id] ? groupingState.actions[id].text : "";
-        let newAction = prompt(`Mi az akció a(z) ${gep} gép hibájához?\n(${hiba})\n\nÍrd be a feladatot és a felelőst (pl. Szenzor rendelése - Kovács J.):`, currentAction);
+        document.getElementById('actionModalId').value = id;
+        document.getElementById('actionModalGep').innerText = gep;
+        document.getElementById('actionModalHiba').innerText = hiba;
         
-        if (newAction !== null) {
-            if (newAction.trim() === "") {
-                delete groupingState.actions[id];
-            } else {
-                groupingState.actions[id] = { text: newAction.trim(), gep: gep, hiba: hiba };
-            }
-            localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
-            processReportData(globalReportData, currentDateFrom, currentDateTo);
+        let existing = groupingState.actions[id] || { text: "", felelos: "", deadline: "" };
+        
+        document.getElementById('actionModalText').value = existing.text;
+        document.getElementById('actionModalFelelos').value = existing.felelos || "";
+        document.getElementById('actionModalDeadline').value = existing.deadline || "";
+        
+        document.getElementById('actionModal').style.display = 'flex';
+    }
+
+    function closeActionModal(force) {
+        if(force === true || event.target.id === 'actionModal') {
+            document.getElementById('actionModal').style.display = 'none';
         }
+    }
+
+    function saveActionModal() {
+        let id = document.getElementById('actionModalId').value;
+        let gep = document.getElementById('actionModalGep').innerText;
+        let hiba = document.getElementById('actionModalHiba').innerText;
+        
+        let text = document.getElementById('actionModalText').value.trim();
+        let felelos = document.getElementById('actionModalFelelos').value.trim();
+        let deadline = document.getElementById('actionModalDeadline').value;
+        
+        if (text === "") {
+            alert("Kérlek, add meg az akció leírását!");
+            return;
+        }
+
+        groupingState.actions[id] = { text: text, felelos: felelos, deadline: deadline, gep: gep, hiba: hiba };
+        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+        
+        closeActionModal(true);
+        processReportData(globalReportData, currentDateFrom, currentDateTo);
+    }
+
+    function deleteActionModal() {
+        let id = document.getElementById('actionModalId').value;
+        if(groupingState.actions[id]) {
+            delete groupingState.actions[id];
+            localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+        }
+        closeActionModal(true);
+        processReportData(globalReportData, currentDateFrom, currentDateTo);
     }
 
     // --- ELREJTÉS ÉS VISSZAÁLLÍTÁS ---
@@ -485,17 +672,9 @@
     }
 
     // --- DRAG AND DROP ESEMÉNYKEZELŐK ---
-    function allowDrop(ev) {
-        ev.preventDefault();
-        ev.currentTarget.classList.add('drag-over');
-    }
-    function dragLeave(ev) {
-        ev.currentTarget.classList.remove('drag-over');
-    }
-    function drag(ev) {
-        ev.dataTransfer.setData("text", ev.currentTarget.dataset.id);
-        ev.dataTransfer.setData("type", ev.currentTarget.dataset.type);
-    }
+    function allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); }
+    function dragLeave(ev) { ev.currentTarget.classList.remove('drag-over'); }
+    function drag(ev) { ev.dataTransfer.setData("text", ev.currentTarget.dataset.id); ev.dataTransfer.setData("type", ev.currentTarget.dataset.type); }
     function drop(ev) {
         ev.preventDefault();
         ev.currentTarget.classList.remove('drag-over');
@@ -511,9 +690,7 @@
             if (isManual) {
                 let origId = ev.currentTarget.dataset.origid;
                 let grp = groupingState.manualGroups.find(g => g.id === origId);
-                if (grp && !grp.taskIds.includes(sourceId)) {
-                    grp.taskIds.push(sourceId);
-                }
+                if (grp && !grp.taskIds.includes(sourceId)) { grp.taskIds.push(sourceId); }
             } else {
                 let name = prompt("Automatikus csoport kibővítése. Mi legyen a végleges megnevezés?", ev.currentTarget.dataset.name);
                 if (!name) return;
@@ -528,7 +705,6 @@
             let gep = ev.currentTarget.dataset.gep;
             let newGrp = { id: 'MG-' + Date.now(), name: name, gep: gep, taskIds: [sourceId, targetId] };
             groupingState.manualGroups.push(newGrp);
-            
             groupingState.ungrouped = groupingState.ungrouped.filter(id => id !== sourceId && id !== targetId);
         }
         
@@ -544,12 +720,9 @@
             groupingState.manualGroups = groupingState.manualGroups.filter(g => g.id !== String(groupId));
         } else {
             let ids = taskIdsStr.split(',');
-            ids.forEach(id => {
-                if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id);
-            });
+            ids.forEach(id => { if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id); });
         }
         
-        // Töröljük a csoporthoz kötődő esetleges Akciót is
         if(groupingState.actions[groupId]) delete groupingState.actions[groupId];
         if(groupingState.actions["MANUAL_"+groupId]) delete groupingState.actions["MANUAL_"+groupId];
 
@@ -564,6 +737,7 @@
         currentDateTo = dateTo;
         currentAutoGroups = {}; 
         currentDisplayedActions = []; 
+        currentExportData = []; 
 
         let unhideBtn = document.getElementById('btnUnhideAll');
         if (groupingState.hiddenTasks && groupingState.hiddenTasks.length > 0) {
@@ -704,19 +878,21 @@
         // --- AKCIÓTERV TÁBLÁZAT GENERÁLÁSA ---
         let actionTbody = "";
         if (currentDisplayedActions.length === 0) {
-            actionTbody = "<tr><td colspan='3' style='text-align:center; color:var(--text-muted);'>Még nincs kiosztva akció egyetlen hibához sem. Kattints a csempéken a ➕ Akció hozzáadása gombra!</td></tr>";
+            actionTbody = "<tr><td colspan='5' style='text-align:center; color:var(--text-muted);'>Még nincs kiosztva akció egyetlen hibához sem. Kattints a csempéken a ➕ Akció hozzáadása gombra!</td></tr>";
         } else {
             currentDisplayedActions.forEach(a => {
+                let formattedDate = a.deadline ? new Date(a.deadline).toLocaleDateString('hu-HU') : "-";
                 actionTbody += `<tr>
                                     <td><b>${a.gep}</b></td>
                                     <td>${a.hiba}</td>
                                     <td style='color:#b45309; font-weight:bold;'>⚡ ${a.text}</td>
+                                    <td>${a.felelos || "-"}</td>
+                                    <td>${formattedDate}</td>
                                 </tr>`;
             });
         }
         document.querySelector('#generatedActionTable tbody').innerHTML = actionTbody;
 
-        // Megjelenítés & Gombok
         document.getElementById('reportContainer').style.display = 'block';
         document.getElementById('btnPrint').style.display = 'inline-block';
         document.getElementById('btnExpandAll').style.display = 'inline-block';
@@ -745,9 +921,19 @@
             currentDisplayedActions.push(actionData);
         }
         
+        // Export adatokba is beletesszük
+        currentExportData.push({
+            id: t['ID'], gep: t['Gép'], hiba: t['Hiba'], downtime: parseFloat(t['Kiesés (perc)']) || 0,
+            count: 1, isGroup: false, action: actionData
+        });
+        
         let actionHtml = actionData 
-            ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;"><b>⚡ Akció:</b> ${actionData.text} <button class="no-print" onclick="addAction(this, '${t['ID']}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button></div>` 
-            : `<button class="no-print" onclick="addAction(this, '${t['ID']}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
+            ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;">
+                 <b>⚡ Akció:</b> ${actionData.text}<br>
+                 <span style="font-size:11px; color:#78350f;">Felelős: ${actionData.felelos || '-'} | Határidő: ${actionData.deadline || '-'}</span>
+                 <button class="no-print" onclick="openActionModal('${t['ID']}', '${t['Gép']}', '${String(t['Hiba']).replace(/'/g, "\\'")}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button>
+               </div>` 
+            : `<button class="no-print" onclick="openActionModal('${t['ID']}', '${t['Gép']}', '${String(t['Hiba']).replace(/'/g, "\\'")}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
 
         return `
         <div class="ticket-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${t['ID']}" data-type="task" data-gep="${t['Gép']}">
@@ -781,9 +967,19 @@
             currentDisplayedActions.push(actionData);
         }
         
+        // Export adatokba is beletesszük
+        currentExportData.push({
+            id: actionId, gep: group.gep, hiba: group.name, downtime: group.downtime,
+            count: group.count, isGroup: true, action: actionData
+        });
+        
         let actionHtml = actionData 
-            ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;"><b>⚡ Akció:</b> ${actionData.text} <button class="no-print" onclick="addAction(this, '${actionId}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button></div>` 
-            : `<button class="no-print" onclick="addAction(this, '${actionId}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
+            ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;">
+                 <b>⚡ Akció:</b> ${actionData.text}<br>
+                 <span style="font-size:11px; color:#78350f;">Felelős: ${actionData.felelos || '-'} | Határidő: ${actionData.deadline || '-'}</span>
+                 <button class="no-print" onclick="openActionModal('${actionId}', '${group.gep}', '${String(group.name).replace(/'/g, "\\'")}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button>
+               </div>` 
+            : `<button class="no-print" onclick="openActionModal('${actionId}', '${group.gep}', '${String(group.name).replace(/'/g, "\\'")}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
 
         let subItemsHtml = `<div style="margin: 10px 0; padding: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
             <div style="font-weight: bold; color: var(--primary); margin-bottom: 5px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">📑 Összevont esetek:</div>`;
