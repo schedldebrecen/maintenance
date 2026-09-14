@@ -76,11 +76,7 @@
 
     <div class="control-panel" id="controls">
         <h2>📊 CMMS Prezentáció és Értékelő Generátor</h2>
-        <p style="color:var(--text-muted); margin-bottom:20px;">Töltsd fel a rendszerből kiexportált <b>Statisztika_Teteles_Reszletek.csv</b> fájlt, válaszd ki az időszakot, és készítsd el a vezetői / heti meeting anyagot!</p>
-        
-        <div class="flex-row">
-            <input type="file" id="csvFileInput" accept=".csv" style="background:#f8fafc; flex:1;">
-        </div>
+        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot, és készítsd el a vezetői / heti meeting anyagot az Élő rendszerből letöltve (vagy tölts fel egy CSV fájlt manuálisan)!</p>
 
         <div class="flex-row" style="background:#f1f5f9; padding:15px; border-radius:6px; border:1px solid var(--border);">
             <div style="font-weight:bold; width:100%;">Időszak kiválasztása:</div>
@@ -93,12 +89,20 @@
             <span> - </span>
             <input type="date" id="dateTo">
         </div>
-
-        <div style="display:flex; gap:15px;">
-            <button class="btn-generate" onclick="generateReport()">📉 Prezentáció Generálása</button>
-            <button class="btn-print" id="btnPrint" onclick="window.print()">🖨️ Mentés PDF-be / Nyomtatás</button>
+        
+        <div class="flex-row" style="margin-top:20px; align-items:flex-end;">
+            <button class="btn-generate" style="background: var(--pri-prog);" onclick="fetchDataFromSystem()">⬇️ Lekérdezés az Élő Rendszerből</button>
+            <div style="margin:0 15px; font-weight:bold; color:var(--text-muted);">VAGY</div>
+            <div>
+                <div style="font-size:12px; margin-bottom:5px; color:var(--text-muted);">CSV feltöltése manuálisan:</div>
+                <input type="file" id="csvFileInput" accept=".csv" style="background:#f8fafc; padding:8px;">
+                <button class="btn-generate" style="padding: 10px 15px;" onclick="generateReportFromCSV()">Generálás CSV-ből</button>
+            </div>
+            
+            <button class="btn-print" id="btnPrint" onclick="window.print()" style="margin-left:auto;">🖨️ Mentés PDF-be</button>
         </div>
-        <div id="errorMsg" style="color:var(--pri-crit); font-weight:bold; margin-top:10px;"></div>
+        
+        <div id="errorMsg" style="color:var(--pri-crit); font-weight:bold; margin-top:15px;"></div>
     </div>
 
     <!-- PREZENTÁCIÓS FELÜLET -->
@@ -176,12 +180,12 @@
     </div>
 
 <script>
-    // Dátum formázó segéd
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
+
     function toISO(d) {
         return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
     }
 
-    // Előre beállított dátumok
     function setPreset(type) {
         let today = new Date();
         let fromDate = new Date();
@@ -207,17 +211,63 @@
         document.getElementById('dateTo').value = toISO(toDate);
     }
 
-    // CSV Feldolgozó (Biztonságos a ; karakterekre és a \r sorvégekre)
+    // --- ÚJ: KÖZVETLEN LEKÉRDEZÉS AZ ÉLŐ RENDSZERBŐL ---
+    async function fetchDataFromSystem() {
+        const err = document.getElementById('errorMsg');
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
+        if (!dateFrom || !dateTo) {
+            err.style.color = "var(--pri-crit)";
+            err.innerText = "Kérlek, válaszd ki az időszakot a lekérdezés előtt!";
+            return;
+        }
+
+        err.style.color = "var(--pri-normal)";
+        err.innerText = "⏳ Adatok letöltése a rendszerből folyamatban...";
+
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
+            const result = await res.json();
+            
+            if (result.status === "success") {
+                // Átkonvertáljuk a szerver válaszát a CSV processzor által várt formátumra
+                let mappedData = result.data.map(t => ({
+                    'ID': t.id,
+                    'Időpont': t.idopont,
+                    'Státusz': t.statusz,
+                    'Prioritás': t.prioritas === 'Igen' ? 'Magas prioritás' : (t.prioritas === 'Nem' ? 'Normál' : t.prioritas),
+                    'Gép': t.gep,
+                    'Hiba': t.hiba,
+                    'Beküldő': t.felhasznalo,
+                    'Felelős': t.felelos,
+                    'Megoldás': t.megoldas,
+                    'Javítás (perc)': t.ido || 0,
+                    'Kiesés (perc)': t.downtime || 0,
+                    'Lezárta': t.lezarta
+                }));
+                
+                err.innerText = "";
+                document.getElementById('reportDateRange').innerText = `${dateFrom.replace(/-/g, '.')} - ${dateTo.replace(/-/g, '.')}`;
+                processReportData(mappedData, dateFrom, dateTo);
+            } else {
+                err.style.color = "var(--pri-crit)";
+                err.innerText = "Hiba történt a letöltéskor: " + result.message;
+            }
+        } catch(e) {
+            err.style.color = "var(--pri-crit)";
+            err.innerText = "Hálózati hiba a letöltés során.";
+        }
+    }
+
+    // --- RÉGI: CSV FELTÖLTÉS ALAPÚ FELDOLGOZÁS ---
     function parseCSV(text) {
-        // BOM eltávolítása, \r eltávolítása
         text = text.replace(/^\uFEFF/, '').replace(/\r/g, '');
         let lines = text.split('\n');
         let result = [];
         let headers = [];
         
-        if (lines.length > 0) {
-            headers = parseCSVRow(lines[0]);
-        }
+        if (lines.length > 0) headers = parseCSVRow(lines[0]);
 
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
@@ -235,7 +285,7 @@
         let arr = []; let quote = false; let col = '';
         for (let i = 0; i < str.length; i++) {
             let c = str[i];
-            if (c === '"' && str[i+1] === '"') { col += '"'; i++; } // Escaped quote
+            if (c === '"' && str[i+1] === '"') { col += '"'; i++; } 
             else if (c === '"') { quote = !quote; }
             else if (c === ';' && !quote) { arr.push(col); col = ''; }
             else { col += c; }
@@ -244,13 +294,13 @@
         return arr;
     }
 
-    // Jelentés Generálása
-    function generateReport() {
+    function generateReportFromCSV() {
         const fileInput = document.getElementById('csvFileInput');
         const err = document.getElementById('errorMsg');
         err.innerText = "";
 
         if (fileInput.files.length === 0) {
+            err.style.color = "var(--pri-crit)";
             err.innerText = "Kérlek, töltsd fel a Statisztika_Teteles_Reszletek.csv fájlt!";
             return;
         }
@@ -259,6 +309,7 @@
         const dateTo = document.getElementById('dateTo').value;
 
         if (!dateFrom || !dateTo) {
+            err.style.color = "var(--pri-crit)";
             err.innerText = "Kérlek, válassz egy időszakot!";
             return;
         }
@@ -275,16 +326,17 @@
         reader.readAsText(file, 'utf-8');
     }
 
+    // --- KÖZÖS ADATFELDOLGOZÓ (Mindkét gomb ezt hívja) ---
     function processReportData(data, dateFrom, dateTo) {
-        // Szűrés az időszakra (és csak a lezárt/releváns jegyek)
         let filtered = data.filter(row => {
-            if (!row['Időpont']) return false;
-            let rowDate = row['Időpont'].substring(0, 10);
+            if (!row['Időpont'] || row['Státusz'] !== 'Lezárt') return false; 
+            let rowDate = String(row['Időpont']).substring(0, 10);
             return rowDate >= dateFrom && rowDate <= dateTo;
         });
 
         if (filtered.length === 0) {
-            document.getElementById('errorMsg').innerText = "Erre az időszakra nincs megjeleníthető adat a fájlban.";
+            document.getElementById('errorMsg').style.color = "var(--pri-crit)";
+            document.getElementById('errorMsg').innerText = "Erre az időszakra nincs megjeleníthető LEZÁRT feladat az adatok között.";
             return;
         }
 
@@ -312,32 +364,27 @@
                 totalDowntime += downtime;
                 totalJavitas += javitas;
 
-                // Gép statisztika
                 if(gep && gep !== "-") {
                     if(!machineStats[gep]) machineStats[gep] = { count: 0, downtime: 0 };
                     machineStats[gep].count++;
                     machineStats[gep].downtime += downtime;
                 }
 
-                // Beküldő statisztika
                 if(bekuldo) {
                     userStats[bekuldo] = (userStats[bekuldo] || 0) + 1;
                 }
 
-                // Kritikus lista
                 if (prio.includes("leállás") || prio.includes("magas")) {
                     criticalTasks.push(row);
                 }
             }
         });
 
-        // 1. KPI-ok frissítése
         document.getElementById('kpiEseti').innerText = esetiDb;
         document.getElementById('kpiPrev').innerText = prevDb;
         document.getElementById('kpiKieses').innerText = Math.round(totalDowntime);
         document.getElementById('kpiJavitas').innerText = Math.round(totalJavitas);
 
-        // 2. Top Gépek
         let sortedMachines = Object.entries(machineStats).sort((a, b) => b[1].count - a[1].count).slice(0, 5);
         let mHtml = "";
         if (sortedMachines.length === 0) mHtml = "<tr><td colspan='3'>Nincs eseti meghibásodás.</td></tr>";
@@ -351,7 +398,6 @@
         });
         document.querySelector('#topMachinesTable tbody').innerHTML = mHtml;
 
-        // 3. Top Beküldők
         let sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
         let uHtml = "";
         if (sortedUsers.length === 0) uHtml = "<tr><td colspan='2'>Nincs adat.</td></tr>";
@@ -363,7 +409,6 @@
         });
         document.querySelector('#topUsersTable tbody').innerHTML = uHtml;
 
-        // 4. Kritikus hibák táblázata
         criticalTasks.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont']));
         let cHtml = "";
         if (criticalTasks.length === 0) {
@@ -379,8 +424,7 @@
 
                 let hibaSzoveg = String(t['Hiba']);
                 let megSzoveg = String(t['Megoldás']);
-                // Eltávolítjuk a generált sallangot a megoldás elejéről a szebb nézetért
-                megSzoveg = megSzoveg.replace(/✅ \[.*?\]: /g, '');
+                megSzoveg = megSzoveg.replace(/✅ \[.*?\]: /g, ''); // Tisztítjuk a megoldás szöveget
 
                 cHtml += `<tr>
                             <td style="color:var(--text-muted); font-size:13px;">${dateF}</td>
@@ -394,11 +438,8 @@
         }
         document.querySelector('#criticalTasksTable tbody').innerHTML = cHtml;
 
-        // Megjelenítés & Gomb mutatása
         document.getElementById('reportContainer').style.display = 'block';
         document.getElementById('btnPrint').style.display = 'inline-block';
-        
-        // Automatikus görgetés
         document.getElementById('reportContainer').scrollIntoView({ behavior: 'smooth' });
     }
 
