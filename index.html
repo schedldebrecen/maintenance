@@ -102,7 +102,7 @@
         .stat-btn:hover { background: var(--bg-color); border-color: var(--accent); }
         .stat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* NAPTÁR MÁTRIX CSS */
+        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -121,6 +121,10 @@
 
         .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
 
+        /* Login mező kombináció (Select + Datalist stílus) */
+        .login-input-group { position: relative; margin-bottom: 12px; }
+        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center; background-size: 20px; }
+
         @media (min-width: 768px) { 
             .form-grid { grid-template-columns: 1fr 1fr; gap: 15px; } 
             .filter-panel .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } 
@@ -134,7 +138,14 @@
     <div class="box" style="text-align: center;">
         <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
         <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">Ipari CMMS</h2>
-        <input type="text" id="loginNev" placeholder="Felhasználónév (pl. Admin)">
+        
+        <div class="login-input-group">
+            <select id="loginNevSelect" onchange="checkLoginCustom(this)" style="margin-bottom:0;">
+                <option value="">Betöltés...</option>
+            </select>
+            <input type="text" id="loginNev" placeholder="Vagy gépeld be a neved..." style="display:none; margin-top:10px;">
+        </div>
+
         <input type="password" id="loginJelszo" placeholder="PIN kód">
         <button onclick="login()">Belépés</button>
         <div id="loginStatus" style="color:var(--pri-crit); margin-top:10px; text-align:center; font-weight:bold;"></div>
@@ -553,6 +564,36 @@
         return totalMinutes;
     }
 
+    // BEJELENTKEZÉSI FELHASZNÁLÓ LEKÉRDEZÉS
+    async function loadUserList() {
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) });
+            const r = await res.json();
+            if (r.status === "success" && r.data.length > 0) {
+                const sel = document.getElementById('loginNevSelect');
+                sel.innerHTML = '<option value="">Válassz a listából...</option>';
+                r.data.forEach(user => sel.add(new Option(user, user)));
+                sel.add(new Option("--- Egyéb (kézi megadás) ---", "custom"));
+            } else {
+                document.getElementById('loginNevSelect').style.display = 'none';
+                document.getElementById('loginNev').style.display = 'block';
+            }
+        } catch(e) {
+            document.getElementById('loginNevSelect').style.display = 'none';
+            document.getElementById('loginNev').style.display = 'block';
+        }
+    }
+
+    function checkLoginCustom(sel) {
+        if(sel.value === "custom") {
+            sel.style.display = 'none';
+            document.getElementById('loginNev').style.display = 'block';
+            document.getElementById('loginNev').focus();
+        } else {
+            document.getElementById('loginNev').value = sel.value;
+        }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         const katSelect = document.getElementById('kategoria'); 
         const szuroKatSelect = document.getElementById('szuroKategoria'); 
@@ -568,6 +609,8 @@
         
         document.getElementById('notifToggle').addEventListener('change', (e) => { document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; });
         if(document.getElementById('muszakDatum')) document.getElementById('muszakDatum').value = toLocalISOString(new Date());
+        
+        loadUserList(); // Lekéri a neveket a Login ablakhoz
     });
 
     function frissitGepek() { const k = document.getElementById('kategoria').value; const s = document.getElementById('gep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } }
@@ -609,7 +652,9 @@
     }
 
     async function login() {
-        const n = document.getElementById('loginNev').value, j = document.getElementById('loginJelszo').value; document.getElementById('loginStatus').innerText = "Ellenőrzés...";
+        const n = document.getElementById('loginNev').value || document.getElementById('loginNevSelect').value; 
+        const j = document.getElementById('loginJelszo').value; 
+        document.getElementById('loginStatus').innerText = "Ellenőrzés...";
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); const r = await res.json();
             if(r.status === "success") { localStorage.setItem("activeUser", n); localStorage.setItem("activeRole", r.role || "production"); location.reload(); } else document.getElementById('loginStatus').innerText = r.message;
@@ -713,10 +758,11 @@
     function paintCell(user, dateStr, tdId) {
         if(!activeBrush || sessionRole !== 'superuser') return;
         
+        // ÜGYELET LOGIKA
         if (activeBrush === 'Ügyelet') {
             if (user === '__UGYELET__') return; 
             
-            let topTdId = tdId.replace(user.replace(/\s+/g,'_'), '__UGYELET__'); 
+            let topTdId = tdId.replace(`cell_${user.replace(/\s+/g,'_')}`, 'cell___UGYELET__'); 
             let topEl = document.getElementById(topTdId);
             
             if (topEl) {
@@ -741,6 +787,7 @@
             return;
         }
 
+        // TÖRLÉS LOGIKA ÜGYELETRE
         if (activeBrush === 'Törlés' && user === '__UGYELET__') {
             let el = document.getElementById(tdId);
             if(el) { el.innerText = ''; el.className = 'sched-cell hoverable'; }
@@ -753,6 +800,7 @@
 
         if (user === '__UGYELET__') return;
 
+        // NORMÁL MŰSZAK LOGIKA
         let cls = '', text = '';
         if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
         else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
@@ -770,6 +818,14 @@
         let existingIdx = paintedChanges.findIndex(x => x.user === user && x.datum === dateStr);
         if(existingIdx > -1) paintedChanges[existingIdx].tipus = activeBrush;
         else paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
+
+        let gsIdx = globalSchedule.findIndex(x => x.user === user && x.datum === dateStr);
+        if(activeBrush === 'Törlés') {
+            if(gsIdx > -1) globalSchedule.splice(gsIdx, 1);
+        } else {
+            if(gsIdx > -1) globalSchedule[gsIdx].tipus = activeBrush;
+            else globalSchedule.push({user: user, datum: dateStr, tipus: activeBrush});
+        }
     }
 
     async function savePaintedSchedule() {
@@ -795,7 +851,7 @@
             activeBrush = null;
             document.querySelectorAll('.brush-btn').forEach(b => { b.style.outline = 'none'; b.style.transform = 'scale(1)'; });
             document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
-            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások mentve!";
+            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások sikeresen mentve!";
             setTimeout(()=> { 
                 document.getElementById('activeBrushDisplay').style.color = "var(--text-main)";
                 document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs"; 
@@ -979,6 +1035,7 @@
             if (logD >= "2026-09-01") {
                 let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
                 let approversLower = approvers.map(x=>x.toLowerCase());
+                let expectedLower = expectedApproversClean.map(x=>x.toLowerCase());
                 let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                 
                 if (!approversLower.includes(creatorLower)) {
@@ -1013,7 +1070,6 @@
 
     function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
     async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); loadShiftLogs(); }
-
     async function approveShiftLog(id) {
         const btn = document.getElementById('apprBtn_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
@@ -1157,7 +1213,6 @@
             reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔄 Újranyitás</button>`;
         }
         
-        // Csak superuser láthatja a Törlés és Egyesítés gombokat!
         if (role === "superuser" && !String(t.id).startsWith("PREV-")) {
             adminBtns = `
                 <button onclick="mergeTask('${t.id}')" style="background:var(--pri-obs); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔗 Egyesítés</button>
@@ -1404,7 +1459,7 @@
             document.getElementById('statTrendThis').innerHTML = `${monthStat.current.kieses} perc kiesés<br>${Math.round(monthStat.current.javIdo)} perc javítás`;
         }
 
-        if(document.getElementById('adminStatsTableBody') && (localStorage.getItem("activeRole") === "admin" || localStorage.getItem("activeRole") === "superuser")) {
+        if(document.getElementById('adminStatsTableBody') && (sessionRole === "admin" || sessionRole === "superuser")) {
             let formatMin = (arr) => {
                 if(arr.length === 0) return "-";
                 let sum = arr.reduce((a,b)=>a+b, 0);
