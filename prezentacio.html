@@ -71,7 +71,7 @@
         .tile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: var(--text-muted); }
         .tile-title { font-weight: bold; font-size: 14px; color: var(--text-main); margin-bottom: 8px; line-height: 1.4; }
         .tile-solution { font-size: 13px; color: #64748b; font-style: italic; margin-bottom: 10px; flex: 1; }
-        .tile-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; margin-top: auto; }
+        .tile-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-top: auto; }
 
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; white-space: nowrap; }
         .badge-crit { background: var(--pri-crit); }
@@ -189,7 +189,7 @@
             <div style="font-size:14px; color:var(--text-muted); font-weight:normal;">Ideális jelöltek új preventív feladatok létrehozására.</div>
         </div>
         <div id="recurringIssuesContainer" style="margin-bottom: 40px; border-left: 4px solid var(--pri-high); padding-left: 15px;">
-            <!-- Ide generáljuk a visszatérőket -->
+            <!-- Ide generáljuk a visszatérőket (Kizárólag a Csoport csempéket) -->
         </div>
 
         <!-- INTERAKTÍV AKCIÓTERV -->
@@ -452,6 +452,7 @@
                 if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id);
             });
         }
+        
         // Töröljük a csoporthoz kötődő esetleges Akciót is
         if(groupingState.actions[groupId]) delete groupingState.actions[groupId];
         if(groupingState.actions["MANUAL_"+groupId]) delete groupingState.actions["MANUAL_"+groupId];
@@ -466,7 +467,7 @@
         currentDateFrom = dateFrom; 
         currentDateTo = dateTo;
         currentAutoGroups = {}; 
-        currentDisplayedActions = []; // Nullázzuk a listát minden rajzolásnál
+        currentDisplayedActions = []; 
 
         // Gomb megjelenítése, ha van elrejtett hiba
         let unhideBtn = document.getElementById('btnUnhideAll');
@@ -483,7 +484,7 @@
             let rowDate = String(row['Időpont']).substring(0, 10);
             if (rowDate < dateFrom || rowDate > dateTo) return false;
             
-            if (groupingState.hiddenTasks.includes(row['ID'])) return false; // ELREJTVE
+            if (groupingState.hiddenTasks.includes(row['ID'])) return false; 
             
             return true;
         });
@@ -645,9 +646,12 @@
         let megSzoveg = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, ''); 
         let downtimeHtml = parseFloat(t['Kiesés (perc)']) > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">${t['Kiesés (perc)']}p kiesés</span>` : ``;
 
-        // Akció UI
+        // Akció UI Logika a kártyán
         let actionData = groupingState.actions[t['ID']];
-        if (actionData) currentDisplayedActions.push(actionData);
+        if (actionData && !currentDisplayedActions.some(a => a.id === t['ID'])) {
+            actionData.id = t['ID'];
+            currentDisplayedActions.push(actionData);
+        }
         
         let actionHtml = actionData 
             ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;"><b>⚡ Akció:</b> ${actionData.text} <button class="no-print" onclick="addAction(this, '${t['ID']}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button></div>` 
@@ -661,7 +665,7 @@
            </div>
            <div class="tile-title">${t['Hiba']}</div>
            <div class="tile-solution">${megSzoveg.substring(0, 80)}...</div>
-           <div class="tile-footer">
+           <div class="tile-footer" style="padding-top:10px; margin-top:auto;">
               <span style="color:var(--accent); font-weight:bold;">👤 ${t['Lezárta'] || t['Felelős']}</span>
               ${downtimeHtml}
            </div>
@@ -669,19 +673,41 @@
         </div>`;
     }
 
-    // HTML Generátor: Csoport Csempe
+    // HTML Generátor: Csoport Csempe Beágyazott Részletekkel
     function generateGroupTileHtml(group) {
         let taskIdsStr = group.taskIds.join(',');
         let downtimeHtml = group.downtime > 0 ? `<span style="color:var(--pri-crit); font-weight:bold;">Össz kiesés: ${group.downtime}p</span>` : ``;
 
-        // Akció UI (A csoport eredeti ID-jére mentjük)
+        // Akció UI Logika
         let actionId = group.isManual ? "MANUAL_" + group.originalId : group.originalId;
         let actionData = groupingState.actions[actionId];
-        if (actionData) currentDisplayedActions.push(actionData);
+        
+        if (actionData && !currentDisplayedActions.some(a => a.id === actionId)) {
+            actionData.id = actionId;
+            currentDisplayedActions.push(actionData);
+        }
         
         let actionHtml = actionData 
             ? `<div style="margin-top:10px; padding:8px; background:#fef3c7; border:1px dashed #f59e0b; border-radius:4px; font-size:12px; color:#b45309;"><b>⚡ Akció:</b> ${actionData.text} <button class="no-print" onclick="addAction(this, '${actionId}', event)" style="background:none;border:none;cursor:pointer;float:right;font-size:12px;">✏️</button></div>` 
             : `<button class="no-print" onclick="addAction(this, '${actionId}', event)" style="margin-top:10px; width:100%; background:transparent; color:var(--accent); border:1px dashed var(--accent); padding:4px; border-radius:4px; cursor:pointer; font-size:11px; transition:0.2s;">➕ Akció hozzáadása</button>`;
+
+        // Összevont esetek belső listája
+        let subItemsHtml = `<div style="margin: 10px 0; padding: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-weight: bold; color: var(--primary); margin-bottom: 5px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">📑 Összevont esetek:</div>`;
+        
+        group.items.sort((a,b) => new Date(b['Időpont']) - new Date(a['Időpont'])).forEach((t, i) => {
+            let dObj = new Date(t['Időpont']);
+            let dStr = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+            let sol = String(t['Megoldás']).replace(/✅ \[.*?\]: /g, '');
+            if(sol.length > 50) sol = sol.substring(0, 50) + '...';
+            
+            let borderStyle = (i === group.items.length - 1) ? "" : "border-bottom:1px dashed #cbd5e1;";
+            subItemsHtml += `<div style="display:flex; justify-content:space-between; margin-top:6px; padding-bottom:6px; ${borderStyle}">
+                <span style="flex:1; padding-right:10px;"><b style="color:var(--text-muted);">${dStr}</b> - <i>${sol}</i></span>
+                <span style="color:var(--accent); font-weight:bold; white-space:nowrap;">👤 ${t['Lezárta']||t['Felelős']}</span>
+            </div>`;
+        });
+        subItemsHtml += `</div>`;
 
         return `
         <div class="ticket-tile group-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${group.originalId}" data-type="group" data-ismanual="${group.isManual}" data-name="${group.name}" data-taskids="${taskIdsStr}" data-gep="${group.gep}">
@@ -692,8 +718,9 @@
                    <button class="no-print" onclick="ungroup('${group.originalId}', ${group.isManual}, '${taskIdsStr}', event)" style="background:#ef4444; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Bontás</button>
                </div>
            </div>
-           <div class="tile-title" style="font-size:16px; margin: 15px 0;">${group.name}</div>
-           <div class="tile-footer" style="border-top-color: var(--pri-high);">
+           <div class="tile-title" style="font-size:16px; margin: 10px 0 0 0;">${group.name}</div>
+           ${subItemsHtml}
+           <div class="tile-footer" style="border-top-color: var(--pri-high); border-top-style: solid; border-top-width: 1px; padding-top: 10px; margin-top: auto;">
               <span style="color:var(--text-muted); font-size:11px;">Gép: ${group.gep}</span>
               ${downtimeHtml}
            </div>
