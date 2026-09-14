@@ -14,7 +14,6 @@
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
         
-        /* LETISZTÍTOTT TOPBAR */
         .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -102,7 +101,6 @@
         .stat-btn:hover { background: var(--bg-color); border-color: var(--accent); }
         .stat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* NAPTÁR MÁTRIX CSS ÉS ECSET */
         .sched-container { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 6px; user-select: none; margin-top: 10px; }
         .sched-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 800px; }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 8px 6px; text-align: center; white-space: nowrap; }
@@ -121,7 +119,6 @@
 
         .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
 
-        /* Login mező kombináció (Select + Datalist stílus) */
         .login-input-group { position: relative; margin-bottom: 12px; }
         .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center; background-size: 20px; }
 
@@ -141,7 +138,7 @@
         
         <div class="login-input-group">
             <select id="loginNevSelect" onchange="checkLoginCustom(this)" style="margin-bottom:0;">
-                <option value="">Betöltés...</option>
+                <option value="">Név kiválasztása betöltés alatt...</option>
             </select>
             <input type="text" id="loginNev" placeholder="Vagy gépeld be a neved..." style="display:none; margin-top:10px;">
         </div>
@@ -159,7 +156,6 @@
         </h2>
         <div class="user-info">
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
-            <span id="currentUserRole" style="display:none;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
     </div>
@@ -219,12 +215,12 @@
                     🖌️ Ecset eszköz beosztáshoz (Kattints a műszakra, majd a lenti naptárban a dolgozóra! Az <b>Ügyelet</b> esetén is válaszd ki az Ügyelet ecsetet, majd kattints annak a személynek a cellájára, aki az ügyeletes lesz aznap!)
                 </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">MS (Délelőtt)</button>
-                    <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">AS (Délután)</button>
-                    <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">NS (Éjszaka)</button>
-                    <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">O (Nappali)</button>
-                    <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">H (Szabadság)</button>
-                    <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">ÜGY (Ügyelet)</button>
+                    <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">Délelőtt</button>
+                    <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">Délután</button>
+                    <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">Éjszaka</button>
+                    <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">Nappali / Pihenő</button>
+                    <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">Szabadság</button>
+                    <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">Ügyelet</button>
                     <button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
                     
                     <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
@@ -564,7 +560,6 @@
         return totalMinutes;
     }
 
-    // BEJELENTKEZÉSI FELHASZNÁLÓ LEKÉRDEZÉS
     async function loadUserList() {
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) });
@@ -610,7 +605,7 @@
         document.getElementById('notifToggle').addEventListener('change', (e) => { document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; });
         if(document.getElementById('muszakDatum')) document.getElementById('muszakDatum').value = toLocalISOString(new Date());
         
-        loadUserList(); // Lekéri a neveket a Login ablakhoz
+        loadUserList(); 
     });
 
     function frissitGepek() { const k = document.getElementById('kategoria').value; const s = document.getElementById('gep'); s.innerHTML = '<option value="">Válassz gépet...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } }
@@ -640,7 +635,14 @@
             document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
             if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
             
-            loadShiftLogs(); 
+            const lastTabId = sessionStorage.getItem("activeAppTab");
+            if(lastTabId) {
+                const btn = document.querySelector(`button[onclick*="'${lastTabId}'"]`);
+                if(btn) { btn.click(); }
+                else { loadShiftLogs(); }
+            } else {
+                loadShiftLogs(); 
+            }
         }
     };
 
@@ -649,6 +651,7 @@
         document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active')); 
         document.getElementById(tId).classList.add('active'); 
         if(btn) btn.classList.add('active'); 
+        sessionStorage.setItem("activeAppTab", tId);
     }
 
     async function login() {
@@ -719,16 +722,16 @@
         try {
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
             if((await r.json()).status === "success") {
-                stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve!";
-                document.getElementById('hiba').value = ""; document.getElementById('megoldas').value = ""; document.getElementById('ido').value = ""; document.getElementById('downtime').value = ""; feltoltendoKepek = []; if(document.getElementById('kepElonezet')) document.getElementById('kepElonezet').innerHTML = '<span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva. (Max 15MB)</span>'; setTimeout(() => stat.innerText = "", 3000);
+                stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Rögzítve! Frissítés...";
+                setTimeout(() => location.reload(), 800);
             }
-        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; } btn.disabled = false;
+        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hiba történt."; btn.disabled = false; } 
     }
 
     async function deleteTask(id) {
         if(!confirm("⚠️ Biztosan véglegesen törlöd ezt a feladatot? Ezt nem lehet visszavonni!")) return;
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteTask", id: id }) });
-        loadTasks();
+        location.reload();
     }
 
     async function mergeTask(sourceId) {
@@ -739,11 +742,10 @@
 
         const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "mergeTask", sourceId: sourceId, targetId: targetId.trim().toUpperCase() }) });
         const result = await res.json();
-        if (result.status === "success") { alert("✅ Sikeresen összevonva!"); loadTasks(); } 
+        if (result.status === "success") { alert("✅ Sikeresen összevonva!"); location.reload(); } 
         else { alert("❌ Hiba: " + result.message); }
     }
 
-    // --- BEOSZTÁS ÉS NAPTÁR ECSET FUNKCIÓK ---
     function setBrush(tipus, btnObj) {
         activeBrush = tipus;
         document.querySelectorAll('.brush-btn').forEach(b => {
@@ -758,11 +760,10 @@
     function paintCell(user, dateStr, tdId) {
         if(!activeBrush || sessionRole !== 'superuser') return;
         
-        // ÜGYELET LOGIKA
         if (activeBrush === 'Ügyelet') {
             if (user === '__UGYELET__') return; 
             
-            let topTdId = tdId.replace(`cell_${user.replace(/\s+/g,'_')}`, 'cell___UGYELET__'); 
+            let topTdId = tdId.replace(`maincell_${user.replace(/\s+/g,'_')}`, 'maincell___UGYELET__'); 
             let topEl = document.getElementById(topTdId);
             
             if (topEl) {
@@ -774,10 +775,6 @@
             if(existingIdx > -1) paintedChanges[existingIdx].tipus = user;
             else paintedChanges.push({ user: '__UGYELET__', datum: dateStr, tipus: user });
 
-            let gsIdx = globalSchedule.findIndex(x => x.user === '__UGYELET__' && x.datum === dateStr);
-            if(gsIdx > -1) globalSchedule[gsIdx].tipus = user;
-            else globalSchedule.push({user: '__UGYELET__', datum: dateStr, tipus: user});
-
             let el = document.getElementById(tdId);
             if(el) {
                 let origBg = el.style.backgroundColor;
@@ -787,7 +784,6 @@
             return;
         }
 
-        // TÖRLÉS LOGIKA ÜGYELETRE
         if (activeBrush === 'Törlés' && user === '__UGYELET__') {
             let el = document.getElementById(tdId);
             if(el) { el.innerText = ''; el.className = 'sched-cell hoverable'; }
@@ -800,7 +796,6 @@
 
         if (user === '__UGYELET__') return;
 
-        // NORMÁL MŰSZAK LOGIKA
         let cls = '', text = '';
         if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
         else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
@@ -818,14 +813,6 @@
         let existingIdx = paintedChanges.findIndex(x => x.user === user && x.datum === dateStr);
         if(existingIdx > -1) paintedChanges[existingIdx].tipus = activeBrush;
         else paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
-
-        let gsIdx = globalSchedule.findIndex(x => x.user === user && x.datum === dateStr);
-        if(activeBrush === 'Törlés') {
-            if(gsIdx > -1) globalSchedule.splice(gsIdx, 1);
-        } else {
-            if(gsIdx > -1) globalSchedule[gsIdx].tipus = activeBrush;
-            else globalSchedule.push({user: user, datum: dateStr, tipus: activeBrush});
-        }
     }
 
     async function savePaintedSchedule() {
@@ -849,13 +836,9 @@
             }
             paintedChanges = [];
             activeBrush = null;
-            document.querySelectorAll('.brush-btn').forEach(b => { b.style.outline = 'none'; b.style.transform = 'scale(1)'; });
             document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
-            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások sikeresen mentve!";
-            setTimeout(()=> { 
-                document.getElementById('activeBrushDisplay').style.color = "var(--text-main)";
-                document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs"; 
-            }, 3000);
+            document.getElementById('activeBrushDisplay').innerText = "✅ Módosítások mentve! Frissítés...";
+            setTimeout(()=> { location.reload(); }, 1000);
         } catch(e) {
             document.getElementById('activeBrushDisplay').innerText = "❌ Hálózati hiba mentéskor!";
         }
@@ -901,7 +884,6 @@
         
         let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
 
-        // Ügyeletes sor
         html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d);
@@ -916,7 +898,6 @@
         });
         html += `</tr>`;
         
-        // Dolgozók
         users.forEach(u => {
             html += `<tr><td class="sticky-col">${u}</td>`;
             dates.forEach(d => {
@@ -951,8 +932,8 @@
         let p = { action: "addRecurringTask", felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, prioritas: document.getElementById('ismPrioritas').value, ismTipus: document.getElementById('ismTipus').value, checklist: cl, kezdoDatum: kd };
         try {
             const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) });
-            if((await r.json()).status === "success") { stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Mentve!"; document.getElementById('ismHiba').value = ""; document.getElementById('ismChecklist').value = ""; document.getElementById('ismKezdoDatum').value = ""; loadRecurringTasks(); setTimeout(() => stat.innerText = "", 3000); }
-        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hálózati hiba."; } btn.disabled = false;
+            if((await r.json()).status === "success") { stat.style.color = "var(--pri-normal)"; stat.innerText = "✅ Mentve! Frissítés..."; setTimeout(() => location.reload(), 1000); }
+        } catch(e) { stat.style.color = "var(--pri-crit)"; stat.innerText = "Hálózati hiba."; btn.disabled = false; } 
     }
 
     async function loadRecurringTasks() {
@@ -973,7 +954,7 @@
 
     async function deleteRecurringTask(id) {
         if(!confirm("Biztosan törlöd ezt az ismétlődő feladatot?")) return;
-        try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecurringTask", id: id }) }); if((await res.json()).status === "success") loadRecurringTasks(); } catch(e) {}
+        try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecurringTask", id: id }) }); if((await res.json()).status === "success") location.reload(); } catch(e) {}
     }
 
     async function submitShiftLog() {
@@ -983,9 +964,9 @@
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", felhasznalo: localStorage.getItem("activeUser"), muszak: document.getElementById('muszakTipus').value, datum: dt, szoveg: sz }) });
             const r = await res.json();
-            if(r.status === "success") { document.getElementById('muszakSzoveg').value = ""; stat.style.color="var(--pri-normal)"; stat.innerText="✅ Mentve!"; setTimeout(()=>stat.innerText="",3000); loadShiftLogs(); }
-            else { stat.style.color="var(--pri-crit)"; stat.innerText="❌ " + r.message; }
-        } catch(e) { stat.style.color="var(--pri-crit)"; stat.innerText="❌ Hálózati hiba!"; } btn.disabled = false;
+            if(r.status === "success") { stat.style.color="var(--pri-normal)"; stat.innerText="✅ Mentve! Frissítés..."; setTimeout(()=>location.reload(), 1000); }
+            else { stat.style.color="var(--pri-crit)"; stat.innerText="❌ " + r.message; btn.disabled = false; }
+        } catch(e) { stat.style.color="var(--pri-crit)"; stat.innerText="❌ Hálózati hiba!"; btn.disabled = false; } 
     }
     
     async function loadShiftLogs() {
@@ -1069,12 +1050,12 @@
     }
 
     function toggleEditLog(id) { const e = document.getElementById(`logEditDiv_${id}`), d = document.getElementById(`logDisp_${id}`); if(e.style.display==="none") { e.style.display="block"; d.style.display="none"; } else { e.style.display="none"; d.style.display="block"; } }
-    async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); loadShiftLogs(); }
+    async function saveEditLog(id, ot, of) { const n = document.getElementById(`logInp_${id}`).value; if(!n) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "editShiftLog", id: id, oldTimestamp: ot, oldFelhasznalo: of, ujSzoveg: n, szerkeszto: localStorage.getItem("activeUser") }) }); location.reload(); }
     async function approveShiftLog(id) {
         const btn = document.getElementById('apprBtn_' + id);
         if(btn) { btn.disabled = true; btn.innerText = "⏳..."; }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
-        loadShiftLogs(); 
+        location.reload(); 
     }
 
     async function loadTasks() {
@@ -1096,25 +1077,25 @@
         } catch(e) { console.error("Hiba a loadTasks-ban:", e); }
     }
 
-    async function startTask(id) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) }); loadTasks(); }
+    async function startTask(id) { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) }); location.reload(); }
     
     async function changeTaskPriority(id, newVal) {
-        if(!confirm("Biztosan átállítod a prioritást erre: " + newVal + "?")) { loadTasks(); return; }
+        if(!confirm("Biztosan átállítod a prioritást erre: " + newVal + "?")) { location.reload(); return; }
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "changePriority", id: id, ujPrioritas: newVal }) }); 
-        loadTasks();
+        location.reload();
     }
 
     async function closeTask(id) { 
         const m = document.getElementById(`megoldas_${id}`).value, i = document.getElementById(`ido_${id}`).value, dt = document.getElementById(`downtime_${id}`).value; 
         if(!m) return alert("Megoldás kötelező!"); 
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: id, megoldas: m, ido: i, downtime: dt, lezarta: localStorage.getItem("activeUser") }) }); 
-        loadTasks(); 
+        location.reload(); 
     }
 
     async function reopenTask(id) {
         if(!confirm("Biztosan újranyitod ezt az eseti hibát?")) return;
         await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "reopenTask", id: id, felhasznalo: localStorage.getItem("activeUser") }) }); 
-        loadTasks();
+        location.reload();
     }
 
     async function sendExtraInfo(id) {
@@ -1124,7 +1105,7 @@
             let promises = Array.from(fi.files).map(f => f.type.startsWith('video/') ? processVideo(f) : compressImage(f));
             p.kepek = (await Promise.all(promises)).filter(x => x !== null);
         }
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); loadTasks();
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); location.reload();
     }
 
     function getFilteredOpenTasks() {
@@ -1625,12 +1606,12 @@
 
     async function saveSettings() {
         const r=document.getElementById('regiJelszo').value; const u=document.getElementById('ujJelszo').value; const st=document.getElementById('profilStatus');
-        if(!r && !u){ if(st) { st.style.color="var(--pri-normal)"; st.innerText="Mentve!"; setTimeout(()=>st.innerText="",3000); } return; }
+        if(!r && !u){ if(st) { st.style.color="var(--pri-normal)"; st.innerText="Nincs módosítandó adat."; setTimeout(()=>st.innerText="",3000); } return; }
         if(!r || !u){ if(st) { st.style.color="var(--pri-crit)"; st.innerText="Mindkét kódot add meg!"; } return; }
         try{ 
             const res=await fetch(SCRIPT_URL,{ method:"POST", body:JSON.stringify({ action:"changePassword", nev:localStorage.getItem("activeUser"), regiJelszo:await hashPassword(r), ujJelszo:await hashPassword(u) }) }); 
             const result=await res.json();
-            if(result.status==="success"){ if(st) { st.style.color="var(--pri-normal)"; st.innerText="Sikeres módosítás!"; } if(document.getElementById('regiJelszo')) document.getElementById('regiJelszo').value=""; if(document.getElementById('ujJelszo')) document.getElementById('ujJelszo').value=""; setTimeout(()=> { if(st) st.innerText=""; },3000); } 
+            if(result.status==="success"){ if(st) { st.style.color="var(--pri-normal)"; st.innerText="Sikeres módosítás! Frissítés..."; } setTimeout(()=> { location.reload(); },1500); } 
             else { if(st) { st.style.color="var(--pri-crit)"; st.innerText=result.message; } }
         }catch(e){ if(st) { st.style.color="var(--pri-crit)"; st.innerText="Hiba!"; } }
     }
