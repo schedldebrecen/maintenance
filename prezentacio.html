@@ -18,7 +18,7 @@
         .control-panel h2 { margin-top: 0; color: var(--primary); font-size: 24px; display:flex; align-items:center; gap:10px; }
         
         .flex-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
-        .btn-quick { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 13px; }
+        .btn-quick { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 5px; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 13px; transition: 0.2s; }
         .btn-quick:hover { background: #cbd5e1; }
         
         input[type="date"], input[type="file"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 5px; font-family: inherit; font-size: 14px; background: #fff; color:#000; }
@@ -60,7 +60,7 @@
 
         /* DRAG & DROP CSEMPÉK */
         .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .ticket-tile { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: grab; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+        .ticket-tile { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: grab; transition: transform 0.2s, box-shadow 0.2s; position: relative; display: flex; flex-direction: column; }
         .ticket-tile:active { cursor: grabbing; }
         .ticket-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); border-color: #cbd5e1; }
         .ticket-tile.drag-over { border: 2px dashed var(--accent); background: #f0f9ff; transform: scale(1.02); }
@@ -70,8 +70,8 @@
 
         .tile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: var(--text-muted); }
         .tile-title { font-weight: bold; font-size: 14px; color: var(--text-main); margin-bottom: 8px; line-height: 1.4; }
-        .tile-solution { font-size: 13px; color: #64748b; font-style: italic; margin-bottom: 10px; }
-        .tile-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; }
+        .tile-solution { font-size: 13px; color: #64748b; font-style: italic; margin-bottom: 10px; flex: 1; }
+        .tile-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; margin-top: auto; }
 
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; white-space: nowrap; }
         .badge-crit { background: var(--pri-crit); }
@@ -103,7 +103,7 @@
 
     <div class="control-panel" id="controls">
         <h2>📈 Folyamatos Fejlesztés (CI) - Karbantartási Értékelő</h2>
-        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot a generáláshoz! Az azonos hibákat <b>Drag & Drop</b> módszerrel (egymásra húzva) tudod csoportosítani a gépek lenyíló ablakában.</p>
+        <p style="color:var(--text-muted); margin-bottom:20px;">Válaszd ki az időszakot a generáláshoz! Az azonos hibákat <b>Drag & Drop</b> módszerrel tudod csoportosítani a gépek lenyíló ablakában. A meetinghez nem tartozó hibákat az Elrejtés gombbal átmenetileg kiveheted a listából.</p>
 
         <div class="flex-row" style="background:#f1f5f9; padding:15px; border-radius:6px; border:1px solid var(--border);">
             <div style="font-weight:bold; width:100%;">Időszak kiválasztása:</div>
@@ -127,7 +127,8 @@
             </div>
             
             <div style="margin-left:auto; display:flex; gap:10px;">
-                <button class="btn-quick" onclick="resetGrouping()" style="border-color:var(--pri-crit); color:var(--pri-crit);">Beállítások nullázása</button>
+                <button class="btn-quick" id="btnUnhideAll" onclick="unhideAll()" style="display:none; border-color:var(--text-muted); color:var(--text-muted);">👁️ Rejtettek visszaállítása (<span id="hiddenCount">0</span>)</button>
+                <button class="btn-quick" onclick="resetGrouping()" style="border-color:var(--pri-crit); color:var(--pri-crit);">Mentett beállítások nullázása</button>
                 <button class="btn-quick" id="btnExpandAll" style="display:none; border:1px solid var(--accent); color:var(--accent);" onclick="toggleAllDetails(true)">Mindent kinyit</button>
                 <button class="btn-print" id="btnPrint" onclick="window.print()">🖨️ Mentés PDF-be</button>
             </div>
@@ -171,7 +172,7 @@
         </div>
         
         <div class="no-print" style="background:#e0f2fe; padding:10px 15px; border:1px solid #bae6fd; border-radius:6px; margin-bottom:15px; color:#0369a1; font-size:14px;">
-            💡 <b>Tipp:</b> A lenyíló ablakokban lévő hibakártyákat egérrel <b>egymásra húzva (Drag & Drop)</b> tudod csoportosítani!
+            💡 <b>Tipp:</b> A lenyíló ablakokban lévő hibakártyákat egérrel <b>egymásra húzva (Drag & Drop)</b> tudod csoportosítani! A nem ide illő hibákat az 👁️ ikonnal elrejtheted.
         </div>
 
         <div id="paretoContainer" style="margin-bottom: 40px;">
@@ -205,8 +206,10 @@
     let currentDateFrom = "";
     let currentDateTo = "";
 
-    // Memóriában tároljuk a manuális csoportosításokat
-    let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [] };
+    // Memóriában tároljuk a manuális csoportosításokat ÉS a rejtett hibákat
+    let groupingState = JSON.parse(localStorage.getItem('cmms_grouping')) || { manualGroups: [], ungrouped: [], hiddenTasks: [] };
+    if (!groupingState.hiddenTasks) groupingState.hiddenTasks = []; // Kompatibilitás miatt
+
     let currentAutoGroups = {}; // Futásidőben tárolt auto-csoportok a D&D műveletekhez
 
     function toISO(d) {
@@ -233,11 +236,37 @@
     }
 
     function resetGrouping() {
-        if(!confirm("Biztosan törlöd az összes eddigi kézi csoportosítást és szétbontást?")) return;
+        if(!confirm("Biztosan törlöd az összes eddigi kézi csoportosítást, szétbontást és elrejtést?")) return;
         localStorage.removeItem('cmms_grouping');
-        groupingState = { manualGroups: [], ungrouped: [] };
+        groupingState = { manualGroups: [], ungrouped: [], hiddenTasks: [] };
         if(globalReportData.length > 0) processReportData(globalReportData, currentDateFrom, currentDateTo);
         else alert("Sikeresen nullázva!");
+    }
+
+    // --- ELREJTÉS ÉS VISSZAÁLLÍTÁS LOGIKA ---
+    function hideTask(id, isGroup, taskIdsStr, event) {
+        event.stopPropagation();
+        if(!confirm("Biztosan elrejted ezt a tételt a prezentációból? (Ezután a statisztikába sem fog beleszámítani)")) return;
+        
+        if (isGroup) {
+            let ids = taskIdsStr.split(',');
+            ids.forEach(taskId => {
+                if(!groupingState.hiddenTasks.includes(taskId)) groupingState.hiddenTasks.push(taskId);
+            });
+        } else {
+            if(!groupingState.hiddenTasks.includes(id)) groupingState.hiddenTasks.push(id);
+        }
+        
+        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+        processReportData(globalReportData, currentDateFrom, currentDateTo);
+    }
+
+    function unhideAll() {
+        if(groupingState.hiddenTasks.length === 0) return;
+        if(!confirm(`Biztosan visszaállítod a ${groupingState.hiddenTasks.length} db elrejtett hibát a prezentációba?`)) return;
+        groupingState.hiddenTasks = [];
+        localStorage.setItem('cmms_grouping', JSON.stringify(groupingState));
+        processReportData(globalReportData, currentDateFrom, currentDateTo);
     }
 
     async function fetchDataFromSystem() {
@@ -277,7 +306,7 @@
         } catch(e) { err.style.color = "var(--pri-crit)"; err.innerText = "Hálózati hiba a letöltés során."; }
     }
 
-    // CSV Feldolgozó maradék
+    // CSV Feldolgozó maradék vésztartaléknak
     function parseCSV(text) {
         text = text.replace(/^\uFEFF/, '').replace(/\r/g, '');
         let lines = text.split('\n'); let result = []; let headers = [];
@@ -345,17 +374,14 @@
         if (sourceId === targetId) return;
 
         if (targetType === "group") {
-            // A célpont egy meglévő Csoport
             let isManual = ev.currentTarget.dataset.ismanual === "true";
             if (isManual) {
-                // Csak hozzáadjuk a manuális csoporthoz
                 let origId = ev.currentTarget.dataset.origid;
                 let grp = groupingState.manualGroups.find(g => g.id === origId);
                 if (grp && !grp.taskIds.includes(sourceId)) {
                     grp.taskIds.push(sourceId);
                 }
             } else {
-                // Egy Automatikus csoportra húzták -> Manuálissá kell alakítani
                 let name = prompt("Automatikus csoport kibővítése. Mi legyen a végleges megnevezés?", ev.currentTarget.dataset.name);
                 if (!name) return;
                 let autoTaskIds = ev.currentTarget.dataset.taskids.split(',');
@@ -364,14 +390,12 @@
                 groupingState.manualGroups.push(newGrp);
             }
         } else {
-            // A célpont egy sima feladatkártya -> Új csoport jön létre kettőjükből
             let name = prompt("Két hiba összevonása. Mi legyen a közös probléma megnevezése?");
             if (!name) return;
             let gep = ev.currentTarget.dataset.gep;
             let newGrp = { id: 'MG-' + Date.now(), name: name, gep: gep, taskIds: [sourceId, targetId] };
             groupingState.manualGroups.push(newGrp);
             
-            // Ha auto-csoportokból jöttek vagy korábban szétbontottak voltak, takarítunk
             groupingState.ungrouped = groupingState.ungrouped.filter(id => id !== sourceId && id !== targetId);
         }
         
@@ -387,7 +411,6 @@
         if(isManual) {
             groupingState.manualGroups = groupingState.manualGroups.filter(g => g.id !== String(groupId));
         } else {
-            // Automatikus csoport szétbontásának megjegyzése
             let ids = taskIdsStr.split(',');
             ids.forEach(id => {
                 if(!groupingState.ungrouped.includes(id)) groupingState.ungrouped.push(id);
@@ -402,17 +425,32 @@
         globalReportData = data; 
         currentDateFrom = dateFrom; 
         currentDateTo = dateTo;
-        currentAutoGroups = {}; // Töröljük a memóriát újrarajzolás előtt
+        currentAutoGroups = {}; 
 
+        // Gomb megjelenítése, ha van elrejtett hiba
+        let unhideBtn = document.getElementById('btnUnhideAll');
+        if (groupingState.hiddenTasks && groupingState.hiddenTasks.length > 0) {
+            unhideBtn.style.display = 'inline-block';
+            document.getElementById('hiddenCount').innerText = groupingState.hiddenTasks.length;
+        } else {
+            unhideBtn.style.display = 'none';
+        }
+
+        // Szűrés IDŐSZAKRA + ELREJTETT HIBÁK KISZŰRÉSE
         let filtered = data.filter(row => {
             if (!row['Időpont'] || row['Státusz'] !== 'Lezárt') return false; 
             let rowDate = String(row['Időpont']).substring(0, 10);
-            return rowDate >= dateFrom && rowDate <= dateTo;
+            if (rowDate < dateFrom || rowDate > dateTo) return false;
+            
+            if (groupingState.hiddenTasks.includes(row['ID'])) return false; // ELREJTVE!
+            
+            return true;
         });
 
         if (filtered.length === 0) {
             document.getElementById('errorMsg').style.color = "var(--pri-crit)";
             document.getElementById('errorMsg').innerText = "Erre az időszakra nincs megjeleníthető LEZÁRT feladat az adatok között.";
+            document.getElementById('reportContainer').style.display = 'none';
             return;
         }
 
@@ -454,7 +492,7 @@
                     if(hibaKulcs.length > 3) {
                         gId = "AUTO_" + gep + "|||" + hibaKulcs;
                         if(!recurringGroups[gId]) recurringGroups[gId] = { isManual: false, originalId: gId, name: hibaSzoveg, gep: gep, count: 0, downtime: 0, items: [], taskIds: [] };
-                        currentAutoGroups[gId] = recurringGroups[gId]; // Eltesszük memóriába is
+                        currentAutoGroups[gId] = recurringGroups[gId]; 
                     }
                 }
 
@@ -494,20 +532,19 @@
                 <div class="details-content">
                     <div class="tile-grid">`;
             
-            // Csempék generálása a géphez
             let displayedGroupIds = new Set();
-            m.items.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont'])); // Dátum csökkenő
+            m.items.sort((a, b) => new Date(b['Időpont']) - new Date(a['Időpont'])); 
             
             m.items.forEach(t => {
                 let gId = taskGroupIdMap[t['ID']];
                 let group = recurringGroups[gId];
 
-                if (group && group.count > 1) { // Ha csoport és tényleg van benne legalább 2 elem
+                if (group && group.count > 1) { 
                     if(!displayedGroupIds.has(gId)) {
                         mHtml += generateGroupTileHtml(group);
                         displayedGroupIds.add(gId);
                     }
-                } else { // Egyedi elemkártya
+                } else { 
                     mHtml += generateTaskTileHtml(t);
                 }
             });
@@ -516,7 +553,7 @@
         });
         document.getElementById('paretoContainer').innerHTML = mHtml || "<p>Nincs eseti meghibásodás.</p>";
 
-        // --- VISSZATÉRŐ HIBÁK (Csak a megkreált csoportok kilistázása) ---
+        // --- VISSZATÉRŐ HIBÁK ---
         let recurringList = Object.values(recurringGroups).filter(rg => rg.count > 1).sort((a, b) => b.count - a.count);
         let rHtml = "";
         
@@ -556,8 +593,9 @@
 
         return `
         <div class="ticket-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${t['ID']}" data-type="task" data-gep="${t['Gép']}">
-           <div class="tile-header">
-              <span>${dateF}</span> <span class="badge ${badge}">${pTxt}</span>
+           <div class="tile-header" style="align-items:center;">
+              <div><span>${dateF}</span> <span class="badge ${badge}" style="margin-left:5px;">${pTxt}</span></div>
+              <button class="no-print" onclick="hideTask('${t['ID']}', false, '', event)" style="background:transparent; color:var(--text-muted); border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:10px;" title="Elrejtés a megbeszélésről">👁️ Elrejtés</button>
            </div>
            <div class="tile-title">${t['Hiba']}</div>
            <div class="tile-solution">${megSzoveg.substring(0, 80)}...</div>
@@ -575,9 +613,12 @@
 
         return `
         <div class="ticket-tile group-tile" draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" data-id="${group.originalId}" data-type="group" data-ismanual="${group.isManual}" data-name="${group.name}" data-taskids="${taskIdsStr}" data-gep="${group.gep}">
-           <div class="tile-header" style="justify-content:space-between;">
+           <div class="tile-header" style="justify-content:space-between; align-items:center;">
                <span class="badge badge-high" style="font-size:12px;">🔗 ${group.count} DB HIBA</span>
-               <button class="no-print" onclick="ungroup('${group.originalId}', ${group.isManual}, '${taskIdsStr}', event)" style="background:#ef4444; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Bontás</button>
+               <div style="display:flex; gap:5px;">
+                   <button class="no-print" onclick="hideTask('${group.originalId}', true, '${taskIdsStr}', event)" style="background:transparent; color:var(--text-muted); border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:10px;" title="Csoport elrejtése">👁️ Elrejtés</button>
+                   <button class="no-print" onclick="ungroup('${group.originalId}', ${group.isManual}, '${taskIdsStr}', event)" style="background:#ef4444; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Bontás</button>
+               </div>
            </div>
            <div class="tile-title" style="font-size:16px; margin: 15px 0;">${group.name}</div>
            <div class="tile-footer" style="border-top-color: var(--pri-high);">
