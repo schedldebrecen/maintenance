@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termelés Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a; --surface: #1e293b; --surface-light: #334155;
+            --text-main: #f8fafc; --text-muted: #94a3b8; --border: #334155;
+            --accent: #0ea5e9; --pri-crit: #ef4444; --pri-high: #f59e0b; 
+            --pri-norm: #10b981; --pri-obs: #8b5cf6; --pri-info: #3b82f6;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Felső Sáv */
+        .topbar { background: var(--surface); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .topbar h1 { margin: 0; font-size: 24px; color: var(--text-main); display: flex; align-items: center; gap: 15px; }
+        .clock { font-size: 28px; font-weight: bold; color: var(--accent); font-variant-numeric: tabular-nums; }
+        .btn-switch { background: var(--pri-norm); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-switch:hover { filter: brightness(1.2); }
+
+        /* Három oszlopos grid */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 350px; gap: 20px; padding: 20px; flex: 1; overflow: hidden; }
+        
+        .column { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+        .col-header { padding: 15px 20px; background: var(--surface-light); font-size: 18px; font-weight: bold; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; }
+        .col-content { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Gördítősáv TV-hez optimalizálva */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--surface); }
+        ::-webkit-scrollbar-thumb { background: var(--surface-light); border-radius: 4px; }
+
+        /* Kártyák */
+        .task-card { background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; padding: 15px; border-left: 5px solid var(--text-muted); position: relative; }
+        .task-card.crit { border-left-color: var(--pri-crit); animation: pulse-crit 2s infinite; }
+        .task-card.high { border-left-color: var(--pri-high); }
+        .task-card.norm { border-left-color: var(--pri-norm); }
+        .task-card.obs { border-left-color: var(--pri-obs); }
+        .task-card.prev { border-left-color: var(--pri-info); }
+
+        @keyframes pulse-crit { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .t-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+        .t-machine { font-size: 18px; font-weight: bold; color: var(--text-main); margin-bottom: 5px; }
+        .t-desc { font-size: 15px; line-height: 1.4; margin-bottom: 10px; color: #cbd5e1; }
+        .t-foot { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--accent); }
+        
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: white; }
+        .b-crit { background: var(--pri-crit); } .b-high { background: var(--pri-high); } .b-norm { background: var(--pri-norm); } .b-prev { background: var(--pri-info); }
+
+        /* Naptár lista */
+        .sched-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 12px 15px; border-radius: 6px; border: 1px solid var(--border); font-size: 16px; font-weight: bold; }
+        .s-MS { color: #ffe599; } .s-AS { color: #e69138; } .s-NS { color: #93c47d; } .s-O { color: #cbd5e1; } .s-UGY { color: var(--pri-crit); }
+
+        #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15,23,42,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">🔄 Adatok szinkronizálása...</div>
+
+    <div class="topbar">
+        <h1>🏭 Termelés (Production) - Aktuális Állapot</h1>
+        <div style="display:flex; gap:20px; align-items:center;">
+            <button class="btn-switch" onclick="window.location.href='dashboard.html'">🔧 Váltás: Karbantartás</button>
+            <div class="clock" id="clockDisplay">00:00:00</div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- 1. OSZLOP: Nyitott Hibák -->
+        <div class="column">
+            <div class="col-header">
+                <span style="color:var(--pri-high);">⚠️ Nyitott Feladatok</span>
+                <span id="openCount" class="badge b-high">0</span>
+            </div>
+            <div class="col-content" id="openContainer">
+                <!-- JS generálja -->
+            </div>
+        </div>
+
+        <!-- 2. OSZLOP: Lezárt Hibák (Mai) -->
+        <div class="column">
+            <div class="col-header">
+                <span style="color:var(--pri-norm);">✅ Mai Lezárt Hibák</span>
+                <span id="closedCount" class="badge b-norm">0</span>
+            </div>
+            <div class="col-content" id="closedContainer">
+                <!-- JS generálja -->
+            </div>
+        </div>
+
+        <!-- 3. OSZLOP: Beosztás (Mai) -->
+        <div class="column">
+            <div class="col-header">
+                <span style="color:var(--accent);">📅 Mai Termelés Beosztás</span>
+                <span id="schedCount" class="badge" style="background:var(--accent);">0</span>
+            </div>
+            <div class="col-content" id="schedContainer">
+                <!-- JS generálja -->
+            </div>
+        </div>
+    </div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
+    const RESZLEG = "production"; 
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clockDisplay').innerText = now.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toLocalISOString(dateObj) {
+        const y = dateObj.getFullYear(), m = String(dateObj.getMonth() + 1).padStart(2, '0'), d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    async function fetchData() {
+        try {
+            // 1. Hibák letöltése (A közös táblából)
+            const resTasks = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks", reszleg: RESZLEG }) });
+            const rTasks = await resTasks.json();
+            
+            // 2. Beosztás letöltése KIFEJEZETTEN a Termeléshez (reszleg: "production")
+            const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule", reszleg: RESZLEG }) });
+            const rSched = await resSched.json();
+
+            if(rTasks.status === "success" && rSched.status === "success") {
+                processAndRender(rTasks.data, rSched.data);
+            }
+        } catch(e) { console.error("Hiba a letöltéskor", e); }
+        finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+    }
+
+    function processAndRender(tasks, schedule) {
+        const todayStr = toLocalISOString(new Date());
+        let openHTML = ""; let openC = 0;
+        let closedHTML = ""; let closedC = 0;
+        
+        // Súlyozás a sorrendhez
+        const w = {"Termelésleállás":4, "Magas prioritás":3, "Normál":2, "Megfigyelés alatt":1.5, "Informatív":1}; 
+        tasks.sort((a,b)=> (w[String(b.prioritas)]||0)-(w[String(a.prioritas)]||0));
+
+        tasks.forEach(t => {
+            let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
+            // Termeléses ismétlődő azonosítása
+            let isProdPrev = isPrev && String(t.id).toUpperCase().includes("PROD");
+
+            let dObj = new Date(t.idopont);
+            let timeStr = dObj.toLocaleTimeString('hu-HU', {hour:'2-digit', minute:'2-digit'});
+            let dateStr = dObj.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+
+            if (t.statusz !== "Lezárt") {
+                // TERMELÉS NÉZET: Eltüntetjük a Karbantartás ismétlődő feladatait
+                // Tehát ha ismétlődő ÉS NEM prod-os ismétlődő, akkor kihagyjuk!
+                if (isPrev && !isProdPrev) return;
+
+                let prClass = "norm"; let bClass = "b-norm"; let badgeTxt = "Normál";
+                const pLower = String(t.prioritas).toLowerCase();
+                
+                if (isPrev) { prClass = "prev"; bClass = "b-prev"; badgeTxt = "Terv. Karbantartás"; }
+                else if (pLower.includes("leállás")) { prClass = "crit"; bClass = "b-crit"; badgeTxt = "Leállás"; }
+                else if (pLower.includes("magas")) { prClass = "high"; bClass = "b-high"; badgeTxt = "Sürgős"; }
+                else if (pLower.includes("megfigyelés")) { prClass = "obs"; bClass = "b-norm"; badgeTxt = "Megfigyelés"; }
+
+                let felelosTxt = t.statusz === "Folyamatban" ? `👷 Dolgozik: ${t.felelos}` : `Beküldte: ${t.felhasznalo}`;
+
+                openHTML += `
+                <div class="task-card ${prClass}">
+                    <div class="t-head">
+                        <span>${dateStr} ${timeStr}</span>
+                        <span class="badge ${bClass}">${badgeTxt}</span>
+                    </div>
+                    <div class="t-machine">${isPrev ? '🔁 ' : ''}${t.gep}</div>
+                    <div class="t-desc">${t.hiba}</div>
+                    <div class="t-foot">
+                        <span>${felelosTxt}</span>
+                        <span>#${t.id}</span>
+                    </div>
+                </div>`;
+                openC++;
+
+            } else {
+                // Lezárt feladatok (Csak a mai napon lezártak jelennek meg)
+                let taskDate = toLocalISOString(dObj);
+                if (taskDate === todayStr) {
+                    let prevIco = isPrev ? '🔁 ' : '';
+                    let downtimeHtml = parseFloat(t.downtime) > 0 ? `<span style="color:var(--pri-crit);">Kiesés: ${t.downtime}p</span>` : '';
+                    
+                    closedHTML += `
+                    <div class="task-card" style="border-left-color: var(--pri-norm); opacity:0.8;">
+                        <div class="t-head">
+                            <span>Lezárva: ${timeStr}</span>
+                            <span class="badge b-norm">Kész</span>
+                        </div>
+                        <div class="t-machine" style="color:var(--pri-norm);">${prevIco}${t.gep}</div>
+                        <div class="t-desc" style="font-size:13px; color:var(--text-muted);">${t.hiba}</div>
+                        <div class="t-desc"><i>${String(t.megoldas).substring(0, 60)}...</i></div>
+                        <div class="t-foot">
+                            <span style="color:var(--text-muted);">👤 ${t.lezarta}</span>
+                            ${downtimeHtml}
+                        </div>
+                    </div>`;
+                    closedC++;
+                }
+            }
+        });
+
+        document.getElementById('openContainer').innerHTML = openHTML || `<div style="text-align:center; color:var(--text-muted); padding:20px;">Nincs nyitott feladat! 🎉</div>`;
+        document.getElementById('openCount').innerText = openC;
+        
+        document.getElementById('closedContainer').innerHTML = closedHTML || `<div style="text-align:center; color:var(--text-muted); padding:20px;">Ma még nincs lezárt feladat.</div>`;
+        document.getElementById('closedCount').innerText = closedC;
+
+        // Beosztás renderelése (Mai nap) a Termelésből!
+        let schedHTML = ""; let schedC = 0;
+        let ugyeletes = schedule.find(s => s.datum === todayStr && s.user === '__UGYELET__');
+        if(ugyeletes && ugyeletes.tipus && ugyeletes.tipus !== 'Törlés') {
+            schedHTML += `<div class="sched-item"><span class="s-UGY">📞 Ügyeletes / Készenlét</span> <span style="color:white;">${ugyeletes.tipus}</span></div>`;
+        }
+
+        let maiDolgozok = schedule.filter(s => s.datum === todayStr && s.user !== '__UGYELET__' && s.tipus && s.tipus !== 'Szabadság' && s.tipus !== 'Törlés');
+        maiDolgozok.sort((a,b) => a.tipus.localeCompare(b.tipus));
+        
+        maiDolgozok.forEach(s => {
+            let cls = ""; let tName = s.tipus;
+            if(s.tipus === 'Délelőtt') { cls = "s-MS"; tName = "Délelőtt (06-14)"; }
+            else if(s.tipus === 'Délután') { cls = "s-AS"; tName = "Délután (14-22)"; }
+            else if(s.tipus === 'Éjszaka') { cls = "s-NS"; tName = "Éjszaka (22-06)"; }
+            else if(s.tipus === 'Nappali') { cls = "s-O"; tName = "Nappali / Normál"; }
+
+            schedHTML += `<div class="sched-item"><span>${s.user}</span> <span class="${cls}">${tName}</span></div>`;
+            schedC++;
+        });
+
+        document.getElementById('schedContainer').innerHTML = schedHTML || `<div style="text-align:center; color:var(--text-muted); padding:20px;">Nincs beosztott termelési dolgozó mára.</div>`;
+        document.getElementById('schedCount').innerText = schedC;
+    }
+
+    // Automatikus frissítés percenként
+    fetchData();
+    setInterval(fetchData, 60000);
+
+</script>
+</body>
+</html>
