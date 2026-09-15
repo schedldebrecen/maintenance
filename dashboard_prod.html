@@ -39,23 +39,10 @@
         .view-section.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .kpi-bar { display: flex; gap: 15px; padding: 20px 30px; background: var(--bg-dark); overflow-x: auto; }
-        .kpi-card { flex: 1; min-width: 140px; background: var(--surface); border-radius: 8px; padding: 15px; text-align: center; border: 1px solid var(--border); border-bottom: 4px solid var(--border); cursor: pointer; transition: transform 0.2s, background 0.2s; }
-        .kpi-card:hover { transform: translateY(-3px); background: #334155; }
-        .kpi-card.active-filter { border: 2px solid white; background: #334155; }
-        .kpi-card h3 { margin: 0 0 10px 0; font-size: 13px; color: var(--text-muted); text-transform: uppercase; }
-        .kpi-card .val { font-size: 32px; font-weight: bold; }
-        
-        .kpi-card.crit { border-bottom-color: var(--pri-crit); } .kpi-card.crit .val { color: var(--pri-crit); }
-        .kpi-card.high { border-bottom-color: var(--pri-high); } .kpi-card.high .val { color: var(--pri-high); }
-        .kpi-card.prog { border-bottom-color: var(--pri-prog); } .kpi-card.prog .val { color: var(--pri-prog); }
-        .kpi-card.total { border-bottom-color: var(--pri-normal); } .kpi-card.total .val { color: var(--pri-normal); }
-        .kpi-card.info { border-bottom-color: var(--pri-info); } .kpi-card.info .val { color: var(--pri-info); }
-
-        .dashboard-container { padding: 0 30px 30px 30px; }
+        .dashboard-container { padding: 30px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
         
-        .section-title { grid-column: 1/-1; font-size: 20px; color: var(--text-muted); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px; margin-bottom: 5px; display:flex; align-items:center; gap: 10px; }
+        .section-title { grid-column: 1/-1; font-size: 20px; color: var(--text-muted); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 5px; margin-bottom: 5px; display:flex; align-items:center; gap: 10px; }
         
         .card { background: var(--surface); border-radius: 10px; padding: 20px; position: relative; border: 2px solid var(--pri-normal); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: scale(1.02); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
@@ -85,7 +72,7 @@
         #progressBar { position: absolute; bottom: -2px; left: 0; height: 2px; background: var(--pri-info); width: 0%; transition: width 1s linear; }
 
         /* Szűrő panel a lezártakhoz */
-        .filter-panel { background: var(--surface); padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); }
+        .filter-panel { background: var(--surface); padding: 20px; border-radius: 8px; margin-top: 0; margin-bottom: 20px; border: 1px solid var(--border); }
         .filter-panel .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .filter-panel input, .filter-panel select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-dark); color: white; font-size: 15px; box-sizing: border-box; }
 
@@ -100,6 +87,13 @@
         .cell-O { background: #fff2cc !important; color: #000 !important; font-weight:bold; }
         .cell-H { background: #93c47d !important; color: #000 !important; font-weight:bold; }
         .cell-ugy { background: #f59e0b !important; color: #fff !important; font-weight:bold; }
+        .sched-cell { transition: opacity 0.2s; }
+        .sched-cell.hoverable:hover { opacity: 0.6; }
+
+        .brush-btn { width:auto; margin:0; font-weight:bold; padding:8px 15px; border-radius:4px; border:none; cursor:pointer; font-size:14px; }
+
+        .login-input-group { position: relative; margin-bottom: 12px; }
+        .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center; background-size: 20px; background-color: #ffffff; color: var(--primary); }
 
         .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 10px; border: 1px solid var(--border); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
@@ -116,6 +110,10 @@
 
         #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 
+        @media (max-width: 768px) {
+            .top-bar { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
+            .time-group { text-align: left; flex-wrap: wrap; } .dashboard-container { padding: 15px; } .grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -137,7 +135,7 @@
                 <div class="live-badge">ÉLŐ</div>
             </div>
             <div class="time-group">
-                <!-- Bárki számára látható váltógomb -->
+                <!-- Szabad váltógomb (Termelésnél a Karbantartásba visz) -->
                 <button id="btnSwitchDash" onclick="window.location.href='dashboard.html'" style="background:var(--pri-normal); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:15px;">🔧 Váltás: Karbantartás</button>
                 
                 <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn">🔇 Néma</button>
@@ -163,26 +161,9 @@
 
         <div class="dashboard-container">
             
-            <!-- AKTUALIS FELADATOK NEZET -->
+            <!-- AKTUALIS FELADATOK NEZET (Kivettük a prioritas sávot) -->
             <div id="view-nyitott" class="view-section active">
-                <div class="kpi-bar" style="padding: 20px 0;">
-                    <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')">
-                        <h3>Termelésleállás</h3><div class="val" id="kpiCrit">0</div>
-                    </div>
-                    <div class="kpi-card high" id="kpiCard-High" onclick="setDashboardFilter('High')">
-                        <h3>Sürgős (Magas)</h3><div class="val" id="kpiHigh">0</div>
-                    </div>
-                    <div class="kpi-card prog" id="kpiCard-Prog" onclick="setDashboardFilter('Prog')">
-                        <h3>Folyamatban</h3><div class="val" id="kpiProg">0</div>
-                    </div>
-                    <div class="kpi-card total active-filter" id="kpiCard-Total" onclick="setDashboardFilter(null)">
-                        <h3>Munkára vár (Fő)</h3><div class="val" id="kpiTotal">0</div>
-                    </div>
-                    <div class="kpi-card info" id="kpiCard-Info" onclick="setDashboardFilter('Info')">
-                        <h3>Informatív / Megf.</h3><div class="val" id="kpiInfo">0</div>
-                    </div>
-                </div>
-                <div class="grid" id="taskGrid"></div>
+                <div class="grid" id="taskGrid" style="margin-top: 10px;"></div>
             </div>
 
             <!-- LEZÁRT FELADATOK NEZET -->
@@ -223,9 +204,35 @@
                 <div class="grid" id="closedTaskGrid"></div>
             </div>
 
-            <!-- BEOSZTÁS NÉZET -->
+            <!-- BEOSZTÁS NÉZET (Nincs ügyelet) -->
             <div id="view-beosztas" class="view-section">
-                <div id="dashScheduleContainer" style="background:var(--surface); padding:20px; border-radius:8px; border:1px solid var(--border); overflow-x:auto; margin-top:20px;">
+                <div id="dashPaintbrushPanel" style="display:none; background:var(--surface); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+                    <div style="color:var(--text-main); font-weight:bold; margin-bottom:10px; font-size:15px;">
+                        🖌️ Ecset eszköz beosztáshoz
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">Délelőtt</button>
+                        <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">Délután</button>
+                        <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">Éjszaka</button>
+                        <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappali', this)">Nappali / Pihenő</button>
+                        <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">Szabadság</button>
+                        <button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
+                        
+                        <div style="margin-left:auto; display:flex; align-items:center; gap:15px;">
+                            <span id="activeBrushDisplay" style="color:var(--text-muted); font-weight:bold; font-size:14px;">Aktív: Nincs</span>
+                            <button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal); border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="savePaintedSchedule()" id="btnSaveSchedule">💾 Módosítások mentése</button>
+                        </div>
+                    </div>
+                    <!-- Dolgozó hozzáadása vagy törlése (Csak loginnal) -->
+                    <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <span style="font-weight:bold; font-size:13px; color:var(--text-muted);">Dolgozó hozzáadása vagy törlése:</span>
+                        <input type="text" id="ujBeosztasDolgozo" placeholder="Dolgozó neve..." style="width:auto; margin:0; padding:6px 10px; font-size:13px; border-radius:4px; border:1px solid var(--border); background:var(--bg-dark); color:white;">
+                        <button onclick="addScheduleWorker()" style="width:auto; margin:0; padding:6px 12px; background:var(--accent); font-size:13px; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;">➕ Hozzáadás</button>
+                        <button onclick="deleteScheduleWorkerFromInput()" style="width:auto; margin:0; padding:6px 12px; background:var(--pri-crit); font-size:13px; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;">❌ Törlés</button>
+                    </div>
+                </div>
+
+                <div id="dashScheduleContainer" style="background:var(--surface); padding:20px; border-radius:8px; border:1px solid var(--border); overflow-x:auto;">
                     Betöltés...
                 </div>
             </div>
@@ -303,7 +310,6 @@
     let globalSchedule = [];
     let globalScheduleWorkers = [];
     let activeFilter = null; 
-    let autoResetTimeout = null;
 
     let optSound = false;
     let optFlash = false;
@@ -315,6 +321,8 @@
     let sessionUser = null;
     let sessionRole = null;
     let activeTaskId = null; 
+    let activeBrush = null;
+    let paintedChanges = [];
 
     window.onload = function() {
         const szuroKatSelect = document.getElementById('szuroKategoria');
@@ -455,9 +463,7 @@
                 checkMissingShiftLogsAndApprovals();
                 processData(result.data.tasks); 
                 
-                // Ha épp a Beosztás fül aktív, frissítsük azt is
                 if(document.getElementById('view-beosztas').classList.contains('active')) renderScheduleDash();
-                // Ha a Lezárt fül aktív, frissítsük
                 if(document.getElementById('view-lezart').classList.contains('active')) renderClosedTasks();
             } 
         } catch (e) { console.error("Hiba:", e); }
@@ -540,7 +546,7 @@
         globalShiftLogs.forEach(l => {
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
             
-            // DÁTUM SZIGORÍTÁS A TERMELÉSNEK: Csak a holnapi (09-16) naptól kezdve kérje számon
+            // TERMELÉSI SZIGORÍTÁS: Csak 09-16-tól
             if (logD >= "2026-09-16") {
                 
                 let szamonKerheto = false;
@@ -632,10 +638,8 @@
         globalClosedTasks = [];
         let hasNewAdHoc = false;
 
-        let cCrit = 0, cHigh = 0, cProg = 0, cInfo = 0;
-
         allTasks.forEach(t => {
-            // TERMELÉS SZŰRÉSE: Csak a PROD ismétlődőket jelenítjük meg, a többit elrejtjük!
+            // TERMELÉS SZŰRÉSE: Csak a PROD ismétlődőket jelenítjük meg
             let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
             if (isPrev && !String(t.id).toUpperCase().includes("PROD")) return;
 
@@ -644,12 +648,6 @@
             
             if(t.statusz !== "Lezárt") {
                 currentActiveTasks.push(t);
-                const pLower = String(t.prioritas).toLowerCase();
-                if(pLower.includes("leállás")) cCrit++;
-                if(pLower.includes("magas")) cHigh++;
-                if(t.statusz === "Folyamatban") cProg++;
-                if(pLower.includes("informatív") || pLower.includes("megfigyelés")) cInfo++;
-                
                 if(String(t.id).startsWith("KB-")) {
                     if(!isFirstLoad && !knownAdHocIds.has(t.id)) hasNewAdHoc = true;
                     knownAdHocIds.add(t.id);
@@ -661,12 +659,6 @@
 
         if (hasNewAdHoc && !isAlarming) triggerAlert();
         isFirstLoad = false;
-
-        document.getElementById('kpiCrit').innerText = cCrit; 
-        document.getElementById('kpiHigh').innerText = cHigh;
-        document.getElementById('kpiProg').innerText = cProg; 
-        document.getElementById('kpiInfo').innerText = cInfo; 
-        document.getElementById('kpiTotal').innerText = currentActiveTasks.length - cInfo;
 
         renderGrid(currentActiveTasks);
     }
@@ -719,20 +711,13 @@
         });
         html += `</tr></thead><tbody>`;
 
-        html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
-        dates.forEach(d => {
-            let isWorking = isWorkDay(d);
-            let bg = !isWorking ? 'background:rgba(255,255,255,0.05);' : '';
-            let dIso = toLocalISOString(d);
-            let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
-            let text = match ? match.tipus : '';
-            let cls = match ? 'cell-ugy' : '';
-            html += `<td class="${cls}" style="${bg}">${text}</td>`;
-        });
-        html += `</tr>`;
+        // NINCS ÜGYELET SOR TERMELÉSNÉL!
         
+        let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
+
         users.forEach(u => {
-            html += `<tr><td class="sticky-col">${u}</td>`;
+            let delBtn = (sessionRole === 'superuser') ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;" title="Dolgozó kivétele a naptárból">❌</button>` : '';
+            html += `<tr><td class="sticky-col">${u} ${delBtn}</td>`;
             dates.forEach(d => {
                 let isWorking = isWorkDay(d);
                 let bg = !isWorking ? 'background:rgba(255,255,255,0.05);' : '';
@@ -747,12 +732,112 @@
                 else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
                 else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'O'; }
                 
-                html += `<td class="${cls}" style="${bg}">${text}</td>`;
+                let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`;
+                let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : '';
+                html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
             });
             html += `</tr>`;
         });
         html += `</tbody></table>`;
         c.innerHTML = html;
+    }
+
+    function setBrush(tipus, btnObj) {
+        activeBrush = tipus;
+        document.querySelectorAll('.brush-btn').forEach(b => {
+            b.style.outline = 'none';
+            b.style.transform = 'scale(1)';
+        });
+        btnObj.style.outline = '3px solid var(--pri-info)';
+        btnObj.style.transform = 'scale(1.1)';
+        document.getElementById('activeBrushDisplay').innerText = "Aktív: " + tipus;
+    }
+
+    function paintCell(user, dateStr, tdId) {
+        if(!activeBrush || sessionRole !== 'superuser') return;
+        
+        if (activeBrush === 'Törlés' && user === '__UGYELET__') return; // Nincs ügyelet
+        if (user === '__UGYELET__') return;
+
+        let cls = '', text = '';
+        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
+        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
+        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
+        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
+        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+        else if(activeBrush === 'Törlés') { cls = ''; text = ''; }
+        
+        let el = document.getElementById(tdId);
+        if(el) {
+            el.className = 'sched-cell hoverable ' + cls;
+            el.innerText = text;
+        }
+
+        let existingIdx = paintedChanges.findIndex(x => x.user === user && x.datum === dateStr);
+        if(existingIdx > -1) paintedChanges[existingIdx].tipus = activeBrush;
+        else paintedChanges.push({ user: user, datum: dateStr, tipus: activeBrush });
+    }
+
+    async function savePaintedSchedule() {
+        if(paintedChanges.length === 0) return;
+        const btn = document.getElementById('btnSaveSchedule');
+        btn.innerText = "⏳ Mentés..."; btn.disabled = true;
+        
+        let groups = {};
+        paintedChanges.forEach(ch => {
+            let key = ch.user + "|" + ch.tipus;
+            if(!groups[key]) groups[key] = [];
+            groups[key].push(ch.datum);
+        });
+
+        try {
+            for(let key in groups) {
+                let [u, t] = key.split("|");
+                await fetch(SCRIPT_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: "addScheduleBulk", reszleg: RESZLEG, dates: groups[key], user: u, tipus: t }) 
+                });
+            }
+            paintedChanges = [];
+            activeBrush = null;
+            document.getElementById('activeBrushDisplay').style.color = "var(--text-muted)";
+            document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs";
+            showToast("Beosztás módosítva!");
+            loadSchedule();
+        } catch(e) {
+            showToast("Hiba a mentéskor!", true);
+        } finally {
+            btn.innerText = "💾 Módosítások mentése"; btn.disabled = false;
+        }
+    }
+
+    async function addScheduleWorker() {
+        const inp = document.getElementById('ujBeosztasDolgozo');
+        const nev = inp.value.trim();
+        if(!nev) return alert("Kérlek, add meg a dolgozó nevét!");
+        
+        const reqBody = { action: "addScheduleWorkerOnly", reszleg: RESZLEG, nev: nev };
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(reqBody) });
+        inp.value = "";
+        showToast(nev + " hozzáadva a beosztáshoz!");
+        loadSchedule();
+    }
+
+    async function deleteScheduleWorkerFromInput() {
+        const inp = document.getElementById('ujBeosztasDolgozo');
+        const nev = inp.value.trim();
+        if(!nev) return alert("Kérlek, add meg a törölni kívánt dolgozó nevét!");
+        deleteScheduleWorker(nev);
+        inp.value = "";
+    }
+
+    async function deleteScheduleWorker(nev) {
+        if(!confirm(`Biztosan kiveszed ${nev} nevét a naptárból? (A korábbi műszakai megmaradnak, de a sora nem fog megjelenni)`)) return;
+        
+        const reqBody = { action: "deleteScheduleWorkerOnly", reszleg: RESZLEG, nev: nev };
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(reqBody) });
+        showToast(nev + " eltávolítva a beosztásból!");
+        loadSchedule();
     }
 
     function triggerAlert() {
@@ -781,32 +866,13 @@
         for(let i = 0; i < 10; i++) playBeep(i); 
     }
 
-    function setDashboardFilter(filterType) {
-        if (activeFilter === filterType) activeFilter = null; else activeFilter = filterType;
-        document.querySelectorAll('.kpi-card').forEach(el => el.classList.remove('active-filter'));
-        if (activeFilter) document.getElementById('kpiCard-' + activeFilter).classList.add('active-filter');
-        else document.getElementById('kpiCard-Total').classList.add('active-filter');
-
-        if (autoResetTimeout) clearTimeout(autoResetTimeout);
-        if (activeFilter !== null) autoResetTimeout = setTimeout(() => { setDashboardFilter(null); }, 45000);
-        
-        renderGrid(currentActiveTasks);
-    }
-
     function renderGrid(renderTasks) {
         const grid = document.getElementById('taskGrid');
-        let filteredTasks = renderTasks;
         
-        if (activeFilter === 'Crit') filteredTasks = renderTasks.filter(t => String(t.prioritas).toLowerCase().includes("leállás"));
-        else if (activeFilter === 'High') filteredTasks = renderTasks.filter(t => String(t.prioritas).toLowerCase().includes("magas"));
-        else if (activeFilter === 'Prog') filteredTasks = renderTasks.filter(t => t.statusz === "Folyamatban");
-        else if (activeFilter === 'Info') filteredTasks = renderTasks.filter(t => String(t.prioritas).toLowerCase().includes("informatív") || String(t.prioritas).toLowerCase().includes("megfigyelés"));
-        else if (activeFilter === null) filteredTasks = renderTasks.filter(t => !String(t.prioritas).toLowerCase().includes("informatív") && !String(t.prioritas).toLowerCase().includes("megfigyelés"));
+        if (renderTasks.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Nincs aktív feladat ebben a nézetben.</h2></div>`; return; }
 
-        if (filteredTasks.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Nincs aktív feladat ebben a nézetben.</h2></div>`; return; }
-
-        let normalTasks = filteredTasks.filter(t => !String(t.id).startsWith("PREV-") && !String(t.id).includes("REC-"));
-        let prevTasks = filteredTasks.filter(t => String(t.id).startsWith("PREV-") || String(t.id).includes("REC-"));
+        let normalTasks = renderTasks.filter(t => !String(t.id).startsWith("PREV-") && !String(t.id).includes("REC-"));
+        let prevTasks = renderTasks.filter(t => String(t.id).startsWith("PREV-") || String(t.id).includes("REC-"));
 
         const w = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Megfigyelés alatt": 1.5, "Informatív": 1 };
         const sorter = (a, b) => {
@@ -820,7 +886,7 @@
 
         let html = "";
         if (normalTasks.length > 0) {
-            if(prevTasks.length > 0) html += `<div class="section-title">🚨 Aktuális Hibák és Feladatok</div>`;
+            html += `<div class="section-title">🚨 Aktuális Hibák és Feladatok</div>`;
             normalTasks.forEach(task => { html += generateCardHtml(task); });
         }
         if (prevTasks.length > 0) {
@@ -876,6 +942,10 @@
         if(sessionUser) {
             document.getElementById('activeUserBadge').style.display = 'flex';
             document.getElementById('dashUserName').innerText = sessionUser;
+            
+            if (sessionRole === "admin" || sessionRole === "superuser") {
+                document.getElementById('dashPaintbrushPanel').style.display = 'block';
+            }
             refreshModalActionPanel();
         }
     }
@@ -901,6 +971,7 @@
         sessionUser = null;
         sessionRole = null;
         document.getElementById('activeUserBadge').style.display = 'none';
+        document.getElementById('dashPaintbrushPanel').style.display = 'none';
         refreshModalActionPanel();
     }
 
