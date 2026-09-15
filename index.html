@@ -149,21 +149,6 @@
     </div>
 </div>
 
-<!-- SZAKALYT TROLL KÉPERNYŐ (Csak az ő bejelentkezésekor ugrik fel) -->
-<div id="trollScreen" class="container view" style="display:none; text-align: center; height:100vh; padding-top: 50px;">
-    <div class="box" style="display:inline-block; text-align:left; max-width:600px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-prog);">
-        <div style="text-align:center; margin-bottom: 20px; font-size:40px;">🤖🔐</div>
-        <h2 style="margin-top:0; color:var(--pri-prog); text-align:center;">Szigorított Biztonsági Ellenőrzés</h2>
-        <p style="font-size:16px; margin-bottom:20px; color:var(--text-muted); text-align:center;">A mesterséges intelligencia kockázatelemző modulja gyanús aktivitást észlelt a profilodon. Kérlek, bizonyítsd egyértelműen, hogy ember vagy!</p>
-        
-        <div id="trollQuestion" style="font-weight:bold; font-size:18px; color:var(--primary); margin-bottom:20px; padding:20px; background:#f1f5f9; border-radius:6px; border-left:4px solid var(--pri-prog);"></div>
-        
-        <input type="text" id="trollAnswer" style="font-size:16px; padding:12px; margin-bottom:15px;" placeholder="Ide írd az egyértelmű és logikus választ...">
-        <button onclick="submitTroll()" style="background:var(--pri-prog); font-size:16px; padding:15px; font-weight:bold;">Ellenőrzés Megkezdése</button>
-        <div id="trollError" style="color:var(--pri-crit); margin-top:10px; font-weight:bold; text-align:center; display:none;">Hibás vagy üres válasz! A rendszer nem hiszi el, hogy ember vagy. Próbáld újra!</div>
-    </div>
-</div>
-
 <!-- RENDSZER LEZÁRVA KÉPERNYŐ (Műszaknapló miatt) -->
 <div id="lockdownScreen" class="container view" style="display:none; text-align: center; height:100vh; padding-top: 50px;">
     <div class="box" style="display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 2px solid var(--pri-crit);">
@@ -556,14 +541,6 @@
     const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"];
     const huWorkWeekends = ["2026-08-08", "2026-12-12"];
 
-    const trollQuestions = [
-        "Hány liter kék festék kell egy üveghegy lefestéséhez, ha a medve balra fordul?",
-        "Ha egy repülőgép Kanadából tart Mexikóba, és pont a határon zuhan le, hol temetik el a túlélőket?",
-        "Mi a hasonlóság a pingvin és a radiátor között?",
-        "Ha a zsiráf a fán ül és kötöget, mennyi az idő?",
-        "Mennyi a piros szín gyökere, ha a kedd pontosan 14 fokos?"
-    ];
-
     function isWorkDay(dObj) {
         let dStr = toLocalISOString(dObj);
         if (huWorkWeekends.includes(dStr)) return true; 
@@ -671,36 +648,9 @@
             document.getElementById('loginView').style.display = 'none';
             if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
             
-            // SZAKALYT TROLL PROTOKOLL INDÍTÁSA
-            initTroll();
+            checkLockdownAndInit();
         }
     };
-
-    function initTroll() {
-        if (localStorage.getItem("activeUser") === "SzakalyT") {
-            document.getElementById('loginView').style.display = 'none';
-            document.getElementById('appView').style.display = 'none';
-            document.getElementById('lockdownScreen').style.display = 'none';
-            document.getElementById('trollScreen').style.display = 'block';
-            
-            const q = trollQuestions[Math.floor(Math.random() * trollQuestions.length)];
-            document.getElementById('trollQuestion').innerText = q;
-        } else {
-            checkLockdownAndInit();
-        }
-    }
-
-    function submitTroll() {
-        const ans = document.getElementById('trollAnswer').value.trim();
-        if (ans === "") {
-            document.getElementById('trollError').style.display = 'block';
-            document.getElementById('trollError').innerText = "Hiba! A rendszer egyértelmű emberi választ vár. Próbáld újra!";
-        } else {
-            alert("Teljesen logikátlan válasz, de a rendszer ma jófej. Belépés engedélyezve!");
-            document.getElementById('trollScreen').style.display = 'none';
-            checkLockdownAndInit();
-        }
-    }
 
     async function checkLockdownAndInit() {
         try {
