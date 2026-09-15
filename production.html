@@ -227,6 +227,12 @@
                         <button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal);" onclick="savePaintedSchedule()" id="btnSaveSchedule">💾 Módosítások mentése</button>
                     </div>
                 </div>
+                <!-- Dolgozó hozzáadása csak a beosztáshoz (Nincs login) -->
+                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <span style="font-weight:bold; font-size:13px; color:var(--text-muted);">Új dolgozó hozzáadása a beosztáshoz:</span>
+                    <input type="text" id="ujBeosztasDolgozo" placeholder="Dolgozó neve..." style="width:auto; margin:0; padding:6px 10px; font-size:13px;">
+                    <button onclick="addScheduleWorker()" style="width:auto; margin:0; padding:6px 12px; background:var(--accent); font-size:13px;">➕ Hozzáadás</button>
+                </div>
             </div>
 
             <div id="scheduleContainer" style="margin-top:10px;">Betöltés...</div>
@@ -265,7 +271,7 @@
                         </select>
                     </div>
                     <div class="form-full">
-                        <label style="font-size:12px; color:var(--text-muted);">Kezdés / Első generálás dátuma</label>
+                        <label style="font-size:12px; color:var(--text-muted);">Kezdés / Első generálás dátuma (Ha üres, azonnal indítja)</label>
                         <input type="date" id="ismKezdoDatum" title="Ettől a naptól kezdve kezdi el figyelni a szabályt">
                     </div>
                 </div>
@@ -396,6 +402,7 @@
     let globalClosedTasks = [];
     let globalShiftLogs = [];
     let globalSchedule = [];
+    let globalScheduleWorkers = [];
     let expectedApprovers = [];
     let lastKnownTaskCount = 0;
     let notifInterval = null;
@@ -532,7 +539,10 @@
         try {
             const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule", reszleg: RESZLEG }) });
             const rSched = await resSched.json();
-            if(rSched.status === "success") globalSchedule = rSched.data;
+            if(rSched.status === "success") {
+                globalSchedule = rSched.data;
+                globalScheduleWorkers = rSched.workers || [];
+            }
 
             const resLogs = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs", reszleg: RESZLEG }) }); 
             const rLogs = await resLogs.json(); 
@@ -855,6 +865,7 @@
             const r = await res.json();
             if(r.status === "success") {
                 globalSchedule = r.data;
+                globalScheduleWorkers = r.workers || [];
                 renderScheduleMain();
             }
         } catch(e) {}
@@ -862,7 +873,10 @@
 
     function renderScheduleMain() {
         const c = document.getElementById('scheduleContainer');
-        if(expectedApprovers.length === 0) { c.innerHTML = "<div style='text-align:center; padding:50px; color:var(--text-muted);'>Nincs dolgozó a rendszerben.</div>"; return; }
+        if(globalScheduleWorkers.length === 0) { 
+            c.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted);'>Nincs dolgozó a beosztásban. Adj hozzá valakit a fenti mezőben!</div>"; 
+            return; 
+        }
 
         let now = new Date();
         let dayOfWeek = now.getDay() || 7;
@@ -871,17 +885,15 @@
         
         let dates = [];
         for(let i=0; i<35; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
-        let users = expectedApprovers; 
+        let users = globalScheduleWorkers; 
         
-        let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col" style="min-width:150px;">Név / Dátum</th>`;
+        let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col" style="min-width:160px;">Név / Dátum</th>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d);
             let bg = !isWorking ? 'background:rgba(0,0,0,0.05); color:#94a3b8;' : '';
             let dStr = d.toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
-            
             let isToday = (toLocalISOString(d) === toLocalISOString(now));
             if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high); font-weight:bold;';
-            
             html += `<th style="${bg}">${dStr}</th>`;
         });
         html += `</tr></thead><tbody>`;
@@ -903,7 +915,8 @@
         html += `</tr>`;
         
         users.forEach(u => {
-            html += `<tr><td class="sticky-col">${u}</td>`;
+            let delBtn = (sessionRole === 'superuser') ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;" title="Dolgozó kivétele a naptárból">❌</button>` : '';
+            html += `<tr><td class="sticky-col">${u} ${delBtn}</td>`;
             dates.forEach(d => {
                 let isWorking = isWorkDay(d);
                 let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : '';
@@ -926,6 +939,27 @@
         });
         html += `</tbody></table></div>`;
         c.innerHTML = html;
+    }
+
+    async function addScheduleWorker() {
+        const inp = document.getElementById('ujBeosztasDolgozo');
+        const nev = inp.value.trim();
+        if(!nev) return alert("Kérlek, add meg a dolgozó nevét!");
+        
+        const reqBody = { action: "addScheduleWorkerOnly", reszleg: RESZLEG, nev: nev };
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(reqBody) });
+        inp.value = "";
+        showToast(nev + " hozzáadva a beosztáshoz!");
+        loadSchedule();
+    }
+
+    async function deleteScheduleWorker(nev) {
+        if(!confirm(`Biztosan kiveszed ${nev} nevét a naptárból? (A korábbi műszakai megmaradnak, de a sora nem fog megjelenni)`)) return;
+        
+        const reqBody = { action: "deleteScheduleWorkerOnly", reszleg: RESZLEG, nev: nev };
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(reqBody) });
+        showToast(nev + " eltávolítva a beosztásból!");
+        loadSchedule();
     }
 
     async function addRecurringTask() {
@@ -992,7 +1026,10 @@
         try { 
             const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule", reszleg: RESZLEG }) });
             const rSched = await resSched.json();
-            if(rSched.status === "success") globalSchedule = rSched.data;
+            if(rSched.status === "success") {
+                globalSchedule = rSched.data;
+                globalScheduleWorkers = rSched.workers || [];
+            }
 
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs", reszleg: RESZLEG }) }); 
             const r = await res.json(); 
