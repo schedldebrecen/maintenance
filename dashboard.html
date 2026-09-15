@@ -29,7 +29,6 @@
         .toggle-btn.active-sound { background: var(--pri-info); color: white; border-color: var(--pri-info); }
         .toggle-btn.active-flash { background: var(--pri-crit); color: white; border-color: var(--pri-crit); }
 
-        /* Fülek a Dashboardhoz */
         .dash-nav { display: flex; gap: 10px; padding: 0 30px; margin-top: 20px; }
         .dash-nav button { flex: 1; padding: 12px; font-size: 18px; font-weight: bold; background: var(--surface); color: var(--text-muted); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .dash-nav button:hover { background: #334155; }
@@ -84,12 +83,10 @@
 
         #progressBar { position: absolute; bottom: -2px; left: 0; height: 2px; background: var(--pri-info); width: 0%; transition: width 1s linear; }
 
-        /* Szűrő panel a lezártakhoz */
         .filter-panel { background: var(--surface); padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); }
         .filter-panel .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .filter-panel input, .filter-panel select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-dark); color: white; font-size: 15px; box-sizing: border-box; }
 
-        /* Beosztás táblázat */
         .sched-table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 800px; color: var(--text-main); }
         .sched-table th, .sched-table td { border: 1px solid var(--border); padding: 10px 6px; text-align: center; white-space: nowrap; }
         .sched-table thead th { background: var(--surface); color: var(--pri-info); position: sticky; top: 0; z-index: 10; font-size: 15px; }
@@ -122,6 +119,14 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
+    <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
+        <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
+            <h2 style="margin-top:0; color:var(--pri-crit);">🚨 Dashboard Lezárva! Elmaradt Műszaknapló Jóváhagyás</h2>
+            <p style="font-size:16px; margin-bottom:20px; color:var(--text-muted);">Amíg az alábbi naplókat nem hagyod jóvá, a Faliújság nem jeleníti meg a gépeket.</p>
+            <div id="dashUnapprovedLogsList" style="margin-top:20px; max-height:50vh; overflow-y:auto; padding-right:10px;"></div>
+        </div>
+    </div>
+
     <div id="dashboardMainUI">
         <div class="top-bar">
             <div class="title-group">
@@ -129,7 +134,6 @@
                 <div class="live-badge">ÉLŐ</div>
             </div>
             <div class="time-group">
-                <!-- Szabadon látható váltógomb -->
                 <button id="btnSwitchDash" onclick="window.location.href='dashboard_prod.html'" style="background:var(--pri-obs); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:15px;">🏭 Váltás: Termelés</button>
                 
                 <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn">🔇 Néma</button>
@@ -155,6 +159,8 @@
 
         <div class="dashboard-container">
             
+            <div id="shiftAlertBanner" style="margin-top:20px;"></div>
+
             <!-- AKTUALIS FELADATOK NEZET -->
             <div id="view-nyitott" class="view-section active">
                 <div class="kpi-bar" style="padding: 20px 0;">
@@ -292,8 +298,9 @@
     let globalClosedTasks = [];
     let globalSchedule = [];
     let globalScheduleWorkers = [];
+    let globalShiftLogs = [];
+    let expectedApprovers = [];
     let activeFilter = null; 
-    let autoResetTimeout = null;
 
     let optSound = false;
     let optFlash = false;
@@ -439,12 +446,182 @@
             if(result.status === "success") { 
                 globalSchedule = result.data.schedule || [];
                 globalScheduleWorkers = result.data.workers || [];
+                globalShiftLogs = result.data.shiftLogs || [];
+                expectedApprovers = result.data.expectedApprovers || [];
+                
+                checkMissingShiftLogsAndApprovals();
                 processData(result.data.tasks); 
                 
                 if(document.getElementById('view-beosztas').classList.contains('active')) renderScheduleDash();
                 if(document.getElementById('view-lezart').classList.contains('active')) renderClosedTasks();
             } 
         } catch (e) { console.error("Hiba:", e); }
+    }
+
+    function checkMissingShiftLogsAndApprovals() {
+        let missingLogs = [];
+        let startD = new Date(2026, 8, 1, 0, 0, 0);
+        let now = new Date();
+        let curr = new Date(startD);
+        
+        let alertHtml = "";
+        let upcomingWarning = "";
+
+        // 1 órás figyelmeztetés
+        if (now.getDay() >= 1 && now.getDay() <= 5) {
+            let h = now.getHours();
+            let todayStr = toLocalISOString(now);
+            
+            if (h === 13) {
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return logD === todayStr && String(l.muszak).includes("Délelőtt");
+                });
+                if (!hasLog) {
+                    upcomingWarning = `<div style="background:var(--pri-high); color:var(--surface); padding:15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:10px; text-align:center; animation: blink 1.5s infinite;">⏰ FIGYELEM! Egy óra múlva vége a délelőtti műszaknak! Ne felejtsd el megírni a műszaknaplót!</div>`;
+                }
+            } else if (h === 21) {
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return logD === todayStr && String(l.muszak).includes("Délután");
+                });
+                if (!hasLog) {
+                    upcomingWarning = `<div style="background:var(--pri-high); color:var(--surface); padding:15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:10px; text-align:center; animation: blink 1.5s infinite;">⏰ FIGYELEM! Egy óra múlva vége a délutáni műszaknak! Ne felejtsd el megírni a műszaknaplót!</div>`;
+                }
+            }
+        }
+        
+        // Hiányzó (meg sem írt) naplók keresése
+        while (curr <= now) {
+            let day = curr.getDay();
+            if (day >= 1 && day <= 5) {
+                let dStr = toLocalISOString(curr);
+                
+                let shift1End = new Date(curr); shift1End.setHours(14,0,0,0);
+                if (now >= shift1End) {
+                    if (!globalShiftLogs.some(l => {
+                        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                        return logD === dStr && String(l.muszak).includes("Délelőtt");
+                    })) {
+                        missingLogs.push(`${dStr} Délelőtt`);
+                    }
+                }
+                
+                let shift2End = new Date(curr); shift2End.setHours(22,0,0,0);
+                if (now >= shift2End) {
+                    if (!globalShiftLogs.some(l => {
+                        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                        return logD === dStr && String(l.muszak).includes("Délután");
+                    })) {
+                        missingLogs.push(`${dStr} Délután`);
+                    }
+                }
+            }
+            curr.setDate(curr.getDate() + 1);
+            curr.setHours(0,0,0,0);
+        }
+
+        let pendingLogUsers = new Set();
+        let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
+
+        let myUnapprovedCount = 0;
+        let myUnapprovedLogs = [];
+        let currentUser = sessionUser ? String(sessionUser).trim() : "";
+        let role = sessionRole ? String(sessionRole).toLowerCase() : "";
+        let isApprover = currentUser !== "" && (role === "maintenance" || role === "superuser");
+
+        if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
+            expectedApproversClean.push(currentUser);
+        }
+
+        globalShiftLogs.forEach(l => {
+            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+            if (logD >= "2026-09-01") {
+                let szamonKerheto = false;
+                let logDateObj = new Date(logD + "T00:00:00");
+                let muszakVégeH = 0;
+                if(String(l.muszak).includes("Délelőtt")) muszakVégeH = 14;
+                else if(String(l.muszak).includes("Délután")) muszakVégeH = 22;
+                else if(String(l.muszak).includes("Éjszaka")) muszakVégeH = 6; 
+                
+                let vegeIdopont = new Date(logDateObj);
+                if (muszakVégeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1);
+                vegeIdopont.setHours(muszakVégeH, 0, 0, 0);
+
+                if (now >= vegeIdopont) {
+                    szamonKerheto = true;
+                }
+
+                if (szamonKerheto) {
+                    let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                    let approversLower = approvers.map(x=>x.toLowerCase());
+                    let creatorLower = String(l.felhasznalo).trim().toLowerCase();
+                    
+                    if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
+
+                    let expectedForThisLog = expectedApproversClean.filter(a => {
+                        let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
+                        if (sched && sched.tipus.includes('Szabadság')) return false; 
+                        return true;
+                    });
+
+                    let expectedLowerFiltered = expectedForThisLog.map(x=>x.toLowerCase());
+                    let missing = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
+                    missing.forEach(u => pendingLogUsers.add(u));
+
+                    if (isApprover && expectedLowerFiltered.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) {
+                        myUnapprovedCount++;
+                        myUnapprovedLogs.push(l);
+                    }
+                }
+            }
+        });
+
+        // 1. BEJELENTKEZETT FELHASZNÁLÓ BLOKKOLÁSA
+        if (myUnapprovedCount > 0) {
+            document.getElementById('dashboardMainUI').style.display = 'none';
+            document.getElementById('dashLockdownScreen').style.display = 'block';
+
+            let listHtml = myUnapprovedLogs.map(l => {
+                let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+                return `<div style="background:var(--bg-dark); padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);">
+                            <div style="flex:1; padding-right:15px;">
+                                <strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br>
+                                <span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span>
+                                <div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:100px; overflow-y:auto; padding:5px; background:#1e293b; border:1px solid #475569; border-radius:4px;">${String(l.szoveg)}</div>
+                            </div>
+                            <button id="apprBtnDash_${l.id}" onclick="approveShiftLogDash('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:20px;">✅ Jóváhagyom</button>
+                        </div>`;
+            }).join('');
+            document.getElementById('dashUnapprovedLogsList').innerHTML = listHtml;
+            return;
+        }
+
+        document.getElementById('dashboardMainUI').style.display = 'block';
+        document.getElementById('dashLockdownScreen').style.display = 'none';
+
+        // 2. DASHBOARD GLOBÁLIS FIGYELMEZTETŐ SÁV (Bárki látja a TV-n)
+        alertHtml += upcomingWarning;
+
+        if (pendingLogUsers.size > 0) {
+            alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:10px 15px; border-radius:6px; font-size:16px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px; border:2px solid white;">⚠️ Műszaknapló jóváhagyás hiányzik a következőktől: ${Array.from(pendingLogUsers).join(', ')}</div>`;
+        }
+
+        if (missingLogs.length > 0) {
+            // Hatalmas piros villogó sáv a hiányzó naplóknál
+            alertHtml += `<div style="background:var(--pri-crit); color:white; padding:15px 15px; border-radius:6px; font-size:18px; font-weight:bold; box-shadow:0 0 15px rgba(239, 68, 68, 0.8); margin-bottom:10px; border:2px solid white; text-align:center; animation: flashRedAnim 1s infinite;">🚨 PÓTOLD A MŰSZAKNAPLÓT (Karbantartás menü): ${missingLogs.join(', ')}</div>`;
+        }
+
+        const alertDiv = document.getElementById('shiftAlertBanner');
+        if (alertDiv) alertDiv.innerHTML = alertHtml;
+    }
+
+    async function approveShiftLogDash(id) {
+        const btn = document.getElementById('apprBtnDash_' + id);
+        if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
+        fetchDashboardData();
     }
 
     function processData(allTasks) {
@@ -491,12 +668,12 @@
         renderGrid(currentActiveTasks);
     }
 
-    function getFilteredClosedTasks() {
+    function renderClosedTasks() {
         const skEl = document.getElementById('szuroKategoria'), sgEl = document.getElementById('szuroGep'), stEl = document.getElementById('filterDatumTol'), siEl = document.getElementById('filterDatumIg'), ismEl = document.getElementById('szuroLezartIsmetlodo');
         const sk = skEl ? skEl.value : "", sg = sgEl ? sgEl.value : "", st = stEl ? stEl.value : "", si = siEl ? siEl.value : "", ism = ismEl ? ismEl.value : "";
         const szovEl = document.getElementById('szuroLezartSzoveg'); const szov = szovEl ? szovEl.value.toLowerCase() : "";
 
-        return globalClosedTasks.filter(t => { 
+        let f = globalClosedTasks.filter(t => { 
             const d = String(t.idopont || "").substring(0, 10); let gepNev = (sg === "-") ? sk : sk + " - " + sg;
             let matchKat = sk ? (String(t.gep || "").startsWith(sk+" - ") || t.gep===sk) : true; let matchGep = sg ? t.gep===gepNev : true; let matchTol = st ? d>=st : true; let matchIg = si ? d<=si : true;
             let matchIsm = true; const isPrev = String(t.id || "").startsWith("PREV-"); if (ism === "normal") matchIsm = !isPrev; if (ism === "ismetlodo") matchIsm = isPrev;
@@ -504,17 +681,23 @@
 
             return matchKat && matchGep && matchTol && matchIg && matchIsm && matchSzoveg; 
         });
-    }
 
-    function renderClosedTasks() {
-        const f = getFilteredClosedTasks(); const c = document.getElementById('closedTaskGrid'); if(!c) return;
+        const c = document.getElementById('closedTaskGrid'); if(!c) return;
         if(f.length===0){c.innerHTML="<div style='grid-column:1/-1; text-align:center;'>Nincs a keresésnek megfelelő lezárt feladat.</div>"; return;} 
         let h = ""; f.forEach(t => h += generateCardHtml(t)); c.innerHTML = h;
     }
 
     function renderScheduleDash() {
         const c = document.getElementById('dashScheduleContainer');
-        if(globalScheduleWorkers.length === 0) { 
+        
+        // Összegyűjtjük a schedule-ben szereplő neveket és a fix workers listát
+        let uniqueUsers = new Set(globalScheduleWorkers);
+        globalSchedule.forEach(s => {
+            if(s.user && s.user !== '__UGYELET__' && s.user !== 'Törlés') uniqueUsers.add(s.user);
+        });
+        let users = Array.from(uniqueUsers).sort();
+
+        if(users.length === 0) { 
             c.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted);'>Nincs elérhető beosztás adat.</div>"; 
             return; 
         }
@@ -526,7 +709,6 @@
         
         let dates = [];
         for(let i=0; i<21; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
-        let users = globalScheduleWorkers; 
         
         let html = `<table class="sched-table"><thead><tr><th class="sticky-col" style="min-width:160px;">Név / Dátum</th>`;
         dates.forEach(d => {
