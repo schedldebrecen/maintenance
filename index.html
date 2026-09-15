@@ -170,7 +170,6 @@
             <img src="Logo-Schedl (1).png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
         </h2>
         <div class="user-info">
-            <!-- Váltógomb: JS-ben állítjuk block-ra, ha a felhasználó admin / superuser -->
             <button id="btnSwitchProd" onclick="window.location.href='production.html'" style="display:none; background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🏭 Termelés (Prod)</button>
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
@@ -244,11 +243,12 @@
                         <button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal);" onclick="savePaintedSchedule()" id="btnSaveSchedule">💾 Módosítások mentése</button>
                     </div>
                 </div>
-                <!-- Dolgozó hozzáadása csak a beosztáshoz (Nincs login) -->
+                <!-- Dolgozó hozzáadása vagy törlése -->
                 <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <span style="font-weight:bold; font-size:13px; color:var(--text-muted);">Új dolgozó hozzáadása a beosztáshoz:</span>
+                    <span style="font-weight:bold; font-size:13px; color:var(--text-muted);">Dolgozó hozzáadása vagy törlése a beosztásból:</span>
                     <input type="text" id="ujBeosztasDolgozo" placeholder="Dolgozó neve..." style="width:auto; margin:0; padding:6px 10px; font-size:13px;">
                     <button onclick="addScheduleWorker()" style="width:auto; margin:0; padding:6px 12px; background:var(--accent); font-size:13px;">➕ Hozzáadás</button>
+                    <button onclick="deleteScheduleWorkerFromInput()" style="width:auto; margin:0; padding:6px 12px; background:var(--pri-crit); font-size:13px;">❌ Törlés</button>
                 </div>
             </div>
 
@@ -638,7 +638,6 @@
         document.getElementById('notifToggle').addEventListener('change', (e) => { document.getElementById('notifSlider').style.backgroundColor = e.target.checked ? "var(--pri-normal)" : "#cbd5e1"; });
         if(document.getElementById('muszakDatum')) document.getElementById('muszakDatum').value = toLocalISOString(new Date());
         
-        // CSERE: Csak a neveket töltjük le indításkor!
         loadUserList(); 
     });
 
@@ -655,7 +654,6 @@
             document.getElementById('currentUserText').innerText = savedUser;
             sessionRole = localStorage.getItem("activeRole") || "production";
             
-            // JOGOSULTSÁG: Váltógomb engedélyezése adminoknak és superusereknek
             if (sessionRole === "admin" || sessionRole === "superuser") {
                 document.getElementById('btnSwitchProd').style.display = "block";
             }
@@ -674,7 +672,6 @@
             document.getElementById('loginView').style.display = 'none';
             if(localStorage.getItem("notificationsEnabled") === "true") { document.getElementById('notifToggle').checked = true; document.getElementById('notifSlider').style.backgroundColor = "var(--pri-normal)"; startPolling(); }
             
-            // Tényleges adatbetöltés a sikeres login / mentett fiók után
             checkLockdownAndInit();
         }
     };
@@ -741,7 +738,6 @@
         globalShiftLogs.forEach(l => {
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
             if (logD >= "2026-09-01") {
-                // Három műszak számonkérése (Csak ha az adott műszak tényleg véget ért)
                 let szamonKerheto = false;
                 let logDateObj = new Date(logD + "T00:00:00");
                 
@@ -751,7 +747,7 @@
                 else if(String(l.muszak).includes("Éjszaka")) muszakVégeH = 6; 
                 
                 let vegeIdopont = new Date(logDateObj);
-                if (muszakVégeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1); // Éjszakás másnap reggel jár le
+                if (muszakVégeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1);
                 vegeIdopont.setHours(muszakVégeH, 0, 0, 0);
 
                 if (now >= vegeIdopont) {
@@ -788,7 +784,6 @@
                 let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
                 const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
                 
-                // CSS JAVÍTÁS: A hosszú szövegek most már scrollozhatók!
                 return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);">
                             <div style="flex:1; padding-right:15px;">
                                 <strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br>
@@ -1119,6 +1114,14 @@
         inp.value = "";
         showToast(nev + " hozzáadva a beosztáshoz!");
         loadSchedule();
+    }
+
+    async function deleteScheduleWorkerFromInput() {
+        const inp = document.getElementById('ujBeosztasDolgozo');
+        const nev = inp.value.trim();
+        if(!nev) return alert("Kérlek, add meg a törölni kívánt dolgozó nevét!");
+        deleteScheduleWorker(nev);
+        inp.value = "";
     }
 
     async function deleteScheduleWorker(nev) {
@@ -1826,7 +1829,7 @@
         if(notifInterval) clearInterval(notifInterval);
         notifInterval = setInterval(async () => {
             try { 
-                const r = await (await fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"getTasks", polling: true})})).json();
+                const r = await (await fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify({action:"getTasks", reszleg: RESZLEG, polling: true})})).json();
                 if(r.status==="success"){ 
                     const c = r.data.filter(t=>t.statusz!=="Lezárt").length;
                     if(lastKnownTaskCount>0 && c>lastKnownTaskCount && navigator.geolocation) {
