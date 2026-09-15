@@ -129,7 +129,7 @@
                 <div class="live-badge">ÉLŐ</div>
             </div>
             <div class="time-group">
-                <!-- Bárki számára látható váltógomb -->
+                <!-- Szabadon látható váltógomb -->
                 <button id="btnSwitchDash" onclick="window.location.href='dashboard_prod.html'" style="background:var(--pri-obs); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:15px;">🏭 Váltás: Termelés</button>
                 
                 <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn">🔇 Néma</button>
@@ -441,9 +441,7 @@
                 globalScheduleWorkers = result.data.workers || [];
                 processData(result.data.tasks); 
                 
-                // Ha épp a Beosztás fül aktív, frissítsük azt is
                 if(document.getElementById('view-beosztas').classList.contains('active')) renderScheduleDash();
-                // Ha a Lezárt fül aktív, frissítsük
                 if(document.getElementById('view-lezart').classList.contains('active')) renderClosedTasks();
             } 
         } catch (e) { console.error("Hiba:", e); }
