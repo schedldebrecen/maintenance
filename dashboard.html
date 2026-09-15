@@ -20,12 +20,14 @@
         .live-badge { background: #10b981; color: #022c22; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; animation: blink 2s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        .time-group { text-align: right; display:flex; align-items:center; gap:20px;}
+        .time-group { text-align: right; display:flex; align-items:center; gap:15px;}
         .clock { font-size: 24px; font-weight: bold; letter-spacing: 2px; }
         .refresh-info { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 
-        .btn-switch { background: var(--pri-obs); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-switch:hover { filter: brightness(1.2); }
+        .toggle-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .toggle-btn:hover { background: rgba(255,255,255,0.1); }
+        .toggle-btn.active-sound { background: var(--pri-info); color: white; border-color: var(--pri-info); }
+        .toggle-btn.active-flash { background: var(--pri-crit); color: white; border-color: var(--pri-crit); }
 
         .kpi-bar { display: flex; gap: 15px; padding: 20px 30px; background: var(--bg-dark); overflow-x: auto; }
         .kpi-card { flex: 1; min-width: 140px; background: var(--surface); border-radius: 8px; padding: 15px; text-align: center; border: 1px solid var(--border); border-bottom: 4px solid var(--border); cursor: pointer; transition: transform 0.2s, background 0.2s; }
@@ -70,7 +72,6 @@
 
         #progressBar { position: absolute; bottom: -2px; left: 0; height: 2px; background: var(--pri-info); width: 0%; transition: width 1s linear; }
 
-        /* MODAL ÉS RENDSZER ÜZENETEK */
         .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 10px; border: 1px solid var(--border); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; color: var(--text-main); box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         .modal-content h2 { margin-top:0; color: var(--pri-info); border-bottom: 1px solid var(--border); padding-bottom: 15px; font-size: 24px; }
@@ -81,9 +82,6 @@
         .dash-btn.start { background: var(--pri-high); }
         .dash-input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: white; box-sizing: border-box; }
 
-        #startupBanner { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-dark); z-index: 9999; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-        .startup-box { background: var(--surface); padding:40px; border-radius:10px; text-align:center; max-width:500px; border:1px solid var(--border); }
-        
         .flash-red { animation: flashRedAnim 1s infinite !important; }
         @keyframes flashRedAnim { 0% { background-color: var(--bg-dark); } 50% { background-color: #7f1d1d; } 100% { background-color: var(--bg-dark); } }
 
@@ -91,29 +89,18 @@
 
         @media (max-width: 768px) {
             .top-bar { flex-direction: column; gap: 10px; align-items: flex-start; padding: 15px; }
-            .time-group { text-align: left; } .kpi-bar { padding: 15px; } .dashboard-container { padding: 0 15px 15px 15px; } .grid { grid-template-columns: 1fr; }
+            .time-group { text-align: left; flex-wrap: wrap; } .kpi-bar { padding: 15px; } .dashboard-container { padding: 0 15px 15px 15px; } .grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <div id="startupBanner">
-        <div class="startup-box">
-            <h2>Értesítések beállítása <span style="font-size:11px; background:#10b981; color:white; padding:2px 6px; border-radius:4px; margin-left:10px;">(v4.0)</span></h2>
-            <p style="color:var(--text-muted); margin-bottom:30px;">Hogyan jelezzen a faliújság, ha új eseti hiba érkezik?</p>
-            <button class="dash-btn" style="font-size:18px; padding:15px;" onclick="initDashboard(true, true)">🔊 Hangjelzés + 🔴 Piros villogás</button>
-            <button class="dash-btn" style="background:var(--border);" onclick="initDashboard(false, true)">🔴 Csak piros villogás (Néma)</button>
-            <button class="dash-btn" style="background:var(--bg-dark); border:1px solid var(--border);" onclick="initDashboard(false, false)">🔇 Nincs hang, nincs villogás</button>
-        </div>
-    </div>
-
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
-    <!-- DASHBOARD KIZÁRÓ KÉPERNYŐ -->
     <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
         <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:800px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
             <h2 style="margin-top:0; color:var(--pri-crit);">🚨 Dashboard Lezárva! Elmaradt Műszaknapló Jóváhagyás</h2>
-            <p style="font-size:16px; margin-bottom:20px; color:var(--text-muted);">Amíg az alábbi naplókat nem hagyod jóvá, a Faliújság nem jeleníti meg a gépeket. Nyomj a gombokra az engedélyezéshez:</p>
+            <p style="font-size:16px; margin-bottom:20px; color:var(--text-muted);">Amíg az alábbi naplókat nem hagyod jóvá, a Faliújság nem jeleníti meg a gépeket.</p>
             <div id="dashUnapprovedLogsList" style="margin-top:20px; max-height:50vh; overflow-y:auto; padding-right:10px;"></div>
         </div>
     </div>
@@ -125,7 +112,12 @@
                 <div class="live-badge">ÉLŐ</div>
             </div>
             <div class="time-group">
-                <button class="btn-switch" onclick="window.location.href='dashboard_prod.html'">🏭 Váltás: Termelés</button>
+                <!-- Csak admin/superuser láthatja -->
+                <button id="btnSwitchDash" onclick="window.location.href='dashboard_prod.html'" style="display:none; background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">🏭 Váltás: Termelés</button>
+                
+                <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn">🔇 Néma</button>
+                <button id="btnToggleFlash" onclick="toggleFlash()" class="toggle-btn">⚪ Villogás: KI</button>
+
                 <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
                     <span>👤 <span id="dashUserName">User</span> (<span id="dashSessionTime">5:00</span>)</span>
                     <button onclick="dashLogout()" style="background:#ef4444; border:none; color:white; border-radius:3px; padding:3px 8px; cursor:pointer; font-size:10px; text-transform:uppercase; font-weight:bold;">Kijelentkezés</button>
@@ -170,17 +162,21 @@
                 <h2 id="modalTitle" style="flex:1; margin-bottom:5px;">Gép neve</h2>
                 <span id="modalPrio" class="badge badge-normal" style="margin-left:15px; font-size:14px;">Normál</span>
             </div>
-            <div style="color: #cbd5e1; font-size: 18px; margin-bottom: 20px; line-height:1.4;" id="modalSubtitle">Feladat leírása</div>
+            <div style="color: #cbd5e1; font-size: 18px; margin-bottom: 20px; line-height:1.4; white-space:pre-wrap;" id="modalSubtitle">Feladat leírása</div>
             
             <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
 
             <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
                 <div id="dashLoginForm">
                     <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
-                    <input type="text" id="dashLoginNev" class="dash-input" placeholder="Felhasználónév (pl. Admin)">
+                    <select id="dashLoginNevSelect" class="dash-input" onchange="checkDashLoginCustom(this)">
+                        <option value="">Név kiválasztása...</option>
+                    </select>
+                    <input type="text" id="dashLoginNev" class="dash-input" placeholder="Név begépelése..." style="display:none;">
+                    
                     <input type="password" id="dashLoginPin" class="dash-input" placeholder="PIN kód">
                     <button class="dash-btn" onclick="dashLogin()">Bejelentkezés</button>
-                    <div id="dashLoginStatus" style="color:var(--pri-crit); font-size:12px; margin-top:5px;"></div>
+                    <div id="dashLoginStatus" style="color:var(--pri-crit); font-size:12px; margin-top:5px; font-weight:bold;"></div>
                 </div>
 
                 <div id="dashTaskActions" style="display:none;">
@@ -218,6 +214,7 @@
     let isFirstLoad = true;
 
     let sessionUser = null;
+    let sessionRole = null;
     let sessionExpiry = 0;
     let activeTaskId = null; 
     
@@ -225,18 +222,61 @@
     let globalSchedule = [];
     let expectedApprovers = [];
 
-    function initDashboard(sound, flash) {
-        optSound = sound; optFlash = flash;
-        document.getElementById('startupBanner').style.display = 'none';
-        if(optSound) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if(AudioContext) audioCtx = new AudioContext();
+    // Névlista letöltése indításkor a dropdown-hoz
+    async function loadUserList() {
+        try {
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) });
+            const r = await res.json();
+            if (r.status === "success" && r.data.length > 0) {
+                const sel = document.getElementById('dashLoginNevSelect');
+                sel.innerHTML = '<option value="">Válassz a listából...</option>';
+                r.data.forEach(user => sel.add(new Option(user, user)));
+                sel.add(new Option("--- Egyéb (kézi megadás) ---", "custom"));
+            } else {
+                document.getElementById('dashLoginNevSelect').style.display = 'none';
+                document.getElementById('dashLoginNev').style.display = 'block';
+            }
+        } catch(e) {
+            document.getElementById('dashLoginNevSelect').style.display = 'none';
+            document.getElementById('dashLoginNev').style.display = 'block';
         }
-        
-        const savedUser = localStorage.getItem("activeUser");
-        if(savedUser) { sessionUser = savedUser; extendSession(); }
+    }
 
-        fetchDashboardData();
+    function checkDashLoginCustom(sel) {
+        if(sel.value === "custom") {
+            sel.style.display = 'none';
+            document.getElementById('dashLoginNev').style.display = 'block';
+            document.getElementById('dashLoginNev').focus();
+        } else {
+            document.getElementById('dashLoginNev').value = sel.value;
+        }
+    }
+
+    function toggleSound() {
+        optSound = !optSound;
+        const btn = document.getElementById('btnToggleSound');
+        if(optSound) {
+            btn.innerText = "🔊 Hang: BE";
+            btn.classList.add('active-sound');
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if(AudioContext && !audioCtx) audioCtx = new AudioContext();
+            if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        } else {
+            btn.innerText = "🔇 Néma";
+            btn.classList.remove('active-sound');
+        }
+    }
+
+    function toggleFlash() {
+        optFlash = !optFlash;
+        const btn = document.getElementById('btnToggleFlash');
+        if(optFlash) {
+            btn.innerText = "🔴 Villogás: BE";
+            btn.classList.add('active-flash');
+        } else {
+            btn.innerText = "⚪ Villogás: KI";
+            btn.classList.remove('active-flash');
+        }
     }
 
     function toLocalISOString(dateObj) {
@@ -246,6 +286,18 @@
     }
 
     async function hashPassword(p) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
+
+    window.onload = function() {
+        loadUserList();
+        
+        const savedUser = localStorage.getItem("activeUser");
+        if(savedUser) { 
+            sessionUser = savedUser; 
+            sessionRole = localStorage.getItem("activeRole");
+            extendSession(); 
+        }
+        fetchDashboardData();
+    }
 
     setInterval(() => { document.getElementById('clockDisplay').innerText = new Date().toLocaleTimeString('hu-HU'); }, 1000);
     setInterval(() => {
@@ -258,22 +310,16 @@
 
     async function fetchDashboardData() {
         try {
-            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getTasks" }) });
+            const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData" }) });
             const result = await res.json();
-            if(result.status === "success") { processData(result.data); } 
-            
-            const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule" }) });
-            const rSched = await resSched.json();
-            if(rSched.status === "success") { globalSchedule = rSched.data; }
-
-            const resLog = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) });
-            const resultLog = await resLog.json();
-            if(resultLog.status === "success") { 
-                globalShiftLogs = resultLog.data;
-                expectedApprovers = resultLog.expectedApprovers || [];
+            if(result.status === "success") { 
+                globalSchedule = result.data.schedule || [];
+                globalShiftLogs = result.data.shiftLogs || [];
+                expectedApprovers = result.data.expectedApprovers || [];
+                
                 checkMissingShiftLogsAndApprovals();
-            }
-
+                processData(result.data.tasks); 
+            } 
         } catch (e) { console.error("Hiba:", e); }
     }
 
@@ -345,31 +391,52 @@
         let role = String(localStorage.getItem("activeRole")).toLowerCase();
         
         let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
-        let isApprover = (role === "maintenance" || currentUser === "SzaboP");
+        let isApprover = (role === "maintenance" || role === "superuser");
         
-        if (isApprover && !expectedApproversClean.includes(currentUser)) {
+        if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
             expectedApproversClean.push(currentUser);
         }
 
         globalShiftLogs.forEach(l => {
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
             if (logD >= "2026-09-01") {
-                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                 
-                if (!approvers.includes(l.felhasznalo)) approvers.push(l.felhasznalo);
+                let szamonKerheto = false;
+                let logDateObj = new Date(logD + "T00:00:00");
+                let muszakVégeH = 0;
+                if(String(l.muszak).includes("Délelőtt")) muszakVégeH = 14;
+                else if(String(l.muszak).includes("Délután")) muszakVégeH = 22;
+                else if(String(l.muszak).includes("Éjszaka")) muszakVégeH = 6; 
+                
+                let vegeIdopont = new Date(logDateObj);
+                if (muszakVégeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1);
+                vegeIdopont.setHours(muszakVégeH, 0, 0, 0);
 
-                let expectedForThisLog = expectedApproversClean.filter(a => {
-                    let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
-                    if (sched && sched.tipus.includes('Szabadság')) return false; 
-                    return true;
-                });
+                if (now >= vegeIdopont) {
+                    szamonKerheto = true;
+                }
 
-                let missing = expectedForThisLog.filter(a => !approvers.map(x=>x.toLowerCase()).includes(String(a).toLowerCase()));
-                missing.forEach(u => pendingLogUsers.add(u));
+                if (szamonKerheto) {
+                    let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                    let approversLower = approvers.map(x=>x.toLowerCase());
+                    let creatorLower = String(l.felhasznalo).trim().toLowerCase();
+                    
+                    if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
 
-                if (isApprover && expectedForThisLog.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase()) && !approvers.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
-                    myUnapprovedCount++;
-                    myUnapprovedLogs.push(l);
+                    let expectedForThisLog = expectedApproversClean.filter(a => {
+                        let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
+                        if (sched && sched.tipus.includes('Szabadság')) return false; 
+                        return true;
+                    });
+
+                    let expectedLowerFiltered = expectedForThisLog.map(x=>x.toLowerCase());
+                    let missing = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
+                    missing.forEach(u => pendingLogUsers.add(u));
+
+                    if (isApprover && expectedLowerFiltered.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) {
+                        myUnapprovedCount++;
+                        myUnapprovedLogs.push(l);
+                    }
                 }
             }
         });
@@ -381,12 +448,13 @@
             let listHtml = myUnapprovedLogs.map(l => {
                 let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
                 const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
-                return `<div style="background:var(--bg-dark); padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border);">
-                            <div>
+                return `<div style="background:var(--bg-dark); padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);">
+                            <div style="flex:1; padding-right:15px;">
                                 <strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br>
-                                <span style="font-size:14px; color:var(--text-muted);">Írta: ${l.felhasznalo} - "${String(l.szoveg).substring(0, 60)}..."</span>
+                                <span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span>
+                                <div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:100px; overflow-y:auto; padding:5px; background:#1e293b; border:1px solid #475569; border-radius:4px;">${String(l.szoveg)}</div>
                             </div>
-                            <button id="apprBtnDash_${l.id}" onclick="approveShiftLogDash('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">✅ Jóváhagyom</button>
+                            <button id="apprBtnDash_${l.id}" onclick="approveShiftLogDash('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:20px;">✅ Jóváhagyom</button>
                         </div>`;
             }).join('');
             document.getElementById('dashUnapprovedLogsList').innerHTML = listHtml;
@@ -424,7 +492,6 @@
         let cCrit = 0, cHigh = 0, cProg = 0, cInfo = 0;
 
         currentActiveTasks.forEach(t => {
-            // KARBANTARTÁS Kijelző: Ha ismétlődő, és benne van a PROD szó, kihagyjuk a KPI-ből és a listából is!
             let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
             if (isPrev && String(t.id).toUpperCase().includes("PROD")) return;
 
@@ -564,7 +631,7 @@
             <div class="card-header"><span class="badge ${bC}">${prioShort}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div>
             <div class="machine-name">${prevIcon}${task.gep}</div>
             ${inP}
-            <div class="issue-desc">${task.hiba}</div>
+            <div class="issue-desc" style="white-space:pre-wrap;">${task.hiba}</div>
             <div class="meta-footer"><div>Beküldte: <b>${task.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek / Kezelés 👆</div></div>
         </div>`;
     }
@@ -585,21 +652,28 @@
             sessionExpiry = Date.now() + (5 * 60 * 1000); 
             document.getElementById('activeUserBadge').style.display = 'flex';
             document.getElementById('dashUserName').innerText = sessionUser;
+            
+            if (sessionRole === "admin" || sessionRole === "superuser") {
+                document.getElementById('btnSwitchDash').style.display = 'inline-block';
+            }
+            
             refreshModalActionPanel();
             checkMissingShiftLogsAndApprovals();
         }
     }
 
     async function dashLogin() {
-        const n = document.getElementById('dashLoginNev').value, j = document.getElementById('dashLoginPin').value;
+        const n = document.getElementById('dashLoginNev').value || document.getElementById('dashLoginNevSelect').value;
+        const j = document.getElementById('dashLoginPin').value;
         const stat = document.getElementById('dashLoginStatus'); stat.innerText = "Ellenőrzés...";
         try {
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
             const r = await res.json();
             if(r.status === "success") { 
                 sessionUser = n; 
+                sessionRole = r.role || "production";
                 localStorage.setItem("activeUser", n);
-                localStorage.setItem("activeRole", r.role || "production");
+                localStorage.setItem("activeRole", sessionRole);
                 extendSession();
                 document.getElementById('dashLoginNev').value = ""; document.getElementById('dashLoginPin').value = "";
                 stat.innerText = "";
@@ -609,10 +683,12 @@
 
     function dashLogout() {
         sessionUser = null;
+        sessionRole = null;
         sessionExpiry = 0;
         localStorage.removeItem("activeUser"); 
         localStorage.removeItem("activeRole");
         document.getElementById('activeUserBadge').style.display = 'none';
+        document.getElementById('btnSwitchDash').style.display = 'none';
         refreshModalActionPanel();
         checkMissingShiftLogsAndApprovals();
     }
@@ -670,9 +746,8 @@
            String(task.kepek).split(",").forEach(u => {
                if(u.trim()) { 
                    const m = u.match(/id=([^&]+)/); 
-                   const thumb = m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u.trim(); 
                    const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim();
-                   kH += `<img src="${thumb}" onclick="window.open('${viewUrl}', '_blank')" style="max-height:150px; border-radius:6px; cursor:pointer; border:1px solid var(--border);">`; 
+                   kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${viewUrl}', '_blank')" style="max-height:150px; border-radius:6px; cursor:pointer; border:1px solid var(--border);">`; 
                }
            }); 
            kH += `</div>`; details += kH;
@@ -684,7 +759,7 @@
         
         refreshModalActionPanel();
         document.getElementById('taskModal').style.display = "flex";
-        extendSession(); 
+        if(sessionUser) extendSession(); 
     }
 
     function closeModal(force = false) {
@@ -692,7 +767,7 @@
             document.getElementById('taskModal').style.display = "none";
             activeTaskId = null;
         }
-        extendSession();
+        if(sessionUser) extendSession();
     }
 
     async function dashStartTask() {
