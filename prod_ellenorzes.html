@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ipari CMMS - Operátori Ellenőrzőlista</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="toastMessage">✅ Mentve!</div>
+
+<div id="appView">
+    <div class="topbar">
+        <h2 style="margin: 0; display:flex; align-items:center;">
+            <img src="Logo-Schedl (1).png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px; margin-right:10px;">
+            Ellenőrzőlista
+        </h2>
+        <div class="user-info">
+                <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
+    			<option value="" disabled selected>☰ Navigáció</option>
+		</select>            <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="nav">
+            <button class="active" onclick="switchTab('wizardView', this)">📝 Új Ellenőrzés Kitöltése</button>
+            <button onclick="switchTab('naploView', this); loadLogs();">🗂️ Kitöltött Naplók & Export</button>
+        </div>
+
+        <!-- ÚJ ELLENŐRZÉS KITÖLTÉSE (WIZARD) -->
+        <div id="wizardView" class="view box active">
+            <h3>Gyártósor / Gép kiválasztása</h3>
+            <div class="form-grid" style="margin-bottom: 20px;">
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Gépcsoport / Kategória</label>
+                    <select id="kategoria" onchange="frissitGepek()"><option value="">Válassz kategóriát...</option></select>
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-muted);">Konkrét gép</label>
+                    <select id="gep" onchange="checkTemplates()"><option value="">Előbb válassz kategóriát...</option></select>
+                </div>
+            </div>
+            
+            <div id="startWizardBtnContainer" style="display:none; text-align:center; margin-bottom: 20px; border-top:1px dashed var(--border); padding-top:20px;">
+                <button onclick="startWizard()" style="font-size:18px; padding:15px; background:var(--pri-normal);">🚀 Varázsló Indítása</button>
+                <div style="color:var(--text-muted); margin-top:10px; font-size:14px;">Elérhető ellenőrzőpontok száma: <b id="pontDb">0</b> db</div>
+            </div>
+            
+            <div id="noTemplateMsg" style="display:none; text-align:center; padding:30px; color:var(--text-muted); background:var(--bg-color); border-radius:8px;">
+                Ehez a géphez nincs beállítva ellenőrzőlista a rendszerben.<br>
+                <small>(Állítsd be a Google Sheet "Prod_Ellenorzo_Sablonok" fülén!)</small>
+            </div>
+
+            <!-- MAGA A WIZARD ŰRLAP -->
+            <div id="wizardFormContainer" style="display:none; margin-top:20px;">
+                <div class="wizard-progress"><div class="wizard-progress-bar" id="progressBar"></div></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <h3 style="border:none; margin:0;" id="wizardGepNev">Gép Neve</h3>
+                    <div style="font-weight:bold; color:var(--accent);" id="wizardProgressText">0 / 0 kitöltve</div>
+                </div>
+                
+                <div id="questionsContainer"></div>
+                
+                <button onclick="submitChecklist()" id="btnSubmitChecklist" style="margin-top:20px; font-size:18px; padding:15px; display:none;">💾 Kész! Eredmények Mentése</button>
+            </div>
+        </div>
+
+        <!-- KORÁBBI NAPLÓK -->
+        <div id="naploView" class="view box">
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h4>Korábbi Ellenőrzések Szűrése</h4>
+                    <button class="btn-export" onclick="exportChecklogs()">📥 Lista Exportálása (CSV)</button>
+                </div>
+                <div class="form-grid">
+                    <input type="text" id="szuroUser" placeholder="Keresés operátorra..." onkeyup="renderLogs()">
+                    <select id="szuroSikeres" onchange="renderLogs()">
+                        <option value="">Összes állapot</option>
+                        <option value="Igen">Minden Rendben (OK)</option>
+                        <option value="Nem (Hibás pontok)">Találtak hibát (NOK)</option>
+                    </select>
+                    <div><label style="font-size:12px; color:var(--text-muted);">Dátum tól</label><input type="date" id="szuroTol" onchange="renderLogs()"></div>
+                    <div><label style="font-size:12px; color:var(--text-muted);">Dátum ig</label><input type="date" id="szuroIg" onchange="renderLogs()"></div>
+                </div>
+            </div>
+            <div id="logsContainer" class="full-width-list">Adatok betöltése...</div>
+        </div>
+
+    </div>
+</div>
+
+<script src="prod_ellenorzes.js"></script>
+</body>
+</html>
