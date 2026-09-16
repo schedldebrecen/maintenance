@@ -41,9 +41,7 @@ window.onload = async function() {
         if (sessionRole === "superuser") { if(document.getElementById('dashPaintbrushPanel')) document.getElementById('dashPaintbrushPanel').style.display = "block"; }
         if (sessionRole !== "maintenance" && sessionRole !== "admin" && sessionRole !== "superuser") { if(document.getElementById('shiftLogInputSection')) document.getElementById('shiftLogInputSection').style.display = "none"; }
         document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
-	
 	populateNavDropdown();
-        
         checkLockdownAndInit();
     } else { document.getElementById('loginView').style.display = 'block'; document.getElementById('appView').style.display = 'none'; }
 };
@@ -152,8 +150,6 @@ async function loadTasks() {
         if(r.status === "success") {
             globalOpenTasks = []; globalClosedTasks = [];
             r.data.forEach(t => { 
-                let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
-                if (isPrev && !String(t.id).toUpperCase().includes("PROD")) return;
                 if(t.prioritas==="Igen") t.prioritas="Magas prioritás"; if(t.prioritas==="Nem") t.prioritas="Normál"; 
                 if(t.statusz!=="Lezárt") globalOpenTasks.push(t); else globalClosedTasks.push(t); 
             });
@@ -361,7 +357,6 @@ function downloadCSV(csv, fn) { let a=document.createElement("a"); a.href=URL.cr
 function exportTasks(arr, fn) { if(arr.length===0) return; let csv=["ID","Időpont","Prioritás","Gép","Hiba","Megoldás","Kiesés (perc)"].join(";")+"\n"; arr.forEach(t=>{ csv+=[t.id,t.idopont,t.prioritas,t.gep,String(t.hiba).replace(/"/g,'""'),String(t.megoldas||"").replace(/"/g,'""'),t.downtime||""].map(c=>`"${c}"`).join(";")+"\n"; }); downloadCSV(csv,fn); }
 function toggleNotifications() { const c = document.getElementById('notifToggle').checked; localStorage.setItem("notificationsEnabled", c ? "true" : "false"); }
 async function saveSettings() { showToast("Mentve!"); }
-
 function populateNavDropdown() {
     const nav = document.getElementById('appNavDropdown');
     if(!nav) return;
@@ -371,7 +366,6 @@ function populateNavDropdown() {
     if (r === "production" || r === "admin" || r === "superuser") {
         nav.add(new Option("📱 Termelés App", "production.html"));
         nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-        nav.add(new Option("📝 Operátori Checklist", "prod_ellenorzes.html"));
     }
     if (r === "maintenance" || r === "admin" || r === "superuser") {
         nav.add(new Option("🔧 Karbantartás App", "index.html"));
