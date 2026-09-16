@@ -169,7 +169,7 @@
 
         <div class="dashboard-container">
             
-            <div id="shiftAlertBanner" style="margin-top:20px;"></div>
+            <div id="" style="margin-top:20px;"></div>
 
             <!-- AKTUALIS FELADATOK NEZET -->
             <div id="view-nyitott" class="view-section active">
@@ -478,13 +478,6 @@
                     return logD === todayStr && String(l.muszak).includes("Délután");
                 });
                 if (!hasLog) upcomingWarning = "⏰ FIGYELEM! Egy óra múlva vége a délutáni műszaknak! Ne felejtsd el megírni a műszaknaplót!";
-            } else if (h === 5) {
-                let yestStr = new Date(now.getTime() - 24*3600*1000).toISOString().substring(0, 10);
-                let hasLog = globalShiftLogs.some(l => {
-                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-                    return (logD === todayStr || logD === yestStr) && String(l.muszak).includes("Éjszaka");
-                });
-                if (!hasLog) upcomingWarning = "⏰ FIGYELEM! Egy óra múlva vége az éjszakai műszaknak! Ne felejtsd el megírni a műszaknaplót!";
             }
 
             if (upcomingWarning) {
