@@ -1600,9 +1600,9 @@
         let prevNyitott = 0, prevIdo = 0;
         let machineIssues = {}; 
         
-        // TERMELÉS: CSAK a PROD- kezdetű jegyeket mutatjuk a statisztikában!
-        let deptOpen = globalOpenTasks.filter(t => String(t.id).includes("PROD-"));
-        let deptClosed = globalClosedTasks.filter(t => String(t.id).includes("PROD-"));
+        // TERMELÉS: CSAK A PROD- jegyeket engedjük be!
+        let deptOpen = globalOpenTasks.filter(t => String(t.id).indexOf("PROD-") > -1);
+        let deptClosed = globalClosedTasks.filter(t => String(t.id).indexOf("PROD-") > -1);
 
         let filteredOpen = deptOpen;
         let filteredClosed = deptClosed;
