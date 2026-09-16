@@ -14,8 +14,8 @@
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); }
         
-        .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; }
+        .topbar { background: var(--primary); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 10px; }
+        .user-info { font-size: 14px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
         .container { padding: 15px; max-width: 1400px; margin: 0 auto; }
@@ -66,6 +66,7 @@
         .badge-closed { background: var(--text-muted); }
 
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         .img-container { display: flex; gap: 10px; overflow-x: auto; margin: 10px 0; padding-bottom: 5px; }
         .img-container img, .img-container video { max-width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
@@ -124,7 +125,15 @@
         .login-input-group { position: relative; margin-bottom: 12px; }
         .login-input-group select { appearance: none; -webkit-appearance: none; background: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center; background-size: 20px; background-color: #ffffff; color: var(--primary); }
 
-        @media (min-width: 768px) { 
+        /* Mobil nézet optimalizálás */
+        @media (max-width: 768px) { 
+            .topbar { flex-direction: column; align-items: flex-start; }
+            .user-info { width: 100%; justify-content: flex-start; }
+            .form-grid { grid-template-columns: 1fr; } 
+            .filter-panel .form-grid { grid-template-columns: 1fr; } 
+            .form-full { grid-column: span 1; } 
+        }
+        @media (min-width: 769px) {
             .form-grid { grid-template-columns: 1fr 1fr; gap: 15px; } 
             .filter-panel .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } 
             .form-full { grid-column: span 2; } 
@@ -138,7 +147,7 @@
 <div id="loginView" class="container active view" style="max-width: 400px; margin-top: 10vh;">
     <div class="box" style="text-align: center;">
         <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
-        <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">Ipari CMMS - Karbantartás</h2>
+        <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">Ipari CMMS</h2>
         
         <div class="login-input-group">
             <select id="loginNevSelect" onchange="checkLoginCustom(this)" style="margin-bottom:0;">
@@ -170,7 +179,7 @@
             <img src="Logo-Schedl (1).png" alt="Logo" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;">
         </h2>
         <div class="user-info">
-            <button id="btnSwitchProd" onclick="window.location.href='production.html'" style="display:none; background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🏭 Termelés (Prod)</button>
+            <button onclick="window.location.href='production.html'" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🏭 Termelés (Prod)</button>
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
@@ -243,12 +252,11 @@
                         <button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal);" onclick="savePaintedSchedule()" id="btnSaveSchedule">💾 Módosítások mentése</button>
                     </div>
                 </div>
-                <!-- Dolgozó hozzáadása vagy törlése -->
+                <!-- Dolgozó hozzáadása -->
                 <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <span style="font-weight:bold; font-size:13px; color:var(--text-muted);">Dolgozó hozzáadása vagy törlése a beosztásból:</span>
+                    <span style="font-weight:bold; font-size:13px; color:var(--text-muted);">Dolgozó hozzáadása a beosztáshoz:</span>
                     <input type="text" id="ujBeosztasDolgozo" placeholder="Dolgozó neve..." style="width:auto; margin:0; padding:6px 10px; font-size:13px;">
                     <button onclick="addScheduleWorker()" style="width:auto; margin:0; padding:6px 12px; background:var(--accent); font-size:13px;">➕ Hozzáadás</button>
-                    <button onclick="deleteScheduleWorkerFromInput()" style="width:auto; margin:0; padding:6px 12px; background:var(--pri-crit); font-size:13px;">❌ Törlés</button>
                 </div>
             </div>
 
@@ -371,6 +379,14 @@
                 </div>
                 <div class="form-grid">
                     <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="🔍 Keresés leírásban, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
+                    
+                    <!-- Új Részleg szűrő -->
+                    <select id="szuroReszleg" onchange="renderClosedTasks()">
+                        <option value="">Összes Részleg...</option>
+                        <option value="karbantartas">Karbantartás</option>
+                        <option value="termeles">Termelés</option>
+                    </select>
+
                     <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden kategória...</option></select>
                     <select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
                     <select id="szuroLezartPrioritas" onchange="renderClosedTasks()">
@@ -520,7 +536,10 @@
     let globalClosedTasks = [];
     let globalShiftLogs = [];
     let globalSchedule = [];
-    let globalScheduleWorkers = [];
+    
+    let globalBaseWorkers = [];
+    let globalExtraWorkers = [];
+
     let expectedApprovers = [];
     let lastKnownTaskCount = 0;
     let notifInterval = null;
@@ -676,13 +695,53 @@
         }
     };
 
+    function updateShiftAlertBanner() {
+        let alertHtml = "";
+        let now = new Date();
+        let todayStr = toLocalISOString(now);
+        let h = now.getHours();
+        
+        // 1 órás figyelmeztetés
+        if (now.getDay() >= 1 && now.getDay() <= 5) {
+            let upcomingWarning = "";
+            if (h === 13) {
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return logD === todayStr && String(l.muszak).includes("Délelőtt");
+                });
+                if (!hasLog) upcomingWarning = "⏰ FIGYELEM! Egy óra múlva vége a délelőtti műszaknak! Ne felejtsd el megírni a műszaknaplót!";
+            } else if (h === 21) {
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return logD === todayStr && String(l.muszak).includes("Délután");
+                });
+                if (!hasLog) upcomingWarning = "⏰ FIGYELEM! Egy óra múlva vége a délutáni műszaknak! Ne felejtsd el megírni a műszaknaplót!";
+            } else if (h === 5) {
+                let yestStr = new Date(now.getTime() - 24*3600*1000).toISOString().substring(0, 10);
+                let hasLog = globalShiftLogs.some(l => {
+                    let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+                    return (logD === todayStr || logD === yestStr) && String(l.muszak).includes("Éjszaka");
+                });
+                if (!hasLog) upcomingWarning = "⏰ FIGYELEM! Egy óra múlva vége az éjszakai műszaknak! Ne felejtsd el megírni a műszaknaplót!";
+            }
+
+            if (upcomingWarning) {
+                alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:10px 15px; border-radius:6px; font-size:16px; font-weight:bold; box-shadow:0 0 15px rgba(245, 158, 11,0.8); margin-bottom:15px; text-align:center; animation: blink 1.5s infinite;">${upcomingWarning}</div>`;
+            }
+        }
+        
+        let bannerDiv = document.getElementById('shiftAlertBanner');
+        if(bannerDiv) bannerDiv.innerHTML = alertHtml;
+    }
+
     async function checkLockdownAndInit() {
         try {
             const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule" }) });
             const rSched = await resSched.json();
             if(rSched.status === "success") {
                 globalSchedule = rSched.data;
-                globalScheduleWorkers = rSched.workers || [];
+                globalBaseWorkers = rSched.baseWorkers || [];
+                globalExtraWorkers = rSched.extraWorkers || [];
             }
 
             const resLogs = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) }); 
@@ -701,6 +760,8 @@
                 document.getElementById('lockdownScreen').style.display = 'none';
                 document.getElementById('appView').style.display = 'block';
                 
+                updateShiftAlertBanner();
+
                 const lastTabId = sessionStorage.getItem("activeAppTab");
                 if(lastTabId) {
                     const btn = document.querySelector(`button[onclick*="'${lastTabId}'"]`);
@@ -737,6 +798,8 @@
         
         globalShiftLogs.forEach(l => {
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+            
+            // KARBANTARTÁS: Itt szept. 1 a határ
             if (logD >= "2026-09-01") {
                 let szamonKerheto = false;
                 let logDateObj = new Date(logD + "T00:00:00");
@@ -970,11 +1033,11 @@
         if (user === '__UGYELET__') return;
 
         let cls = '', text = '';
-        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+        if(activeBrush === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+        else if(activeBrush === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+        else if(activeBrush === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+        else if(activeBrush === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+        else if(activeBrush === 'Nappali') { cls = 'cell-O'; text = 'Pihenő'; }
         else if(activeBrush === 'Törlés') { cls = ''; text = ''; }
         
         let el = document.getElementById(tdId);
@@ -1010,7 +1073,7 @@
             }
             paintedChanges = [];
             activeBrush = null;
-            document.getElementById('activeBrushDisplay').style.color = "var(--pri-normal)";
+            document.getElementById('activeBrushDisplay').style.color = "var(--text-main)";
             document.getElementById('activeBrushDisplay').innerText = "Aktív: Nincs";
             showToast("Beosztás módosítva!");
             loadSchedule();
@@ -1028,7 +1091,8 @@
             const r = await res.json();
             if(r.status === "success") {
                 globalSchedule = r.data;
-                globalScheduleWorkers = r.workers || [];
+                globalBaseWorkers = r.baseWorkers || [];
+                globalExtraWorkers = r.extraWorkers || [];
                 renderScheduleMain();
             }
         } catch(e) {}
@@ -1036,7 +1100,11 @@
 
     function renderScheduleMain() {
         const c = document.getElementById('scheduleContainer');
-        if(globalScheduleWorkers.length === 0) { 
+        
+        let uniqueUsers = new Set([...globalBaseWorkers, ...globalExtraWorkers]);
+        let users = Array.from(uniqueUsers).sort();
+
+        if(users.length === 0) { 
             c.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted);'>Nincs dolgozó a beosztásban. Adj hozzá valakit a fenti mezőben!</div>"; 
             return; 
         }
@@ -1048,7 +1116,6 @@
         
         let dates = [];
         for(let i=0; i<35; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
-        let users = globalScheduleWorkers; 
         
         let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col" style="min-width:160px;">Név / Dátum</th>`;
         dates.forEach(d => {
@@ -1078,7 +1145,8 @@
         html += `</tr>`;
         
         users.forEach(u => {
-            let delBtn = (sessionRole === 'superuser') ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;" title="Dolgozó kivétele a naptárból">❌</button>` : '';
+            let isExtra = globalExtraWorkers.includes(u);
+            let delBtn = (sessionRole === 'superuser' && isExtra) ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;" title="Dolgozó kivétele a naptárból">❌</button>` : '';
             html += `<tr><td class="sticky-col">${u} ${delBtn}</td>`;
             dates.forEach(d => {
                 let isWorking = isWorkDay(d);
@@ -1088,11 +1156,11 @@
                 let tipus = match ? match.tipus : '';
                 let cls = ''; let text = '';
                 
-                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'MS'; }
-                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'AS'; }
-                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'NS'; }
-                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'H'; }
-                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'O'; }
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+                else if(tipus === 'Nappali') { cls = 'cell-O'; text = 'Pihenő'; }
                 
                 let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`;
                 let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : '';
@@ -1114,14 +1182,6 @@
         inp.value = "";
         showToast(nev + " hozzáadva a beosztáshoz!");
         loadSchedule();
-    }
-
-    async function deleteScheduleWorkerFromInput() {
-        const inp = document.getElementById('ujBeosztasDolgozo');
-        const nev = inp.value.trim();
-        if(!nev) return alert("Kérlek, add meg a törölni kívánt dolgozó nevét!");
-        deleteScheduleWorker(nev);
-        inp.value = "";
     }
 
     async function deleteScheduleWorker(nev) {
@@ -1197,7 +1257,11 @@
         try { 
             const resSched = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getSchedule" }) });
             const rSched = await resSched.json();
-            if(rSched.status === "success") globalSchedule = rSched.data;
+            if(rSched.status === "success") {
+                globalSchedule = rSched.data;
+                globalBaseWorkers = rSched.baseWorkers || [];
+                globalExtraWorkers = rSched.extraWorkers || [];
+            }
 
             const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs" }) }); 
             const r = await res.json(); 
@@ -1377,6 +1441,7 @@
     function renderOpenTasks() { const f = getFilteredOpenTasks(); let h = ""; f.forEach(t => h += genCard(t)); const c = document.getElementById('openTasksContainer'); if(c) c.innerHTML = h || "Nincs a szűrésnek megfelelő nyitott feladat."; }
 
     function getFilteredClosedTasks() {
+        const srEl = document.getElementById('szuroReszleg'); const sr = srEl ? srEl.value : "";
         const skEl = document.getElementById('szuroKategoria'), sgEl = document.getElementById('szuroGep'), stEl = document.getElementById('filterDatumTol'), siEl = document.getElementById('filterDatumIg'), ismEl = document.getElementById('szuroLezartIsmetlodo');
         const sk = skEl ? skEl.value : "", sg = sgEl ? sgEl.value : "", st = stEl ? stEl.value : "", si = siEl ? siEl.value : "", ism = ismEl ? ismEl.value : "";
         const szovEl = document.getElementById('szuroLezartSzoveg'); const szov = szovEl ? szovEl.value.toLowerCase() : "";
@@ -1384,12 +1449,17 @@
 
         return globalClosedTasks.filter(t => { 
             const d = String(t.idopont || "").substring(0, 10); let gepNev = (sg === "-") ? sk : sk + " - " + sg;
+            
+            let matchReszleg = true;
+            if(sr === "termeles") matchReszleg = String(t.id).includes("PROD-");
+            else if(sr === "karbantartas") matchReszleg = !String(t.id).includes("PROD-");
+
             let matchKat = sk ? (String(t.gep || "").startsWith(sk+" - ") || t.gep===sk) : true; let matchGep = sg ? t.gep===gepNev : true; let matchTol = st ? d>=st : true; let matchIg = si ? d<=si : true;
             let matchIsm = true; const isPrev = String(t.id || "").startsWith("PREV-"); if (ism === "normal") matchIsm = !isPrev; if (ism === "ismetlodo") matchIsm = isPrev;
             let matchPrio = prio ? t.prioritas === prio : true;
             let matchSzoveg = szov ? (String(t.hiba).toLowerCase().includes(szov) || String(t.megoldas).toLowerCase().includes(szov) || String(t.gep).toLowerCase().includes(szov) || String(t.felhasznalo).toLowerCase().includes(szov)) : true;
 
-            return matchKat && matchGep && matchTol && matchIg && matchIsm && matchSzoveg && matchPrio; 
+            return matchReszleg && matchKat && matchGep && matchTol && matchIg && matchIsm && matchSzoveg && matchPrio; 
         });
     }
 
@@ -1428,6 +1498,7 @@
         let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
 
         let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : "";
+        let reszlegIcon = String(t.id).includes("PROD-") ? "🏭 " : "🔧 ";
         
         let reopenBtn = "";
         let adminBtns = "";
@@ -1475,8 +1546,8 @@
                     <div><span>${dateStr}</span> <span style="color:var(--text-muted); font-size:11px; margin-left:6px; font-family:monospace;">#${t.id}</span></div>
                     <div style="display:flex; gap:5px; align-items:center;">${prioSelectHtml} <span class="badge ${bC}" style="display:none;">${pr}</span>${pB}</div>
                 </div>
-                <div class="task-title">${prevIcon}${t.gep}</div>
-                <div style="margin-bottom:5px; white-space:pre-wrap;">${t.hiba}</div>
+                <div class="task-title">${reszlegIcon}${prevIcon}${t.gep}</div>
+                <div style="margin-bottom:5px;">${t.hiba}</div>
                 ${clHtml}
                 ${kH}
                 <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Beküldte: <b>${t.felhasznalo}</b></div>
@@ -1501,7 +1572,7 @@
                     <div><span>${dateStr}</span> <span style="color:var(--text-muted); font-size:11px; margin-left:6px; font-family:monospace;">#${t.id}</span></div>
                     <span class="badge badge-closed">Lezárt</span>
                 </div>
-                <div class="task-title" style="color:var(--text-muted);">${prevIcon}${t.gep}</div><div style="margin-bottom:5px; white-space:pre-wrap;">${t.hiba}</div>${clHtml}${kH}<div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} perc${dtTxt})</span></div><div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;"><div>Beküldte: ${t.felhasznalo}</div><div>Lezárta: ${t.lezarta}</div></div>${aH}
+                <div class="task-title" style="color:var(--text-muted);">${reszlegIcon}${prevIcon}${t.gep}</div><div style="margin-bottom:5px; white-space:pre-wrap;">${t.hiba}</div>${clHtml}${kH}<div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} perc${dtTxt})</span></div><div style="font-size:11px; color:var(--text-muted); background:var(--bg-color); padding:8px; border-radius:4px; margin-top:auto;"><div>Beküldte: ${t.felhasznalo}</div><div>Lezárta: ${t.lezarta}</div></div>${aH}
             </div>`;
         }
     }
