@@ -86,20 +86,48 @@ function renderChecklistTab() {
     let sT = document.getElementById('clDashTerulet').value;
     let sG = document.getElementById('clDashGep').value;
 
-    // CSAK az ALFELADATOKAT (amiknek van szülője) szűrjük a műszak és gyakoriság szerint
-    let validSubtasks = clSablon.filter(q => {
-        if (!q.szuloId) return false;
-        
+    // Kikeressük mindazt, aminek látszódnia kell (műszak, nap, gép szűrők)
+    let activeForShift = clSablon.filter(q => {
         let freq = String(q.gyakorisag || "").trim();
         let isFreqMatch = (freq === "Minden nap" || freq === todayDayName || (freq === "Minden hétköznap" && isWeekday));
         let isShiftMatch = (q.muszakok && String(q.muszakok).includes(currentShiftShort));
         let isAreaMatch = sT ? (q.terulet === sT) : true;
         let isMachMatch = sG ? (q.gep === sG) : true;
-        
         return isFreqMatch && isShiftMatch && isAreaMatch && isMachMatch;
     });
 
-    if (validSubtasks.length === 0) {
+    let organizedTasks = [];
+    let allMainTasks = clSablon.filter(t => !t.szuloId);
+    let allChildTasks = clSablon.filter(t => t.szuloId);
+
+    // Sorrend és Fejléc / Önálló feladat eldöntése
+    allMainTasks.forEach(mt => {
+        let myChildren = allChildTasks.filter(ct => ct.szuloId === mt.id);
+        let isHeader = myChildren.length > 0; // Ha van gyereke az adatbázisban, akkor Ő egy Fejléc
+
+        if (isHeader) {
+            // Fejlécként csak akkor rakjuk ki, ha legalább EGY alfeladata aktív most
+            let myActiveChildren = myChildren.filter(ct => activeForShift.includes(ct));
+            if (myActiveChildren.length > 0) {
+                mt.isHeaderOnly = true;
+                organizedTasks.push(mt);
+                myActiveChildren.forEach(ct => { ct.isChild = true; organizedTasks.push(ct); });
+            }
+        } else {
+            // Önálló feladat (nem fejléc). Akkor rakjuk ki, ha most aktív.
+            if (activeForShift.includes(mt)) {
+                mt.isHeaderOnly = false;
+                mt.isChild = false;
+                organizedTasks.push(mt);
+            }
+        }
+    });
+
+    // Ha valaminek törölték a szülőjét (árva), de önmagában aktív
+    let activeOrphans = activeForShift.filter(ct => ct.szuloId && !allMainTasks.find(mt => mt.id === ct.szuloId));
+    activeOrphans.forEach(o => { o.isChild = false; o.isHeaderOnly = false; organizedTasks.push(o); });
+
+    if (organizedTasks.length === 0) {
         document.getElementById('checklistStatusContainer').innerHTML = `<div style="color:var(--text-muted); text-align:center;">Jelenleg (erre a szűrésre / műszakra) nincs aktív feladat.</div>`;
         document.getElementById('checklistQuestionsContainer').style.display = 'none';
         return;
@@ -108,58 +136,46 @@ function renderChecklistTab() {
     document.getElementById('checklistStatusContainer').innerHTML = "";
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    let organizedTasks = [];
-    let mainTasks = clSablon.filter(t => !t.szuloId);
-
-    // Csak azokat a főfeladatokat rakjuk be a listába, amikhez tartozik érvényes (megjelenítendő) alfeladat!
-    mainTasks.forEach(mt => {
-        let activeChildren = validSubtasks.filter(ct => ct.szuloId === mt.id);
-        if (activeChildren.length > 0) {
-            organizedTasks.push(mt);
-            activeChildren.forEach(ct => organizedTasks.push(ct));
-        }
-    });
-    
-    // Árva alfeladatok, ha esetleg letörölték a szülőjüket
-    let orphans = validSubtasks.filter(ct => !mainTasks.find(mt => mt.id === ct.szuloId));
-    organizedTasks.push(...orphans);
-
     let html = "";
     organizedTasks.forEach((q) => {
-        let isMain = !q.szuloId;
         let gTxt = q.gep ? ` / ${q.gep}` : "";
         
-        if (isMain) {
-            // FEJLÉC (Gombok és megjegyzések nélkül)
+        if (q.isHeaderOnly) {
+            // FEJLÉC (Kisebb padding, vékonyabb betűk, NINCS OK/NOK gomb)
             html += `
-            <div style="background:var(--surface); padding:15px; border-radius:8px; margin-bottom:15px; border:2px solid var(--pri-info); border-left: 6px solid var(--pri-info);">
-                <div style="font-size:12px; font-weight:bold; color:var(--text-muted); margin-bottom:5px;">FŐ FELADAT [${q.terulet||'Általános'}${gTxt}]</div>
-                <div style="font-size:20px; font-weight:bold; color:var(--text-main); margin:0;">${q.kerdes}</div>
+            <div style="background:var(--surface); padding:8px 12px; border-radius:6px; margin-bottom:10px; border:1px solid var(--pri-info); border-left: 5px solid var(--pri-info);">
+                <div style="font-size:11px; font-weight:bold; color:var(--text-muted); margin-bottom:2px; text-transform:uppercase;">Fő feladat [${q.terulet||'Általános'}${gTxt}]</div>
+                <div style="font-size:15px; font-weight:bold; color:var(--text-main); margin:0;">${q.kerdes}</div>
             </div>`;
         } else {
-            // ALFELADATOK (Ezeket kell ellenőrizni, beljebb tolva)
+            // ALFELADAT VAGY ÖNÁLLÓ FELADAT (OK/NOK gombokkal)
             let extraHtml = "";
-            if (q.utasitas) { extraHtml += `<div style="margin-bottom:10px; font-size:14px; color:var(--pri-high);">ℹ️ <b>Utasítás:</b> ${q.utasitas}</div>`; }
-            if (q.kep) { 
+            if (q.utasitas) { extraHtml += `<div style="margin-bottom:8px; font-size:12px; color:var(--pri-high); line-height:1.2;">ℹ️ <b>Utasítás:</b> ${q.utasitas}</div>`; }
+	    if (q.kep) { 
                 let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
-                if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`; }
-                extraHtml += `<div style="margin-bottom:10px;"><img src="${imgUrl}" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid var(--border); cursor:pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="window.open('${q.kep}', '_blank')"></div>`; 
+                if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://drive.google.com/uc?export=view&id=${m[1]}`; }
+                extraHtml += `<div style="margin-bottom:8px;"><img src="${imgUrl}" loading="lazy" style="max-width:100%; max-height:150px; border-radius:4px; border:1px solid var(--border); cursor:pointer;" onclick="window.open('${q.kep}', '_blank')"></div>`; 
             }
             if (q.fajl) { 
-                let fNev = q.fajlNev ? q.fajlNev : "📄 Csatolt Fájl Megnyitása";
-                extraHtml += `<div style="margin-bottom:15px;"><a href="${q.fajl}" target="_blank" style="display:inline-block; background:var(--pri-info); color:white; padding:6px 12px; border-radius:4px; text-decoration:none; font-size:13px; font-weight:bold;">${fNev}</a></div>`; 
+                let fNev = q.fajlNev ? q.fajlNev : "📄 Megnyitás";
+                extraHtml += `<div style="margin-bottom:10px;"><a href="${q.fajl}" target="_blank" style="display:inline-block; background:var(--pri-info); color:white; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;">${fNev}</a></div>`; 
             }
 
+            let margin = q.isChild ? 20 : 0; 
+            let borderStyle = q.isChild ? "border-left: 3px solid var(--pri-obs);" : "border-left: 4px solid var(--pri-normal);";
+            let faIkon = q.isChild ? "↳ " : "";
+
             html += `
-            <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px; border-left: 4px solid var(--pri-obs); margin-left:40px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
-                <div style="font-size:16px; margin-bottom:10px; color:var(--text-main); font-weight:bold;">↳ ${q.kerdes}</div>
+            <div style="background:var(--bg-dark); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border); ${borderStyle} margin-left:${margin}px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
+                <div style="font-size:11px; font-weight:bold; color:var(--pri-info); margin-bottom:4px; display:${q.isChild ? 'none' : 'block'};">[${q.terulet||'Általános'}${gTxt}]</div>
+                <div style="font-size:14px; margin-bottom:8px; color:var(--text-main); font-weight:bold; line-height:1.2;">${faIkon}${q.kerdes}</div>
                 ${extraHtml}
-                <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:10px;">
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:16px; font-weight:bold; color:var(--pri-normal); background:var(--surface); padding:8px 15px; border-radius:6px; border:1px solid var(--pri-normal);"><input type="radio" name="clRad_${q.id}" value="OK" style="width:20px; height:20px;"> OK</label>
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:16px; font-weight:bold; color:var(--pri-crit); background:var(--surface); padding:8px 15px; border-radius:6px; border:1px solid var(--pri-crit);"><input type="radio" name="clRad_${q.id}" value="NOK" style="width:20px; height:20px;"> NOK</label>
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:16px; font-weight:bold; color:var(--text-muted); background:var(--surface); padding:8px 15px; border-radius:6px; border:1px solid var(--text-muted);"><input type="radio" name="clRad_${q.id}" value="N.A." style="width:20px; height:20px;"> N.A.</label>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+                    <label style="flex:1; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--pri-normal); background:var(--surface); padding:8px 5px; border-radius:4px; border:1px solid var(--pri-normal);"><input type="radio" name="clRad_${q.id}" value="OK" style="width:16px; height:16px; margin:0;"> OK</label>
+                    <label style="flex:1; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--pri-crit); background:var(--surface); padding:8px 5px; border-radius:4px; border:1px solid var(--pri-crit);"><input type="radio" name="clRad_${q.id}" value="NOK" style="width:16px; height:16px; margin:0;"> NOK</label>
+                    <label style="flex:1; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--text-muted); background:var(--surface); padding:8px 5px; border-radius:4px; border:1px solid var(--text-muted);"><input type="radio" name="clRad_${q.id}" value="N.A." style="width:16px; height:16px; margin:0;"> N.A.</label>
                 </div>
-                <input type="text" class="dash-input cl-comment" placeholder="Megjegyzés (Nem kötelező, de NOK esetén jegy nyílik belőle)..." style="margin-bottom:0;">
+                <input type="text" class="dash-input cl-comment" placeholder="Megjegyzés (Nem kötelező)..." style="margin-bottom:0; padding:6px; font-size:12px;">
             </div>`;
         }
     });
@@ -175,7 +191,7 @@ async function verifyAndSubmitChecklist() {
     if(!nev || !pin) { stat.innerText = "Válaszd ki a neved és add meg a PIN kódod!"; return; }
 
     let eredmenyek = []; 
-    // Csak a tényleges kérdéseket (alfeladatokat) vizsgáljuk
+    // Csak a tényleges kérdéseket (alfeladatokat / önálló feladatokat) vizsgáljuk
     let blocks = document.querySelectorAll('.cl-question-block');
     for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i]; let terulet = block.getAttribute('data-terulet'); let gep = block.getAttribute('data-gep'); let kerdes = block.getAttribute('data-kerdes');

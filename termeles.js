@@ -215,8 +215,7 @@ function genCard(t) {
     const pr = String(t.prioritas || "").replace(" prioritás", "").replace("ással járó", "");
     let bC = "badge-normal", eC = ""; const pLower = String(t.prioritas || "").toLowerCase();
     if(t.statusz==="Lezárt") { bC="badge-closed"; eC="closed"; } else { if(pLower.includes("leállás")) {bC="badge-crit"; eC="Termelésleállás";} else if(pLower.includes("magas")) {bC="badge-high"; eC="Magas";} else if(pLower.includes("megfigyelés")) {bC="badge-obs"; eC="Megfigyelés";} else if(pLower.includes("informatív")) {bC="badge-info"; eC="Informatív";} if(t.statusz==="Folyamatban") eC="Folyamatban"; }
-    let kH = ""; if (t.kepek) { kH += `<div class="img-container">`; String(t.kepek).split(",").forEach(u => { if(u.trim()) { const m = u.match(/id=([^&]+)/); const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim(); kH += `<img src="${m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : u}" onclick="window.open('${viewUrl}', '_blank')">`; } }); kH += `</div>`; }
-    let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
+    let kH = ""; if (t.kepek) { kH += `<div class="img-container">`; String(t.kepek).split(",").forEach(u => { if(u.trim()) { const m = u.match(/id=([^&]+)/); const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim(); kH += `<img src="${m ? `https://drive.google.com/uc?export=view&id=${m[1]}` : u}" loading="lazy" onclick="window.open('${viewUrl}', '_blank')">`; } }); kH += `</div>`; }    let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
     let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : ""; let reszlegIcon = String(t.id).includes("PROD-") ? "🏭 " : "🔧 ";
     let reopenBtn = "", adminBtns = "", role = String(localStorage.getItem("activeRole")).toLowerCase();
     if (t.statusz === "Lezárt" && !String(t.id).startsWith("PREV-")) { reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔄 Újranyitás</button>`; }
@@ -409,12 +408,25 @@ function renderChecklistSablon() {
     organizedTasks.forEach(s => {
         let tNev = s.terulet || "Általános"; let gNev = s.gep ? ` / ${s.gep}` : "";
         let isMain = !s.szuloId;
-        let margin = isMain ? 0 : 40; 
-        let borderStyle = isMain ? "border-left: 6px solid var(--pri-info);" : "border-left: 4px solid var(--pri-obs);";
-        let faIkon = isMain ? "📂 FŐ FELADAT: " : "↳ ";
-        let extraStyles = isMain ? "background:#1e293b;" : "";
         
-        html += `<div class="task-card" style="margin-left: ${margin}px; ${borderStyle} ${extraStyles}"><div style="display:flex; justify-content:space-between;"><div style="font-weight:bold; color:var(--primary); font-size:14px;">[${tNev}${gNev}]</div><div style="font-size:12px; color:var(--pri-normal); font-weight:bold;">${s.gyakorisag} | ${s.muszakok}</div></div><div style="font-size:16px; margin:10px 0; font-weight:bold; color:var(--text-main);">${faIkon}${s.kerdes}</div><div style="text-align:right;"><button onclick="editChecklistSablonUI('${s.id}')" style="background:var(--pri-info); width:auto; padding:5px 10px; font-size:12px; margin:0; margin-right:5px;">✏️ Szerkesztés</button><button onclick="deleteChecklistSablon('${s.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">🗑️ Törlés</button></div></div>`;
+        // Kisebb margók és behúzások a kompaktabb nézetért
+        let margin = isMain ? 0 : 20; 
+        let borderStyle = isMain ? "border-left: 4px solid var(--pri-info);" : "border-left: 3px solid var(--pri-obs);";
+        let faIkon = isMain ? "📂 " : "↳ ";
+        let extraStyles = isMain ? "background:#f8fafc;" : "";
+        
+        html += `
+        <div class="task-card" style="margin-left: ${margin}px; padding: 10px; margin-bottom: 8px; ${borderStyle} ${extraStyles}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-weight:bold; color:var(--primary); font-size:12px;">[${tNev}${gNev}]</div>
+                <div style="font-size:11px; color:var(--pri-normal); font-weight:bold;">${s.gyakorisag} | ${s.muszakok}</div>
+            </div>
+            <div style="font-size:14px; margin:6px 0; font-weight:bold; color:var(--text-main);">${faIkon}${s.kerdes}</div>
+            <div style="text-align:right;">
+                <button onclick="editChecklistSablonUI('${s.id}')" style="background:var(--pri-info); width:auto; padding:4px 10px; font-size:11px; margin:0; margin-right:5px;">✏️ Szerkesztés</button>
+                <button onclick="deleteChecklistSablon('${s.id}')" style="background:#ef4444; width:auto; padding:4px 10px; font-size:11px; margin:0;">🗑️ Törlés</button>
+            </div>
+        </div>`;
     }); 
     c.innerHTML = html;
 }
