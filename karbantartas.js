@@ -67,10 +67,11 @@ async function checkLockdownAndInit() {
 
 function evaluateLockdown() {
     let myUnapprovedCount = 0; let myUnapprovedLogs = [];
-    const role = String(localStorage.getItem("activeRole")).toLowerCase(); const currentUser = String(localStorage.getItem("activeUser")).trim();
-    let expectedApproversClean = expectedApprovers.map(a => String(a).trim()); let isApprover = (role === "maintenance" || role === "production" || role === "superuser");
-    if (!isApprover) return false;
-    if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) { expectedApproversClean.push(currentUser); }
+    const currentUser = String(localStorage.getItem("activeUser")).trim();
+    let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
+    
+    // ÚJ LOGIKA: Ha a felhasználó nevét nem küldte át a szerver mint az adott osztály tagja, nem blokkoljuk!
+    if (!expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) return false;
 
     let now = new Date();
     globalShiftLogs.forEach(l => {
@@ -87,9 +88,17 @@ function evaluateLockdown() {
                     let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : [];
                     let approversLower = approvers.map(x=>x.toLowerCase()); let creatorLower = String(l.felhasznalo).trim().toLowerCase();
                     if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
-                    let expectedForThisLog = expectedApproversClean.filter(a => { let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase()); if (sched && sched.tipus.includes('Szabadság')) return false; return true; });
+                    
+                    let expectedForThisLog = expectedApproversClean.filter(a => { 
+                        let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase()); 
+                        if (sched && sched.tipus.includes('Szabadság')) return false; 
+                        return true; 
+                    });
+                    
                     let expectedLowerFiltered = expectedForThisLog.map(x=>x.toLowerCase());
-                    if (expectedLowerFiltered.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) { myUnapprovedCount++; myUnapprovedLogs.push(l); }
+                    if (expectedLowerFiltered.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) { 
+                        myUnapprovedCount++; myUnapprovedLogs.push(l); 
+                    }
                 }
             }
         }
@@ -113,7 +122,6 @@ function evaluateLockdown() {
         document.getElementById('unapprovedLogsList').innerHTML = listHtml; return true;
     } return false;
 }
-
 async function submitHianyzoNaplo(datum, muszak) {
     let szoveg = document.getElementById(`hianyzoSzoveg_${datum}_${muszak}`).value.trim();
     if(!szoveg) return alert("A napló szövege nem lehet üres!");

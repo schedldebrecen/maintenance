@@ -164,16 +164,17 @@ function renderChecklistTab() {
             let faIkon = q.isChild ? "↳ " : "";
 
             html += `
-            <div style="background:var(--bg-dark); padding:10px; border-radius:6px; margin-bottom:10px; ${borderStyle} margin-left:${margin}px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
-                <div style="font-size:14px; margin-bottom:8px; color:var(--text-main); font-weight:bold; line-height:1.2;">${faIkon}${q.kerdes}</div>
-                ${extraHtml}
-                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-                    <label style="flex:1; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--pri-normal); background:var(--surface); padding:8px 5px; border-radius:4px; border:1px solid var(--pri-normal);"><input type="radio" name="clRad_${q.id}" value="OK" style="width:16px; height:16px; margin:0;"> OK</label>
-                    <label style="flex:1; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--pri-crit); background:var(--surface); padding:8px 5px; border-radius:4px; border:1px solid var(--pri-crit);"><input type="radio" name="clRad_${q.id}" value="NOK" style="width:16px; height:16px; margin:0;"> NOK</label>
-                    <label style="flex:1; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--text-muted); background:var(--surface); padding:8px 5px; border-radius:4px; border:1px solid var(--text-muted);"><input type="radio" name="clRad_${q.id}" value="N.A." style="width:16px; height:16px; margin:0;"> N.A.</label>
-                </div>
-                <input type="text" class="dash-input cl-comment" placeholder="Megjegyzés (Nem kötelező)..." style="margin-bottom:0; padding:6px; font-size:12px;">
-            </div>`;
+            <div style="background:var(--bg-dark); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border); ${borderStyle} margin-left:${margin}px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
+               				<div style="font-size:11px; font-weight:bold; color:var(--pri-info); margin-bottom:4px; display:${q.isChild ? 'none' : 'block'};">[${q.terulet||'Általános'}${gTxt}]</div>
+                			<div style="font-size:14px; margin-bottom:8px; color:var(--text-main); font-weight:bold; line-height:1.2;">${faIkon}${q.kerdes}</div>
+               				${extraHtml}
+                			<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                    				<label style="cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:bold; color:var(--pri-normal); background:var(--surface); padding:4px 10px; border-radius:4px; border:1px solid var(--pri-normal); width:fit-content;"><input type="radio" name="clRad_${q.id}" value="OK" style="width:14px; height:14px; margin:0;"> OK</label>
+                    				<label style="cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:bold; color:var(--pri-crit); background:var(--surface); padding:4px 10px; border-radius:4px; border:1px solid var(--pri-crit); width:fit-content;"><input type="radio" name="clRad_${q.id}" value="NOK" style="width:14px; height:14px; margin:0;"> NOK</label>
+                    				<label style="cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:bold; color:var(--text-muted); background:var(--surface); padding:4px 10px; border-radius:4px; border:1px solid var(--text-muted); width:fit-content;"><input type="radio" name="clRad_${q.id}" value="N.A." style="width:14px; height:14px; margin:0;"> N.A.</label>
+               				</div>
+                			<input type="text" class="dash-input cl-comment" placeholder="Megjegyzés (Nem kötelező)..." style="margin-bottom:0; padding:6px; font-size:12px;">
+            			</div>`;
         }
     });
     document.getElementById('clQuestionsList').innerHTML = html;
