@@ -86,7 +86,6 @@ function renderChecklistTab() {
     let sT = document.getElementById('clDashTerulet').value;
     let sG = document.getElementById('clDashGep').value;
 
-    // Kikeressük mindazt, aminek látszódnia kell (műszak, nap, gép szűrők)
     let activeForShift = clSablon.filter(q => {
         let freq = String(q.gyakorisag || "").trim();
         let isFreqMatch = (freq === "Minden nap" || freq === todayDayName || (freq === "Minden hétköznap" && isWeekday));
@@ -100,13 +99,10 @@ function renderChecklistTab() {
     let allMainTasks = clSablon.filter(t => !t.szuloId);
     let allChildTasks = clSablon.filter(t => t.szuloId);
 
-    // Sorrend és Fejléc / Önálló feladat eldöntése
     allMainTasks.forEach(mt => {
         let myChildren = allChildTasks.filter(ct => ct.szuloId === mt.id);
-        let isHeader = myChildren.length > 0; // Ha van gyereke az adatbázisban, akkor Ő egy Fejléc
-
+        let isHeader = myChildren.length > 0; 
         if (isHeader) {
-            // Fejlécként csak akkor rakjuk ki, ha legalább EGY alfeladata aktív most
             let myActiveChildren = myChildren.filter(ct => activeForShift.includes(ct));
             if (myActiveChildren.length > 0) {
                 mt.isHeaderOnly = true;
@@ -114,7 +110,6 @@ function renderChecklistTab() {
                 myActiveChildren.forEach(ct => { ct.isChild = true; organizedTasks.push(ct); });
             }
         } else {
-            // Önálló feladat (nem fejléc). Akkor rakjuk ki, ha most aktív.
             if (activeForShift.includes(mt)) {
                 mt.isHeaderOnly = false;
                 mt.isChild = false;
@@ -123,7 +118,6 @@ function renderChecklistTab() {
         }
     });
 
-    // Ha valaminek törölték a szülőjét (árva), de önmagában aktív
     let activeOrphans = activeForShift.filter(ct => ct.szuloId && !allMainTasks.find(mt => mt.id === ct.szuloId));
     activeOrphans.forEach(o => { o.isChild = false; o.isHeaderOnly = false; organizedTasks.push(o); });
 
@@ -141,20 +135,24 @@ function renderChecklistTab() {
         let gTxt = q.gep ? ` / ${q.gep}` : "";
         
         if (q.isHeaderOnly) {
-            // FEJLÉC (Kisebb padding, vékonyabb betűk, NINCS OK/NOK gomb)
             html += `
             <div style="background:var(--surface); padding:8px 12px; border-radius:6px; margin-bottom:10px; border:1px solid var(--pri-info); border-left: 5px solid var(--pri-info);">
                 <div style="font-size:11px; font-weight:bold; color:var(--text-muted); margin-bottom:2px; text-transform:uppercase;">Fő feladat [${q.terulet||'Általános'}${gTxt}]</div>
                 <div style="font-size:15px; font-weight:bold; color:var(--text-main); margin:0;">${q.kerdes}</div>
             </div>`;
         } else {
-            // ALFELADAT VAGY ÖNÁLLÓ FELADAT (OK/NOK gombokkal)
             let extraHtml = "";
             if (q.utasitas) { extraHtml += `<div style="margin-bottom:8px; font-size:12px; color:var(--pri-high); line-height:1.2;">ℹ️ <b>Utasítás:</b> ${q.utasitas}</div>`; }
-	    if (q.kep) { 
-                let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
-                if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://drive.google.com/uc?export=view&id=${m[1]}`; }
-                extraHtml += `<div style="margin-bottom:8px;"><img src="${imgUrl}" loading="lazy" style="max-width:100%; max-height:150px; border-radius:4px; border:1px solid var(--border); cursor:pointer;" onclick="window.open('${q.kep}', '_blank')"></div>`; 
+            if (q.kep) { 
+                let imgUrl = q.kep; let m = q.kep.match(/id=([^&]+)/) || q.kep.match(/d\/([a-zA-Z0-9_-]+)/);
+                let viewUrl = q.kep;
+                if(m && q.kep.includes("drive.google.com")) { 
+                    imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; 
+                    viewUrl = `https://drive.google.com/file/d/${m[1]}/view`;
+                }
+                let fallbackHtml = `<a href="${viewUrl}" target="_blank" style="display:inline-block; background:var(--pri-obs); color:white; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;">📷 Kép megnyitása</a>`;
+                let safeFallback = fallbackHtml.replace(/"/g, '&quot;');
+                extraHtml += `<div style="margin-bottom:8px;"><img src="${imgUrl}" loading="lazy" style="max-width:100%; max-height:150px; border-radius:4px; border:1px solid var(--border); cursor:pointer;" onclick="window.open('${viewUrl}', '_blank')" onerror="this.outerHTML='${safeFallback}'"></div>`; 
             }
             if (q.fajl) { 
                 let fNev = q.fajlNev ? q.fajlNev : "📄 Megnyitás";
@@ -162,12 +160,11 @@ function renderChecklistTab() {
             }
 
             let margin = q.isChild ? 20 : 0; 
-            let borderStyle = q.isChild ? "border-left: 3px solid var(--pri-obs);" : "border-left: 4px solid var(--pri-normal);";
+            let borderStyle = q.isChild ? "border-left: 3px solid var(--pri-obs);" : "border:1px solid var(--border);";
             let faIkon = q.isChild ? "↳ " : "";
 
             html += `
-            <div style="background:var(--bg-dark); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border); ${borderStyle} margin-left:${margin}px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
-                <div style="font-size:11px; font-weight:bold; color:var(--pri-info); margin-bottom:4px; display:${q.isChild ? 'none' : 'block'};">[${q.terulet||'Általános'}${gTxt}]</div>
+            <div style="background:var(--bg-dark); padding:10px; border-radius:6px; margin-bottom:10px; ${borderStyle} margin-left:${margin}px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
                 <div style="font-size:14px; margin-bottom:8px; color:var(--text-main); font-weight:bold; line-height:1.2;">${faIkon}${q.kerdes}</div>
                 ${extraHtml}
                 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
@@ -191,7 +188,6 @@ async function verifyAndSubmitChecklist() {
     if(!nev || !pin) { stat.innerText = "Válaszd ki a neved és add meg a PIN kódod!"; return; }
 
     let eredmenyek = []; 
-    // Csak a tényleges kérdéseket (alfeladatokat / önálló feladatokat) vizsgáljuk
     let blocks = document.querySelectorAll('.cl-question-block');
     for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i]; let terulet = block.getAttribute('data-terulet'); let gep = block.getAttribute('data-gep'); let kerdes = block.getAttribute('data-kerdes');

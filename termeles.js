@@ -41,7 +41,7 @@ window.onload = async function() {
         }
         if (sessionRole === "superuser") { if(document.getElementById('dashPaintbrushPanel')) document.getElementById('dashPaintbrushPanel').style.display = "block"; }
         document.getElementById('loginView').style.display = 'none'; document.getElementById('appView').style.display = 'block';
-	populateNavDropdown();
+	    populateNavDropdown();
         checkLockdownAndInit();
     } else { document.getElementById('loginView').style.display = 'block'; document.getElementById('appView').style.display = 'none'; }
 };
@@ -215,7 +215,24 @@ function genCard(t) {
     const pr = String(t.prioritas || "").replace(" prioritás", "").replace("ással járó", "");
     let bC = "badge-normal", eC = ""; const pLower = String(t.prioritas || "").toLowerCase();
     if(t.statusz==="Lezárt") { bC="badge-closed"; eC="closed"; } else { if(pLower.includes("leállás")) {bC="badge-crit"; eC="Termelésleállás";} else if(pLower.includes("magas")) {bC="badge-high"; eC="Magas";} else if(pLower.includes("megfigyelés")) {bC="badge-obs"; eC="Megfigyelés";} else if(pLower.includes("informatív")) {bC="badge-info"; eC="Informatív";} if(t.statusz==="Folyamatban") eC="Folyamatban"; }
-    let kH = ""; if (t.kepek) { kH += `<div class="img-container">`; String(t.kepek).split(",").forEach(u => { if(u.trim()) { const m = u.match(/id=([^&]+)/); const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim(); kH += `<img src="${m ? `https://drive.google.com/uc?export=view&id=${m[1]}` : u}" loading="lazy" onclick="window.open('${viewUrl}', '_blank')">`; } }); kH += `</div>`; }    let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
+    
+    // KÉPEK MEGJELENÍTÉSE HIBABIZTOSAN (Nincs törött ikon)
+    let kH = ""; 
+    if (t.kepek) { 
+        kH += `<div class="img-container">`; 
+        String(t.kepek).split(",").forEach(u => { 
+            if(u.trim()) { 
+                const m = u.match(/id=([^&]+)/) || u.match(/d\/([a-zA-Z0-9_-]+)/); 
+                const viewUrl = m ? `https://drive.google.com/file/d/${m[1]}/view` : u.trim(); 
+                const imgSrc = m ? `https://lh3.googleusercontent.com/d/${m[1]}` : u.trim();
+                const fb = `<a href="${viewUrl}" target="_blank" style="display:inline-block; background:var(--pri-normal); color:white; padding:6px 12px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;">📷 Kép megnyitása</a>`.replace(/"/g, '&quot;');
+                kH += `<div style="margin-bottom:8px;"><img src="${imgSrc}" loading="lazy" style="max-width:100%; max-height:150px; border-radius:4px; cursor:pointer;" onclick="window.open('${viewUrl}', '_blank')" onerror="this.outerHTML='${fb}'"></div>`; 
+            } 
+        }); 
+        kH += `</div>`; 
+    }
+
+    let clHtml = ""; if (t.checklist) { let items = String(t.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li>${i}</li>`).join(''); clHtml = `<div class="checklist-box"><strong>📝 Teendők:</strong><ul>${items}</ul></div>`; }
     let prevIcon = String(t.id || "").startsWith("PREV-") ? "🔁 " : ""; let reszlegIcon = String(t.id).includes("PROD-") ? "🏭 " : "🔧 ";
     let reopenBtn = "", adminBtns = "", role = String(localStorage.getItem("activeRole")).toLowerCase();
     if (t.statusz === "Lezárt" && !String(t.id).startsWith("PREV-")) { reopenBtn = `<button onclick="reopenTask('${t.id}')" style="background:var(--pri-high); padding:4px 8px; width:auto; margin:0; font-size:11px; border:none; color:white; border-radius:3px;">🔄 Újranyitás</button>`; }
@@ -409,7 +426,6 @@ function renderChecklistSablon() {
         let tNev = s.terulet || "Általános"; let gNev = s.gep ? ` / ${s.gep}` : "";
         let isMain = !s.szuloId;
         
-        // Kisebb margók és behúzások a kompaktabb nézetért
         let margin = isMain ? 0 : 20; 
         let borderStyle = isMain ? "border-left: 4px solid var(--pri-info);" : "border-left: 3px solid var(--pri-obs);";
         let faIkon = isMain ? "📂 " : "↳ ";
