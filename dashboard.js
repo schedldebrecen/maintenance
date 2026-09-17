@@ -16,7 +16,7 @@ const gepAdatbazis = {
 const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"];
 const huWorkWeekends = ["2026-08-08", "2026-12-12"];
 
-const REFRESH_INTERVAL_SEC = 20; 
+const REFRESH_INTERVAL_SEC = 120; 
 let timer = REFRESH_INTERVAL_SEC;
 let currentActiveTasks = [];
 let globalClosedTasks = [];
@@ -557,10 +557,15 @@ async function dashLogin() {
     } catch(e) { stat.innerText = "Hálózati hiba!"; }
 }
 
-function dashLogout() {
-    sessionUser = null; sessionRole = null;
-    document.getElementById('activeUserBadge').style.display = 'none';
-    refreshModalActionPanel();
+function dashLogout() { 
+    sessionUser = null; 
+    sessionRole = null; 
+    // Ez a két sor törli véglegesen a memóriából a bejelentkezést:
+    localStorage.removeItem("activeUser"); 
+    localStorage.removeItem("activeRole"); 
+    
+    document.getElementById('activeUserBadge').style.display = 'none'; 
+    refreshModalActionPanel(); 
 }
 
 function refreshModalActionPanel() {

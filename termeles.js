@@ -4,7 +4,7 @@ const RESZLEG = "production";
 let feltoltendoKepek = []; let globalOpenTasks = []; let globalClosedTasks = []; let globalShiftLogs = []; let globalSchedule = [];
 let globalBaseWorkers = []; let globalExtraWorkers = []; let expectedApprovers = []; let lastKnownTaskCount = 0;
 let sessionRole = null; let activeBrush = null; let paintedChanges = []; let statStartDate = null; let statEndDate = null;
-let editIsmId = null; let globalChecklistSablon = []; 
+let editIsmId = null; let globalChecklistSablon = []; let editClSablonId = null;
 
 const gepAdatbazis = { "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ], "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ], "Production - Egyedi gépek": [ "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop", "HP1 - Hydraulic Press - Strautmann" ], "Magasraktár - High Bay System": [ "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas" ], "Palettázó B&O": [ "Szekventáló robot - B&O" ], "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ], "Facility": [ "Épülettel kapcsolatos dolgok" ], "IT": [ "Szerverek", "Hálózati eszközök (Switch/AP)", "Kliens gépek (PC/Laptop)", "Nyomtatók és szkennerek", "Szoftver és rendszerek", "Egyéb IT eszköz" ], "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ], "Aggregátor": [] };
 const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"]; const huWorkWeekends = ["2026-08-08", "2026-12-12"];
@@ -130,7 +130,14 @@ async function approveShiftLogLockdown(id) {
 
 function switchTab(tId, btn) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active')); document.getElementById(tId).classList.add('active'); if(btn) btn.classList.add('active'); sessionStorage.setItem("activeAppTab", tId); }
 async function login() { let n = document.getElementById('loginNevSelect').value !== "custom" && document.getElementById('loginNevSelect').value !== "" ? document.getElementById('loginNevSelect').value : document.getElementById('loginNev').value; const j = document.getElementById('loginJelszo').value; if(!n || !j) return alert("Add meg az adatokat!"); document.getElementById('loginStatus').innerText = "Ellenőrzés..."; try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); const r = await res.json(); if(r.status === "success") { localStorage.setItem("activeUser", n); localStorage.setItem("activeRole", r.role || "production"); location.reload(); } else { document.getElementById('loginStatus').innerText = r.message; } } catch(e) { document.getElementById('loginStatus').innerText = "Hiba!"; } }
-function logout() { localStorage.clear(); sessionStorage.clear(); window.location.replace(window.location.pathname + '?t=' + new Date().getTime()); }
+
+function logout() { 
+    localStorage.removeItem("activeUser"); 
+    localStorage.removeItem("activeRole"); 
+    sessionStorage.clear(); 
+    window.location.replace(window.location.pathname + '?t=' + new Date().getTime()); 
+}
+
 async function processVideo(file) { return new Promise((resolve) => { if (file.size > 15*1024*1024) { alert("Túl nagy videó!"); resolve(null); return; } const reader = new FileReader(); reader.onload = (e) => { resolve({ base64: e.target.result.split(',')[1], tipus: file.type }); }; reader.readAsDataURL(file); }); }
 async function compressImage(file) { return new Promise((resolve) => { const reader = new FileReader(); reader.onload = (e) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const scale = 1024 / img.width; canvas.width = 1024; canvas.height = img.height * scale; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve({ base64: canvas.toDataURL('image/jpeg', 0.7).split(',')[1], tipus: 'image/jpeg' }); }; img.src = e.target.result; }; reader.readAsDataURL(file); }); }
 async function feldolgozUjKep(input) { if (input.files.length === 0) return; const el = document.getElementById('kepElonezet'); document.getElementById('uresKepSzoveg').style.display = 'none'; for (let file of input.files) { if (file.type.startsWith('video/')) { let t = await processVideo(file); if (t) { feltoltendoKepek.push(t); let vid = document.createElement('video'); vid.src = URL.createObjectURL(file); vid.style.width = "40px"; vid.style.height = "40px"; vid.style.objectFit = "cover"; el.appendChild(vid); } } else { let t = await compressImage(file); feltoltendoKepek.push(t); let img = document.createElement('img'); img.src = "data:image/jpeg;base64," + t.base64; img.style.width = "40px"; img.style.height = "40px"; img.style.objectFit = "cover"; el.appendChild(img); } } input.value = ""; }
@@ -321,7 +328,7 @@ async function addRecurringTask() {
     const k = document.getElementById('ismKategoria').value, g = document.getElementById('ismGep').value, h = document.getElementById('ismHiba').value, cl = document.getElementById('ismChecklist').value, kd = document.getElementById('ismKezdoDatum').value;
     if (!k || !g || !h) { alert("Töltsd ki!"); return; } const btn = document.getElementById('btnIsmSubmit'); btn.disabled = true; const gepMentve = (g === "-") ? k : k + " - " + g;
     let p = { action: editIsmId ? "editRecurringTask" : "addRecurringTask", reszleg: RESZLEG, felhasznalo: localStorage.getItem("activeUser"), gep: gepMentve, hiba: h, prioritas: document.getElementById('ismPrioritas').value, ismTipus: document.getElementById('ismTipus').value, checklist: cl, kezdoDatum: kd }; if (editIsmId) p.id = editIsmId;
-    try { const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); if((await r.json()).status === "success") { showToast("Sikeresen mentve!"); document.getElementById('ismHiba').value = ''; document.getElementById('ismChecklist').value = ''; editIsmId = null; btn.innerText = "Beállítás mentése"; btn.style.background = "var(--pri-crit)"; loadRecurringTasks(); } } catch(e) { showToast("Hiba!", true); } finally { btn.disabled = false; }
+    try { const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(p) }); if((await r.json()).status === "success") { showToast("Sikeresen mentve!"); document.getElementById('ismHiba').value = ''; document.getElementById('ismChecklist').value = ''; editIsmId = null; btn.innerText = "Mentés"; btn.style.background = "var(--pri-crit)"; loadRecurringTasks(); } } catch(e) { showToast("Hiba!", true); } finally { btn.disabled = false; }
 }
 async function deleteRecurringTask(id) { if(!confirm("Biztosan törlöd?")) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecurringTask", reszleg: RESZLEG, id: id }) }); showToast("Törölve!"); loadRecurringTasks(); }
 
@@ -357,27 +364,113 @@ function exportDetailedStats() { let list = globalClosedTasks.filter(t => String
 function exportStatisztika(bontas) { exportDetailedStats(); }
 
 function frissitClSablonGep() { const k = document.getElementById('clSablonTerulet').value; const s = document.getElementById('clSablonGep'); s.innerHTML = '<option value="">Általános / Összes gép...</option>'; if (k && gepAdatbazis[k]) { gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } }
-async function loadChecklistData() { const c = document.getElementById('checklistAdminList'); if(c) c.innerHTML = "Sablonok betöltése..."; try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); const r = await res.json(); if(r.status === "success") { globalChecklistSablon = r.data.checklistSablon || []; renderChecklistSablon(); } } catch(e) {} }
+
+function frissitSzuloLista() {
+    const sel = document.getElementById('clSablonSzulo'); if(!sel) return;
+    let actVal = sel.value;
+    sel.innerHTML = '<option value="">-- Ez egy önálló / Fő feladat --</option>';
+    let mainTasks = globalChecklistSablon.filter(t => !t.szuloId && t.id !== editClSablonId);
+    mainTasks.forEach(t => {
+        sel.add(new Option(t.kerdes + " (" + (t.gep || t.terulet || 'Általános') + ")", t.id));
+    });
+    sel.value = actVal;
+}
+
+async function loadChecklistData() { 
+    const c = document.getElementById('checklistAdminList'); if(c) c.innerHTML = "Sablonok betöltése..."; 
+    try { 
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
+        const r = await res.json(); 
+        if(r.status === "success") { 
+            globalChecklistSablon = r.data.checklistSablon || []; 
+            frissitSzuloLista();
+            renderChecklistSablon(); 
+        } 
+    } catch(e) {} 
+}
+
 function renderChecklistSablon() {
     const c = document.getElementById('checklistAdminList'); if(!c) return;
-    if(globalChecklistSablon.length === 0) { c.innerHTML = "<div style='padding:20px; text-align:center; color:var(--text-muted);'>Nincs még egyetlen ellenőrzőpont sem felvéve.</div>"; return; } let html = "";
-    globalChecklistSablon.forEach(s => {
+    if(globalChecklistSablon.length === 0) { c.innerHTML = "<div style='padding:20px; text-align:center; color:var(--text-muted);'>Nincs még egyetlen ellenőrzőpont sem felvéve.</div>"; return; } 
+    
+    let organizedTasks = [];
+    let mainTasks = globalChecklistSablon.filter(t => !t.szuloId);
+    let childTasks = globalChecklistSablon.filter(t => t.szuloId);
+
+    mainTasks.forEach(mt => {
+        organizedTasks.push(mt);
+        let children = childTasks.filter(ct => ct.szuloId === mt.id);
+        children.forEach(ct => organizedTasks.push(ct));
+    });
+    let orphans = childTasks.filter(ct => !mainTasks.find(mt => mt.id === ct.szuloId));
+    organizedTasks.push(...orphans);
+
+    let html = "";
+    organizedTasks.forEach(s => {
         let tNev = s.terulet || "Általános"; let gNev = s.gep ? ` / ${s.gep}` : "";
-        html += `<div class="task-card" style="border-left-color: var(--pri-info);"><div style="display:flex; justify-content:space-between;"><div style="font-weight:bold; color:var(--primary); font-size:14px;">[${tNev}${gNev}]</div><div style="font-size:12px; color:var(--pri-normal); font-weight:bold;">${s.gyakorisag} | ${s.muszakok}</div></div><div style="font-size:16px; margin:10px 0;">${s.kerdes}</div><div style="text-align:right;"><button onclick="deleteChecklistSablon('${s.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">🗑️ Törlés</button></div></div>`;
-    }); c.innerHTML = html;
+        let isMain = !s.szuloId;
+        let margin = isMain ? 0 : 40; 
+        let borderStyle = isMain ? "border-left: 6px solid var(--pri-info);" : "border-left: 4px solid var(--pri-obs);";
+        let faIkon = isMain ? "📂 FŐ FELADAT: " : "↳ ";
+        let extraStyles = isMain ? "background:#1e293b;" : "";
+        
+        html += `<div class="task-card" style="margin-left: ${margin}px; ${borderStyle} ${extraStyles}"><div style="display:flex; justify-content:space-between;"><div style="font-weight:bold; color:var(--primary); font-size:14px;">[${tNev}${gNev}]</div><div style="font-size:12px; color:var(--pri-normal); font-weight:bold;">${s.gyakorisag} | ${s.muszakok}</div></div><div style="font-size:16px; margin:10px 0; font-weight:bold; color:var(--text-main);">${faIkon}${s.kerdes}</div><div style="text-align:right;"><button onclick="editChecklistSablonUI('${s.id}')" style="background:var(--pri-info); width:auto; padding:5px 10px; font-size:12px; margin:0; margin-right:5px;">✏️ Szerkesztés</button><button onclick="deleteChecklistSablon('${s.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">🗑️ Törlés</button></div></div>`;
+    }); 
+    c.innerHTML = html;
 }
+
+function editChecklistSablonUI(id) {
+    let s = globalChecklistSablon.find(x => x.id === id); if(!s) return;
+    editClSablonId = id;
+    frissitSzuloLista(); 
+
+    document.getElementById('clSablonTerulet').value = s.terulet || ""; frissitClSablonGep();
+    setTimeout(() => { document.getElementById('clSablonGep').value = s.gep || ""; }, 100);
+    document.getElementById('clSablonKerdes').value = s.kerdes || "";
+    document.getElementById('clSablonSzulo').value = s.szuloId || "";
+    document.getElementById('clSablonGyakorisag').value = s.gyakorisag || "Minden nap";
+    document.getElementById('clSablonUtasitas').value = s.utasitas || "";
+    document.getElementById('clSablonKep').value = s.kep || "";
+    document.getElementById('clSablonFajl').value = s.fajl || "";
+    document.getElementById('clSablonFajlNev').value = s.fajlNev || "";
+    
+    let m = s.muszakok || "";
+    document.getElementById('cbShiftDe').checked = m.includes("Délelőtt");
+    document.getElementById('cbShiftDu').checked = m.includes("Délután");
+    document.getElementById('cbShiftEj').checked = m.includes("Éjszaka");
+
+    let btn = document.getElementById('btnSaveSablon');
+    btn.innerText = "✏️ Módosítás Mentése";
+    btn.style.background = "var(--pri-obs)";
+    document.getElementById('checklistAdminView').scrollIntoView({ behavior: 'smooth' });
+}
+
 async function addChecklistSablon() {
     const terulet = document.getElementById('clSablonTerulet').value; const gep = document.getElementById('clSablonGep').value; 
     const kerdes = document.getElementById('clSablonKerdes').value; const gyakorisag = document.getElementById('clSablonGyakorisag').value;
-    const utasitas = document.getElementById('clSablonUtasitas').value; const kep = document.getElementById('clSablonKep').value; const fajl = document.getElementById('clSablonFajl').value;
+    const utasitas = document.getElementById('clSablonUtasitas').value; const kep = document.getElementById('clSablonKep').value; 
+    const fajl = document.getElementById('clSablonFajl').value; const fajlNev = document.getElementById('clSablonFajlNev').value;
+    const szuloId = document.getElementById('clSablonSzulo').value;
     let shifts = []; if(document.getElementById('cbShiftDe').checked) shifts.push("Délelőtt"); if(document.getElementById('cbShiftDu').checked) shifts.push("Délután"); if(document.getElementById('cbShiftEj').checked) shifts.push("Éjszaka");
+    
     if(!kerdes) { alert("A kérdés / feladat megadása kötelező!"); return; } if(shifts.length === 0) { alert("Legalább egy műszakot be kell pipálnod!"); return; }
     const btn = document.getElementById('btnSaveSablon'); btn.disabled = true; btn.innerText = "⏳ Mentés...";
+    
+    let payload = { 
+        action: editClSablonId ? "editChecklistSablon" : "addChecklistSablon", 
+        terulet: terulet, gep: gep, kerdes: kerdes, gyakorisag: gyakorisag, 
+        muszakok: shifts.join(", "), utasitas: utasitas, kep: kep, fajl: fajl, fajlNev: fajlNev, szuloId: szuloId 
+    };
+    if(editClSablonId) payload.id = editClSablonId;
+
     try { 
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addChecklistSablon", terulet: terulet, gep: gep, kerdes: kerdes, gyakorisag: gyakorisag, muszakok: shifts.join(", "), utasitas: utasitas, kep: kep, fajl: fajl })}); 
-        document.getElementById('clSablonKerdes').value = ""; document.getElementById('clSablonUtasitas').value = ""; document.getElementById('clSablonKep').value = ""; document.getElementById('clSablonFajl').value = ""; showToast("Új kérdés hozzáadva!"); loadChecklistData(); 
-    } catch(e) { showToast("Hiba a mentés során!", true); } finally { btn.disabled = false; btn.innerText = "💾 Feladat hozzáadása a faliújságra"; }
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload)}); 
+        document.getElementById('clSablonKerdes').value = ""; document.getElementById('clSablonUtasitas').value = ""; document.getElementById('clSablonKep').value = ""; document.getElementById('clSablonFajl').value = ""; document.getElementById('clSablonFajlNev').value = ""; document.getElementById('clSablonSzulo').value = "";
+        editClSablonId = null;
+        showToast("Sikeresen mentve!"); loadChecklistData(); 
+    } catch(e) { showToast("Hiba a mentés során!", true); } finally { btn.disabled = false; btn.innerText = "💾 Feladat hozzáadása a faliújságra"; btn.style.background = "var(--pri-info)"; }
 }
+
 async function deleteChecklistSablon(id) { if(!confirm("Biztosan törlöd ezt az ellenőrzőpontot?")) return; try { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteChecklistSablon", id: id }) }); showToast("Törölve!"); loadChecklistData(); } catch(e) { showToast("Hiba!", true); } }
 function downloadCSV(csv, fn) { let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); a.download=fn; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
 async function getFilteredLogs() {

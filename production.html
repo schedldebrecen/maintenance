@@ -37,9 +37,10 @@
     <div class="topbar">
         <h2 style="margin: 0; display:flex; align-items:center;"><img src="Logo-Schedl (1).png" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;"></h2>
         <div class="user-info">
-                <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
+            <button onclick="location.reload()" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🔄 Frissítés</button>
+            <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
     			<option value="" disabled selected>☰ Navigáció</option>
-		</select>
+		    </select>
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
@@ -59,19 +60,34 @@
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
 
-        <!-- ÚJ FÜL: CHECKLIST ADMIN -->
         <div id="checklistAdminView" class="view box" style="border: 2px solid var(--pri-info);">
             <h3 style="color: var(--pri-info);">📋 Műszakvezetői Checklist Beállítása</h3>
             <div class="filter-panel" style="margin-bottom:20px;">
-                <h4 style="margin-top:0; color:var(--primary);">Új ellenőrzőpont hozzáadása</h4>
+                <h4 style="margin-top:0; color:var(--primary);">Új ellenőrzőpont hozzáadása / Szerkesztése</h4>
                 <div class="form-grid">
                     <div><label style="font-size:12px; color:var(--text-muted);">Terület (Nem kötelező)</label><select id="clSablonTerulet" onchange="frissitClSablonGep()"><option value="">Általános / Válassz területet...</option></select></div>
                     <div><label style="font-size:12px; color:var(--text-muted);">Gép (Nem kötelező)</label><select id="clSablonGep"><option value="">Általános / Összes gép...</option></select></div>
-                    <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Kérdés / Feladat (Kötelező!)</label><input type="text" id="clSablonKerdes" placeholder="Pl. Schenck csavarozó kalibrálva? / Takarítás megtörtént?"></div>
+                    
+                    <div style="grid-column: span 1;"><label style="font-size:12px; color:var(--text-muted);">Kérdés / Feladat (Kötelező!)</label><input type="text" id="clSablonKerdes" placeholder="Pl. Schenck csavarozó kalibrálva? / Takarítás megtörtént?"></div>
+                    <div style="grid-column: span 1;">
+                        <label style="font-size:12px; color:var(--text-muted);">Hozzárendelés Fő feladathoz</label>
+                        <select id="clSablonSzulo">
+                            <option value="">-- Ez egy önálló / Fő feladat --</option>
+                        </select>
+                    </div>
+
+			        <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Utasítás (Szöveges leírás)</label><input type="text" id="clSablonUtasitas" placeholder="Pl.: Ellenőrizd a nyomást a manométeren..."></div>
+			        
+                    <div><label style="font-size:12px; color:var(--text-muted);">Kép linkje (Opcionális)</label><input type="text" id="clSablonKep" placeholder="Kép URL (Google Drive link)"></div>
+			        <div>
+                        <label style="font-size:12px; color:var(--text-muted);">Fájl / PDF linkje és Neve (Opcionális)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="clSablonFajl" placeholder="Dokumentum URL (link)" style="flex:1;">
+                            <input type="text" id="clSablonFajlNev" placeholder="Megjelenő név (pl. Útmutató)" style="flex:1;">
+                        </div>
+                    </div>
+                    
                     <div>
-			<div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Utasítás (Szöveges leírás)</label><input type="text" id="clSablonUtasitas" placeholder="Pl.: Ellenőrizd a nyomást a manométeren..."></div>
-			<div><label style="font-size:12px; color:var(--text-muted);">Kép linkje (Opcionális)</label><input type="text" id="clSablonKep" placeholder="Kép URL (Google Drive link)"></div>
-			<div><label style="font-size:12px; color:var(--text-muted);">Fájl / PDF linkje (Opcionális)</label><input type="text" id="clSablonFajl" placeholder="Dokumentum URL (Google Drive link)"></div>
                         <label style="font-size:12px; color:var(--text-muted);">Milyen gyakran kérdezzen rá?</label>
                         <select id="clSablonGyakorisag">
                             <option value="Minden nap" selected>Minden nap</option>
