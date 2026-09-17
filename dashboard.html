@@ -29,6 +29,9 @@
                 <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
     			<option value="" disabled selected>☰ Navigáció</option>
 		</select>
+		<button onclick="fetchDashboardData(); timer = REFRESH_INTERVAL_SEC;" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; font-size:14px; display:flex; align-items:center; gap:5px;">
+        	🔄
+    		</button>
                 <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn">🔇</button>
                 <button id="btnToggleFlash" onclick="toggleFlash()" class="toggle-btn">⚪</button>
 
