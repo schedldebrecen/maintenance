@@ -27,7 +27,7 @@
             <div class="time-group">
                 <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
     			<option value="" disabled selected>☰ Navigáció</option>
-		</select>
+		        </select>
                 <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
                     <span>👤 <span id="dashUserName">User</span></span>
                     <button onclick="dashLogout()" style="background:#ef4444; border:none; color:white; border-radius:3px; padding:3px 8px; cursor:pointer; font-size:10px;">Kilépés</button>
@@ -86,17 +86,16 @@
             <div id="view-checklist" class="view-section active">
                 <div style="background:var(--surface); padding:30px; border-radius:10px; margin-top:20px; border:2px solid var(--border);">
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
-    			<h2 style="margin:0; color:var(--pri-info);">📋 Napi Műszakvezetői Ellenőrzőlista</h2>
-    			<div style="display:flex; align-items:center; gap:15px;">
-        			<div style="font-size:18px; font-weight:bold; color:var(--text-muted);" id="clMuszakNev">Műszak megállapítása...</div>
-        			<button onclick="fetchDashboardData()" style="background:var(--pri-info); color:white; border:none; padding:8px 15px; border-radius:6px; font-weight:bold; cursor:pointer; width:auto;">🔄 Frissítés</button>
-    			</div>
+    			        <h2 style="margin:0; color:var(--pri-info);">📋 Napi Műszakvezetői Ellenőrzőlista</h2>
+    			        <div style="display:flex; align-items:center; gap:15px;">
+        			        <div style="font-size:18px; font-weight:bold; color:var(--text-muted);" id="clMuszakNev">Műszak megállapítása...</div>
+        			        <button onclick="fetchDashboardData()" style="background:var(--pri-info); color:white; border:none; padding:8px 15px; border-radius:6px; font-weight:bold; cursor:pointer; width:auto;">🔄 Frissítés</button>
+    			        </div>
                     </div>
 
                     <div id="checklistStatusContainer"></div>
 
                     <div id="checklistQuestionsContainer" style="display:none;">
-                        
                         <div style="display:flex; gap:15px; margin-bottom:20px; background:var(--bg-dark); padding:15px; border-radius:8px; border:1px solid var(--border);">
                             <div style="flex:1;">
                                 <label style="font-size:12px; color:var(--text-muted);">Terület (Nem kötelező)</label>
@@ -152,6 +151,10 @@
                     <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
                         <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
                         <div style="display:flex; gap:10px;">
+                            <input type="text" id="dashAlkatresz" class="dash-input" placeholder="Felhasznált alkatrész (Cikkszám / ERP ID)" style="flex:2;">
+                            <input type="number" id="dashAlkDb" class="dash-input" placeholder="Darab" style="flex:1;">
+                        </div>
+                        <div style="display:flex; gap:10px;">
                             <input type="number" id="dashIdo" step="0.5" class="dash-input" placeholder="Javítás (óra)">
                             <input type="number" id="dashDowntime" step="1" class="dash-input" placeholder="Kiesés (perc)">
                         </div>
@@ -163,6 +166,6 @@
         </div>
     </div>
 
-    <script src="termeles_dash.js?v=2"></script>
+    <script src="termeles_dash.js?v=4"></script>
 </body>
 </html>

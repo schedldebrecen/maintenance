@@ -535,8 +535,7 @@ function extendSession() {
         document.getElementById('activeUserBadge').style.display = 'flex';
         document.getElementById('dashUserName').innerText = sessionUser;
         refreshModalActionPanel();
-
-	populateNavDropdown();
+        populateNavDropdown();
     }
 }
 
@@ -560,7 +559,6 @@ async function dashLogin() {
 function dashLogout() { 
     sessionUser = null; 
     sessionRole = null; 
-    // Ez a két sor törli véglegesen a memóriából a bejelentkezést:
     localStorage.removeItem("activeUser"); 
     localStorage.removeItem("activeRole"); 
     
@@ -588,6 +586,55 @@ function refreshModalActionPanel() {
     }
 }
 
+// ÚJ SOR HOZZÁADÁSA A LISTÁHOZ
+function addAlkatreszRow() {
+    const container = document.getElementById('alkatreszekContainer');
+    const row = document.createElement('div');
+    row.className = "alkatresz-sor";
+    row.style.cssText = "display:flex; gap:8px; margin-bottom:5px; align-items:center;";
+    row.innerHTML = `
+        <input type="text" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:2; margin:0; font-size:12px; padding:6px;">
+        <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:12px; padding:6px;">
+        <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; width:26px; height:26px; border-radius:4px; cursor:pointer; font-weight:bold;">✕</button>
+    `;
+    container.appendChild(row);
+}
+
+// MÓDOSÍTOTT LEZÁRÁS FÜGGVÉNY (Összegyűjti az összes sort)
+async function dashCloseTask() { 
+    if(!sessionUser || !activeTaskId) return; 
+    const m = document.getElementById(`dashMegoldas`).value;
+    const i = document.getElementById(`dashIdo`).value;
+    const dt = document.getElementById(`dashDowntime`).value; 
+
+    // Összes alkatrész sor összegyűjtése
+    let alkatreszekTomb = [];
+    document.querySelectorAll('.alkatresz-sor').forEach(sor => {
+        let cz = sor.querySelector('.alk-cikkszam').value.trim();
+        let db = sor.querySelector('.alk-db').value.trim();
+        if(cz && db) {
+            alkatreszekTomb.push({ cikkszam: cz, db: parseInt(db) || 1 });
+        }
+    });
+
+    if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
+    
+    await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ 
+            action: "closeTask", 
+            id: activeTaskId, 
+            megoldas: m, 
+            ido: i, 
+            downtime: dt, 
+            lezarta: sessionUser,
+            alkatreszek: alkatreszekTomb // Itt küldjük a tömböt
+        }) 
+    }); 
+    fetchDashboardData(); closeModal(true); 
+}
+
+// MODAL NYÍTÁSA KOR TISZTÍTJUK A MEZŐKET
 function openModal(taskId) { 
     activeTaskId = taskId; 
     const task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId); 
@@ -627,12 +674,22 @@ function openModal(taskId) {
     document.getElementById('dashIdo').value = ""; 
     document.getElementById('dashDowntime').value = ""; 
     
+    // Alkatrész mezők alaphelyzetbe állítása (1 üres sor maradjon)
+    const alkContainer = document.getElementById('alkatreszekContainer');
+    if(alkContainer) {
+        alkContainer.innerHTML = `
+            <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
+                <input type="text" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:2; margin:0; font-size:12px; padding:6px;">
+                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:12px; padding:6px;">
+            </div>
+        `;
+    }
+
     refreshModalActionPanel(); 
     document.getElementById('taskModal').style.display = "flex"; 
     
     if(sessionUser) extendSession(); 
 }
-
 function closeModal(force = false) {
     if(force === true || event.target.id === 'taskModal') {
         document.getElementById('taskModal').style.display = "none";
@@ -641,33 +698,50 @@ function closeModal(force = false) {
     if(sessionUser) extendSession();
 }
 
-async function dashStartTask() {
-    if(!sessionUser || !activeTaskId) return;
-    document.getElementById('btnDashStart').innerText = "Feldolgozás...";
-    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
-    fetchDashboardData(); closeModal(true);
+async function dashStartTask() { 
+    if(!sessionUser || !activeTaskId) return; 
+    document.getElementById('btnDashStart').innerText = "Feldolgozás..."; 
+    await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) 
+    }); 
+    fetchDashboardData(); 
+    closeModal(true); 
 }
 
-async function dashCloseTask() {
-    if(!sessionUser || !activeTaskId) return;
-    const m = document.getElementById(`dashMegoldas`).value, i = document.getElementById(`dashIdo`).value, dt = document.getElementById(`dashDowntime`).value; 
+async function dashCloseTask() { 
+    if(!sessionUser || !activeTaskId) return; 
+    const m = document.getElementById(`dashMegoldas`).value;
+    const i = document.getElementById(`dashIdo`).value;
+    const dt = document.getElementById(`dashDowntime`).value; 
+    const alk = document.getElementById(`dashAlkatresz`) ? document.getElementById(`dashAlkatresz`).value : "";
+    const adb = document.getElementById(`dashAlkDb`) ? document.getElementById(`dashAlkDb`).value : "";
+
     if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
-    
-    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser }) }); 
-    fetchDashboardData(); closeModal(true);
+    await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ 
+            action: "closeTask", 
+            id: activeTaskId, 
+            megoldas: m, 
+            ido: i, 
+            downtime: dt, 
+            lezarta: sessionUser,
+            alkatresz: alk,
+            alkatreszDb: adb
+        }) 
+    }); 
+    fetchDashboardData(); closeModal(true); 
 }
+
 function populateNavDropdown() {
     const nav = document.getElementById('appNavDropdown');
     if(!nav) return;
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
-    const r = sessionRole || localStorage.getItem("activeRole") || "";
     
-    if (r === "production" || r === "admin" || r === "superuser") {
-        nav.add(new Option("📱 Termelés App", "production.html"));
-        nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    }
-    if (r === "maintenance" || r === "admin" || r === "superuser") {
-        nav.add(new Option("🔧 Karbantartás App", "index.html"));
-        nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
-    }
+    // Nincs több szerepkör vizsgálat, mindenki látja az összes gombot:
+    nav.add(new Option("📱 Termelés App", "production.html"));
+    nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
+    nav.add(new Option("🔧 Karbantartás App", "index.html"));
+    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }

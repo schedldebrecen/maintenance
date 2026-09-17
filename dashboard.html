@@ -130,6 +130,16 @@
                     <button id="btnDashStart" class="dash-btn start" onclick="dashStartTask()">▶️ Munkát elkezdem</button>
                     <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
                         <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
+                        
+                        <!-- ALKATRÉSZEK DINAMIKUS LISTÁJA -->
+                        <div id="alkatreszekContainer" style="margin-bottom:10px;">
+                            <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
+                                <input type="text" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:2; margin:0; font-size:12px; padding:6px;">
+                                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:12px; padding:6px;">
+                            </div>
+                        </div>
+                        <button type="button" onclick="addAlkatreszRow()" style="background:var(--pri-info); color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold; margin-bottom:10px;">➕ Alkatrész hozzáadása</button>
+                        
                         <div style="display:flex; gap:10px;">
                             <input type="number" id="dashIdo" step="0.5" class="dash-input" placeholder="Javítás (óra)">
                             <input type="number" id="dashDowntime" step="1" class="dash-input" placeholder="Kiesés (perc)">
