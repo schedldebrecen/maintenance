@@ -1,8 +1,10 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 const RESZLEG = "production";
 
-let globalShiftLogs = [];
-let globalChecklistSablon = [];
+let globalShiftLogs = []; 
+let globalSchedule = []; 
+let expectedApprovers = [];
+let globalChecklistSablon = []; 
 let editClSablonId = null;
 
 function showToast(msg, isError = false) { 
@@ -41,8 +43,14 @@ async function loadUserList() {
                 r.data.forEach(user => sel.add(new Option(user, user))); 
                 sel.add(new Option("--- Egyéb (kézi megadás) ---", "custom")); 
             }
-        } 
-    } catch(e) {} 
+        } else {
+            document.getElementById('loginNevSelect').style.display = 'none'; 
+            document.getElementById('loginNev').style.display = 'block'; 
+        }
+    } catch(e) {
+        document.getElementById('loginNevSelect').style.display = 'none'; 
+        document.getElementById('loginNev').style.display = 'block'; 
+    } 
 }
 
 function checkLoginCustom(sel) { 
@@ -71,12 +79,112 @@ window.onload = async function() {
         document.getElementById('loginView').style.display = 'none'; 
         document.getElementById('appView').style.display = 'block';
         populateNavDropdown();
-        loadShiftLogs();
+        checkLockdownAndInit();
     } else { 
         document.getElementById('loginView').style.display = 'block'; 
         document.getElementById('appView').style.display = 'none'; 
     }
 };
+
+// --- LOCKDOWN ÉS INICIALIZÁLÁS (SZIGORÍTOTT BEOSZTÁS ALAPJÁN) ---
+async function checkLockdownAndInit() {
+    try {
+        const resAll = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
+        const rAll = await resAll.json();
+        
+        if(rAll.status === "success") { 
+            globalSchedule = rAll.data.schedule || []; 
+            globalShiftLogs = rAll.data.shiftLogs || []; 
+            expectedApprovers = rAll.data.expectedApprovers || []; 
+            
+            const isLocked = evaluateLockdown();
+            if (isLocked) { 
+                document.getElementById('lockdownScreen').style.display = 'block'; document.getElementById('appView').style.display = 'none'; 
+            } else {
+                document.getElementById('lockdownScreen').style.display = 'none'; document.getElementById('appView').style.display = 'block'; 
+                const lastTabId = sessionStorage.getItem("activeAppTab");
+                if(lastTabId) { const btn = document.querySelector(`button[onclick*="'${lastTabId}'"]`); if(btn) btn.click(); else loadShiftLogs(); } 
+                else { switchTab('muszakatadasView', document.querySelector(`button[onclick*="'muszakatadasView'"]`)); loadShiftLogs(); }
+            }
+        }
+    } catch(e) { document.getElementById('appView').style.display = 'block'; loadShiftLogs(); }
+}
+
+function evaluateLockdown() {
+    let myUnapprovedCount = 0; let myUnapprovedLogs = [];
+    const currentUser = String(localStorage.getItem("activeUser")).trim().toLowerCase();
+    let expectedApproversClean = expectedApprovers.map(a => String(a).toLowerCase().trim());
+    
+    if (!expectedApproversClean.includes(currentUser)) return false;
+
+    let now = new Date();
+    globalShiftLogs.forEach(l => {
+        let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
+        if (logD >= "2026-09-01") {
+            let szamonKerheto = false; let logDateObj = new Date(logD + "T00:00:00"); let muszakVégeH = 0;
+            if(String(l.muszak).includes("Délelőtt")) muszakVégeH = 14; 
+            else if(String(l.muszak).includes("Délután")) muszakVégeH = 22; 
+            else if(String(l.muszak).includes("Éjszaka")) muszakVégeH = 6; 
+            
+            let vegeIdopont = new Date(logDateObj); 
+            if (muszakVégeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1); 
+            vegeIdopont.setHours(muszakVégeH, 0, 0, 0);
+            
+            if (now >= vegeIdopont) { szamonKerheto = true; }
+            
+            if (szamonKerheto) {
+                let amIScheduled = globalSchedule.some(s => s.datum === logD && String(s.user).toLowerCase() === currentUser && !String(s.tipus).includes("Szabadság"));
+                
+                if (amIScheduled) {
+                    if (l.hianyzo) {
+                        myUnapprovedCount++; myUnapprovedLogs.push(l);
+                    } else {
+                        let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim().toLowerCase()).filter(x=>x) : [];
+                        let creatorLower = String(l.felhasznalo).trim().toLowerCase();
+                        if (!approvers.includes(creatorLower)) approvers.push(creatorLower);
+                        
+                        if (!approvers.includes(currentUser)) { 
+                            myUnapprovedCount++; myUnapprovedLogs.push(l); 
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    if (myUnapprovedCount > 0) {
+        let listHtml = myUnapprovedLogs.map(l => {
+            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+            if (l.hianyzo) {
+                return `<div style="background:#fee2e2; padding:15px; border-radius:6px; margin-bottom:10px; border: 1px solid #f87171;">
+                    <strong style="font-size:16px; color:var(--pri-crit);">⚠️ HIÁNYZÓ NAPLÓ: ${displayDate} - ${l.muszak}</strong><br>
+                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">A beosztás alapján dolgoztál, de nem rögzítettek naplót. Pótold most!</span>
+                    <textarea id="hianyzoSzoveg_${l.datum}_${l.muszak}" rows="2" placeholder="Írd meg a műszaknaplót..." style="margin-bottom:8px; background:white;"></textarea>
+                    <button onclick="submitHianyzoNaplo('${l.datum}', '${l.muszak}')" style="background:var(--pri-normal); border:none; color:white; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto;">📝 Hiányzó Napló Beküldése</button>
+                </div>`;
+            } else {
+                return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);"><div style="flex:1; padding-right:15px;"><strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br><span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span><div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:150px; overflow-y:auto; padding:5px; background:var(--bg-color); border:1px solid #cbd5e1; border-radius:4px;">${String(l.szoveg)}</div></div><button id="lockdownApprBtn_${l.id}" onclick="approveShiftLogLockdown('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:25px;">✅ Jóváhagyom</button></div>`;
+            }
+        }).join('');
+        document.getElementById('unapprovedLogsList').innerHTML = listHtml; return true;
+    } return false;
+}
+
+async function submitHianyzoNaplo(datum, muszak) {
+    let szoveg = document.getElementById(`hianyzoSzoveg_${datum}_${muszak}`).value.trim();
+    if(!szoveg) return alert("A napló szövege nem lehet üres!");
+    try {
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", reszleg: RESZLEG, datum: datum, muszak: muszak, szoveg: szoveg, felhasznalo: localStorage.getItem("activeUser") }) });
+        const r = await res.json();
+        if(r.status === "success") { showToast("Napló sikeresen rögzítve!"); checkLockdownAndInit(); } else { alert(r.message); }
+    } catch(e) { alert("Hiba a mentés során!"); }
+}
+
+async function approveShiftLogLockdown(id) {
+    const btn = document.getElementById('lockdownApprBtn_' + id); if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
+    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", reszleg: RESZLEG, id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
+    showToast("Jóváhagyva!"); checkLockdownAndInit(); 
+}
 
 function switchTab(tId, btn) { 
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); 
@@ -136,7 +244,7 @@ async function submitShiftLog() {
         if(r.status === "success") { 
             showToast("Napló mentve!"); 
             document.getElementById('muszakSzoveg').value = ''; 
-            loadShiftLogs(); 
+            checkLockdownAndInit(); 
         } else { 
             alert(r.message); 
         } 
@@ -151,7 +259,7 @@ function renderShiftLogs() {
     let f = globalShiftLogs.filter(l => { 
         let d = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); 
         return (String(l.felhasznalo).toLowerCase().includes(sUser) || String(l.szoveg).toLowerCase().includes(sUser)) && 
-               (sTipus ? l.muszak.includes(sTipus) : true) && 
+               (sTipus ? String(l.muszak).includes(sTipus) : true) && 
                (sTol ? d >= sTol : true) && (sIg ? d <= sIg : true); 
     });
     if(f.length === 0) { c.innerHTML = "Nincs találat."; return; } let h = "";
@@ -411,9 +519,8 @@ function populateNavDropdown() {
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
     nav.add(new Option("📱 Termelés App", "production.html"));
     nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    nav.add(new Option("🔧 Karbantartás App", "index.html"));
-    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
+    nav.add(new Option("🔧 Karbantart App", "index.html"));
+    nav.add(new Option("📺 Karbantart Faliújság", "dashboard.html"));
 }
 
-function toggleNotifications() { const c = document.getElementById('notifToggle').checked; localStorage.setItem("notificationsEnabled", c ? "true" : "false"); }
 async function saveSettings() { showToast("Mentve!"); }
