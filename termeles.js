@@ -86,7 +86,7 @@ window.onload = async function() {
     }
 };
 
-// --- LOCKDOWN ÉS INICIALIZÁLÁS ---
+// --- LOCKDOWN ÉS INICIALIZÁLÁS (SZIGORÍTOTT BEOSZTÁS ALAPJÁN) ---
 async function checkLockdownAndInit() {
     try {
         const resAll = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
@@ -276,7 +276,7 @@ function exportShiftLogs() {
     let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'})); a.download = "Muszaknaplo_Export.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS EXPORT 
+// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS PDF EXPORT
 async function getFilteredChecklistLogs() {
     const sTol = document.getElementById('clExpTol').value; 
     const sIg = document.getElementById('clExpIg').value; 
@@ -310,9 +310,8 @@ async function viewChecklistLogs() {
             let parsed = JSON.parse(l.eredmenyek);
             parsed.forEach(p => {
                 let color = p.valasz === 'OK' ? '#10b981' : (p.valasz === 'NOK' ? '#ef4444' : '#94a3b8');
-                let gepText = p.gep && p.gep !== "-" ? ` / ${p.gep}` : "";
                 html += `<div style="border-bottom:1px solid #e2e8f0; padding:4px 0; display:flex; justify-content:space-between;">
-                    <span><b>[${p.terulet||'Általános'}${gepText}]</b> ${p.kerdes}</span>
+                    <span><b>[${p.terulet||'Általános'}]</b> ${p.kerdes}</span>
                     <span style="color:${color}; font-weight:bold;">${p.valasz} ${p.megjegyzes ? '('+p.megjegyzes+')' : ''}</span>
                 </div>`;
             });
@@ -332,8 +331,7 @@ async function exportChecklistLogs() {
             try { 
                 let parsed = JSON.parse(l.eredmenyek); 
                 parsed.forEach(p => { 
-                    let gepText = p.gep && p.gep !== "-" ? ` / ${p.gep}` : "";
-                    csv += `"${l.datum}";"${l.muszak}";"${l.kitolto}";"${l.statusz}";"${p.terulet||'Általános'}${gepText}";"${p.kerdes}";"${p.valasz}";"${p.megjegyzes||'-'}"\n`; 
+                    csv += `"${l.datum}";"${l.muszak}";"${l.kitolto}";"${l.statusz}";"${p.terulet||'-'}/${p.gep||'-'}";"${p.kerdes}";"${p.valasz}";"${p.megjegyzes||'-'}"\n`; 
                 }); 
             } catch(e) {} 
         });
@@ -366,8 +364,7 @@ async function exportChecklistPDF() {
             let parsed = JSON.parse(l.eredmenyek); 
             parsed.forEach(p => { 
                 let cls = p.valasz === 'OK' ? 'ok' : (p.valasz === 'NOK' ? 'nok' : 'na'); 
-                let gepText = p.gep && p.gep !== "-" ? p.gep : "Általános";
-                html += `<tr><td><b>${p.terulet||'Általános'}</b><br><small>${gepText}</small></td><td>${p.kerdes}</td><td class="${cls}">${p.valasz}</td><td>${p.megjegyzes || '-'}</td></tr>`; 
+                html += `<tr><td><b>${p.terulet||'-'}</b><br><small>${p.gep||''}</small></td><td>${p.kerdes}</td><td class="${cls}">${p.valasz}</td><td>${p.megjegyzes || '-'}</td></tr>`; 
             }); 
         } catch(e) { html += `<tr><td colspan="4"><i>Hiba az adatok beolvasásakor.</i></td></tr>`; }
         html += `</table></div>`;
@@ -522,8 +519,8 @@ function populateNavDropdown() {
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
     nav.add(new Option("📱 Termelés App", "production.html"));
     nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    nav.add(new Option("🔧 Karbantartás App", "index.html"));
-    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
+    nav.add(new Option("🔧 Karbantart App", "index.html"));
+    nav.add(new Option("📺 Karbantart Faliújság", "dashboard.html"));
 }
 
 async function saveSettings() { showToast("Mentve!"); }
