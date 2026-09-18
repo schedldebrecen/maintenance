@@ -49,19 +49,55 @@
     <div class="container">
         <div id="shiftAlertBanner"></div>
         <div class="nav" id="mainNavigation">
-            <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
-            <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
-            <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
-            <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
-            <button onclick="switchTab('statisztikaView', this); loadTasks();">📊 Statisztika</button>
-            <button id="navBeosztasTab" onclick="switchTab('beosztasView', this); loadSchedule();">📅 Beosztás</button>
-            <button id="navAdminTab" onclick="switchTab('adminIsmetlodoView', this); loadRecurringTasks();" style="display:none; color: var(--pri-crit);">🔁 Ismétlődő</button>
-            <button id="navChecklistAdminTab" onclick="switchTab('checklistAdminView', this); loadChecklistData();" style="display:none; color: var(--pri-info);">📋 Checklist Admin</button>
+            <button class="active" onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
+            <button onclick="switchTab('checklistView', this); if(typeof loadChecklistLogsUI === 'function') loadChecklistLogsUI();">📋 Checklist</button>
+            <button id="navChecklistAdminTab" onclick="switchTab('checklistAdminView', this); loadChecklistData();" style="display:none; color: var(--pri-info);">⚙️ Checklist Admin</button>
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
 
+        <!-- MŰSZAKNAPLÓ -->
+        <div id="muszakatadasView" class="view active box">
+            <div id="shiftLogInputSection">
+                <h3>Műszaknapló írása</h3>
+                <div class="form-grid">
+                    <div><select id="muszakTipus"><option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option><option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option><option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option></select></div>
+                    <div><input type="date" id="muszakDatum"></div>
+                    <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
+                </div>
+                <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
+            </div>
+            <div class="filter-panel" style="margin-top:25px;">
+                <div class="filter-header"><h4>Korábbi bejegyzések</h4><button class="btn-export" onclick="exportShiftLogs()">📥 Export CSV</button></div>
+                <div class="form-grid">
+                    <input type="text" id="szuroMuszakUser" placeholder="Szűrés..." onkeyup="filterShiftLogs()">
+                    <select id="szuroMuszakTipus" onchange="filterShiftLogs()"><option value="">Összes műszak</option><option value="Délelőtt">Délelőtt</option><option value="Délután">Délután</option><option value="Éjszaka">Éjszaka</option></select>
+                    <input type="date" id="szuroMuszakDatumTol" onchange="filterShiftLogs()"><input type="date" id="szuroMuszakDatumIg" onchange="filterShiftLogs()">
+                </div>
+            </div>
+            <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
+        </div>
+
+        <!-- ÚJ: ELKÉSZÜLT CHECKLISTÁK -->
+        <div id="checklistView" class="view box">
+            <h3 style="color:var(--pri-normal);">📋 Elkészült Checklisták és Export</h3>
+            <div class="filter-panel">
+                <div class="form-grid" style="margin-bottom:15px;">
+                    <div><label style="font-size:12px; color:var(--text-muted);">Dátum tól</label><input type="date" id="clExpTol"></div>
+                    <div><label style="font-size:12px; color:var(--text-muted);">Dátum ig</label><input type="date" id="clExpIg"></div>
+                    <div><label style="font-size:12px; color:var(--text-muted);">Műszak szűrése</label><select id="clExpMuszak"><option value="">Összes műszak</option><option value="Délelőtt">Délelőtt</option><option value="Délután">Délután</option><option value="Éjszaka">Éjszaka</option></select></div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 20px;">
+                    <button id="btnMegtekintes" onclick="viewChecklistLogs()" style="background:var(--accent); width:auto; padding:10px 20px;">👁️ Megtekintés</button>
+                    <button id="btnExportChecklist" onclick="exportChecklistLogs()" style="background:var(--pri-normal); width:auto; padding:10px 20px;">📥 CSV (Excel) Export</button>
+                    <button id="btnExportChecklistPDF" onclick="exportChecklistPDF()" style="background:var(--pri-crit); width:auto; padding:10px 20px;">📄 PDF Export (Műszakonként új oldal)</button>
+                </div>
+            </div>
+            <div id="checklistLogsContainer" class="full-width-list">Ide töltődnek be a szűrt listák...</div>
+        </div>
+
+        <!-- CHECKLIST ADMIN (Csak Adminoknak) -->
         <div id="checklistAdminView" class="view box" style="border: 2px solid var(--pri-info);">
-            <h3 style="color: var(--pri-info);">📋 Műszakvezetői Checklist Beállítása</h3>
+            <h3 style="color: var(--pri-info);">⚙️ Műszakvezetői Checklist Sablonok Beállítása</h3>
             <div class="filter-panel" style="margin-bottom:20px;">
                 <h4 style="margin-top:0; color:var(--primary);">Új ellenőrzőpont hozzáadása / Szerkesztése</h4>
                 <div class="form-grid">
@@ -107,152 +143,17 @@
             </div>
             <h4 style="color:var(--text-muted); border-bottom:1px solid var(--border); padding-bottom:10px;">Jelenleg aktív ellenőrzőpontok a faliújságon:</h4>
             <div id="checklistAdminList" class="full-width-list" style="margin-bottom: 30px;">Betöltés...</div>
-            <div style="border-top: 2px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                <h3 style="color:var(--pri-normal);">📥 Kitöltött Naplók Exportálása</h3>
-                <div class="form-grid" style="margin-bottom:15px;">
-                    <div><label style="font-size:12px; color:var(--text-muted);">Dátum tól</label><input type="date" id="clExpTol"></div>
-                    <div><label style="font-size:12px; color:var(--text-muted);">Dátum ig</label><input type="date" id="clExpIg"></div>
-                    <div><label style="font-size:12px; color:var(--text-muted);">Műszak szűrése</label><select id="clExpMuszak"><option value="">Összes műszak</option><option value="Délelőtt">Délelőtt</option><option value="Délután">Délután</option><option value="Éjszaka">Éjszaka</option></select></div>
-                </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button id="btnExportChecklist" onclick="exportChecklistLogs()" style="background:var(--pri-normal); width:auto; padding:10px 20px;">📥 CSV (Excel) Export</button>
-                    <button id="btnExportChecklistPDF" onclick="exportChecklistPDF()" style="background:var(--pri-crit); width:auto; padding:10px 20px;">📄 1 Oldalas PDF Generálás</button>
-                </div>
-            </div>
         </div>
 
-        <div id="ujHiba" class="view active box">
-            <h3>Új hiba vagy feladat kiadása</h3>
-            <div class="form-grid">
-                <div><select id="kategoria" onchange="frissitGepek()"><option value="">Válassz kategóriát...</option></select></div>
-                <div><select id="gep"><option value="">Előbb válassz kategóriát...</option></select></div>
-                <div class="form-full"><input type="text" id="hiba" placeholder="Hiba rövid leírása"></div>
-                <div>
-                    <select id="prioritasLegordulo" style="font-weight:bold;">
-                        <option value="Normál" selected>✅ Normál</option><option value="Magas prioritás">⚠️ Magas prioritás</option><option value="Termelésleállás" style="color:red;">🚨 Termelésleállással járó</option>
-                    </select>
-                </div>
-                <div><div style="display:flex; gap:10px;"><input type="number" id="ido" step="1" placeholder="Javítás (perc)"><input type="number" id="downtime" step="1" placeholder="Kiesés (perc)"></div></div>
-                <div class="form-full"><textarea id="megoldas" rows="2" placeholder="Megoldás (Azonnali elhárítás esetén)"></textarea></div>
-            </div>
-            <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
-                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📎 Fotó / Videó csatolása</button>
-                <input type="file" id="kepInput" accept="image/*,video/*" multiple style="display:none;" onchange="feldolgozUjKep(this)">
-                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;"><span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva.</span></div>
-            </div>
-            <button onclick="submitTask()" id="btnSubmit">Beküldés a rendszerbe</button>
-        </div>
-
-        <div id="beosztasView" class="view box">
-            <h3>📅 Dolgozói Beosztás</h3>
-            <div id="dashPaintbrushPanel" style="display:none; background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
-                <div style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size:15px;">🖌️ Ecset eszköz beosztáshoz</div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">Délelőtt</button><button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">Délután</button><button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">Éjszaka</button><button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappal', this)">Nappal</button><button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">Szabadság</button><button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
-                    <div style="margin-left:auto; display:flex; align-items:center; gap:15px;"><span id="activeBrushDisplay" style="color:var(--text-main); font-weight:bold; font-size:14px;">Aktív: Nincs</span><button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal);" onclick="savePaintedSchedule()" id="btnSaveSchedule">💾 Mentés</button></div>
-                </div>
-                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); display:flex; gap:10px; align-items:center;"><input type="text" id="ujBeosztasDolgozo" placeholder="Dolgozó neve..." style="width:auto; margin:0; padding:6px 10px; font-size:13px;"><button onclick="addScheduleWorker()" style="width:auto; margin:0; padding:6px 12px; background:var(--accent); font-size:13px;">➕ Hozzáadás</button></div>
-            </div>
-            <div id="scheduleContainer" style="margin-top:10px;">Betöltés...</div>
-        </div>
-
-        <div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
-            <h3 style="color: var(--pri-crit);">🔁 Ismétlődő Feladatok</h3>
-            <div class="filter-panel">
-                <div class="form-grid">
-                    <div><select id="ismKategoria" onchange="frissitIsmGepek()"><option value="">Válassz kategóriát...</option></select></div>
-                    <div><select id="ismGep"><option value="">Előbb válassz kategóriát...</option></select></div>
-                    <div class="form-full"><input type="text" id="ismHiba" placeholder="Feladat rövid neve"></div>
-                    <div class="form-full"><textarea id="ismChecklist" rows="2" placeholder="📝 Ellenőrzőlista..."></textarea></div>
-                    <div><select id="ismPrioritas"><option value="Normál" selected>✅ Normál</option><option value="Magas prioritás">⚠️ Magas (Sürgős)</option></select></div>
-                    <div><select id="ismTipus" style="font-weight:bold; color:var(--primary);"><option value="Napi">🔄 Napi (Minden nap)</option><option value="Heti - Hétfő">📅 Heti - Hétfő</option><option value="Heti - Kedd">📅 Heti - Kedd</option><option value="Heti - Szerda">📅 Heti - Szerda</option><option value="Heti - Csütörtök">📅 Heti - Csütörtök</option><option value="Heti - Péntek">📅 Heti - Péntek</option><option value="Heti - Szombat">📅 Heti - Szombat</option><option value="Heti - Vasárnap">📅 Heti - Vasárnap</option><option value="Havi">📆 Havi</option><option value="3 Havi">📅 Negyedévente</option><option value="6 Havi">📅 Félévente</option><option value="Éves">📆 Éves</option></select></div>
-                    <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Kezdő dátum</label><input type="date" id="ismKezdoDatum"></div>
-                </div>
-                <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit);">Mentés</button>
-            </div>
-            <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
-        </div>
-
-        <div id="muszakatadasView" class="view box">
-            <div id="shiftLogInputSection">
-                <h3>Műszaknapló írása</h3>
-                <div class="form-grid">
-                    <div><select id="muszakTipus"><option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option><option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option><option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option></select></div>
-                    <div><input type="date" id="muszakDatum"></div>
-                    <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
-                </div>
-                <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
-            </div>
-            <div class="filter-panel" style="margin-top:25px;">
-                <div class="filter-header"><h4>Korábbi bejegyzések</h4><button class="btn-export" onclick="exportShiftLogs()">📥 Export CSV</button></div>
-                <div class="form-grid">
-                    <input type="text" id="szuroMuszakUser" placeholder="Szűrés..." onkeyup="filterShiftLogs()">
-                    <select id="szuroMuszakTipus" onchange="filterShiftLogs()"><option value="">Összes műszak</option><option value="Délelőtt">Délelőtt</option><option value="Délután">Délután</option><option value="Éjszaka">Éjszaka</option></select>
-                    <input type="date" id="szuroMuszakDatumTol" onchange="filterShiftLogs()"><input type="date" id="szuroMuszakDatumIg" onchange="filterShiftLogs()">
-                </div>
-            </div>
-            <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
-        </div>
-
-        <div id="nyitottFeladatok" class="view box">
-            <div class="filter-panel">
-                <div class="filter-header"><h4>Nyitott Feladatok</h4><button class="btn-export" onclick="exportTasks(getFilteredOpenTasks(), 'Nyitott_Hibak.csv')">📥 Export</button></div>
-                <div class="form-grid">
-                    <div class="form-full"><input type="text" id="szuroNyitottSzoveg" placeholder="Keresés..." onkeyup="renderOpenTasks()"></div>
-                    <select id="szuroNyitottReszleg" onchange="renderOpenTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
-                    <select id="szuroNyitottKategoria" onchange="frissitSzuroNyitottGepek()"><option value="">Minden kategória...</option></select><select id="szuroNyitottGep" onchange="renderOpenTasks()"><option value="">Összes gép...</option></select>
-                    <select id="szuroNyitottPrioritas" onchange="renderOpenTasks()"><option value="">Összes prioritás</option><option value="Termelésleállás">🚨 Termelésleállás</option><option value="Magas prioritás">⚠️ Sürgős</option><option value="Normál">✅ Normál</option><option value="Megfigyelés alatt">👀 Megfigyelés</option><option value="Informatív">ℹ️ Informatív</option></select>
-                    <select id="szuroNyitottIsmetlodo" onchange="renderOpenTasks()"><option value="">Összes (Eseti + Ismétlődő)</option><option value="normal">Csak eseti</option><option value="ismetlodo">Csak ismétlődő</option></select>
-                </div>
-            </div>
-            <div id="openTasksContainer" class="grid-cards">Betöltés...</div>
-        </div>
-
-        <div id="lezartFeladatok" class="view box">
-            <div class="filter-panel">
-                <div class="filter-header"><h4>Lezárt Feladatok</h4><button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 Export</button></div>
-                <div class="form-grid">
-                    <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="Keresés..." onkeyup="renderClosedTasks()"></div>
-                    <select id="szuroLezartReszleg" onchange="renderClosedTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
-                    <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden kategória...</option></select><select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
-                    <select id="szuroLezartPrioritas" onchange="renderClosedTasks()"><option value="">Összes prioritás</option><option value="Termelésleállás">🚨 Termelésleállás</option><option value="Magas prioritás">⚠️ Sürgős</option><option value="Normál">✅ Normál</option><option value="Megfigyelés alatt">👀 Megfigyelés</option><option value="Informatív">ℹ️ Informatív</option></select>
-                    <select id="szuroLezartIsmetlodo" onchange="renderClosedTasks()"><option value="">Összes</option><option value="normal">Csak eseti</option><option value="ismetlodo">Csak ismétlődő</option></select>
-                    <input type="date" id="filterDatumTol" onchange="renderClosedTasks()"><input type="date" id="filterDatumIg" onchange="renderClosedTasks()">
-                </div>
-            </div>
-            <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
-        </div>
-
-        <div id="statisztikaView" class="view box">
-            <div class="filter-panel" style="margin-bottom: 25px; border-left:4px solid var(--accent);">
-                <div class="filter-header"><h4 style="color:var(--accent); font-size:16px;">⏳ Időszak kiválasztása a statisztikákhoz</h4></div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button id="btnStatMind" class="stat-btn active" onclick="setStatPeriod('mind')">Összes</button><button id="btnStatMa" class="stat-btn" onclick="setStatPeriod('napi')">Ma</button><button id="btnStatHet" class="stat-btn" onclick="setStatPeriod('heti')">Ezen a héten</button><button id="btnStatHo" class="stat-btn" onclick="setStatPeriod('havi')">Ebben a hónapban</button>
-                    <div style="display:flex; gap:5px; align-items:center; margin-left:auto; background:var(--surface); padding:5px 10px; border-radius:4px; border:1px solid var(--border);"><input type="date" id="statDatumTol" onchange="setStatPeriod('egyedi')" style="margin:0; width:auto; border:none; padding:5px;"><span style="color:var(--text-muted);">-</span><input type="date" id="statDatumIg" onchange="setStatPeriod('egyedi')" style="margin:0; width:auto; border:none; padding:5px;"></div>
-                </div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom:15px; margin-bottom:20px;"><h3 style="border:none; margin:0; padding:0;">📊 Termelés Statisztika</h3><div style="display:flex; gap:10px;"><button class="btn-export" style="background:var(--pri-normal);" onclick="exportDetailedStats()">📥 Tételes Export</button><button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('heti')">📅 Heti</button><button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('havi')">📆 Havi</button></div></div>
-            <h4 style="color:var(--pri-crit);">📈 Eseti Meghibásodások és Kiesések</h4>
-            <div class="kpi-grid" style="margin-bottom:30px;"><div class="kpi-card alert" style="cursor:pointer;" onclick="openStatModal('downtime')"><h4>Termeléskiesés 👆</h4><div class="value" id="statDowntime">0</div><small>perc</small></div><div class="kpi-card alert"><h4>Leállás (Eseti)</h4><div class="value" id="statLeallas">0</div><small>db</small></div><div class="kpi-card" style="border-bottom-color:var(--pri-high);"><h4>Felvett Eseti Hiba</h4><div class="value" id="statNyitott">0</div><small>db (Kritikus + Normál)</small></div><div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Informatív / Megfigyelés</h4><div class="value" id="statInfoNyitott">0</div><small>db</small></div><div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Javítási Idő (Össz)</h4><div class="value" id="statJavIdo">0</div><small>perc</small></div></div>
-            <h4 style="color:var(--pri-info); border-top:1px solid var(--border); padding-top:20px;">🔁 Preventív Karbantartások</h4>
-            <div class="kpi-grid" style="margin-bottom:30px;">
-                <div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Kiadott Preventív</h4><div class="value" id="statPrevNyitott" style="color:var(--pri-info);">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Preventív Munkaidő</h4><div class="value" id="statPrevIdo" style="color:var(--pri-normal);">0</div><small>perc</small></div>
-            </div>
-            <div class="form-grid" style="border-top:1px solid var(--border); padding-top:20px;"><div style="background:#f8fafc; padding:15px; border:1px solid var(--border); border-radius:8px;"><h4 style="margin:0 0 15px 0; color:var(--primary);">🔥 Top 3 Legproblémásabb Gép</h4><div id="topMachinesContainer" style="font-size:14px; line-height:1.8;">Nincs adat.</div></div><div style="background:#f8fafc; padding:15px; border:1px solid var(--border); border-radius:8px;"><h4 style="margin:0 0 15px 0; color:var(--primary);">📊 Globális Trend</h4><div style="display:flex; justify-content:space-between; margin-bottom:10px;"><div><b>Előző hónap:</b></div><div id="statTrendLast" style="text-align:right; color:var(--text-muted);">0 perc kiesés<br>0 perc javítás</div></div><div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:10px;"><div><b>Aktuális hónap:</b></div><div id="statTrendThis" style="text-align:right; color:var(--primary);">0 perc kiesés<br>0 perc javítás</div></div></div></div>
-            <div id="adminStatsContainer" style="display:none; margin-top:30px; border-top:2px solid var(--pri-crit); padding-top:20px;">
-                <h3 style="color:var(--pri-crit);">👥 Dolgozói Statisztikák</h3>
-                <div style="overflow-x:auto;">
-                    <table class="admin-table">
-                        <thead><tr><th>Felhasználó</th><th>Felvitt Hibák</th><th>Megoldott Hibák</th><th style="color:var(--pri-crit);">Reakció (Sürgős)</th><th>Reakció (Normál)</th></tr></thead>
-                        <tbody id="adminStatsTableBody"><tr><td colspan="5" style="text-align:center;">Adatok betöltése...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
+        <!-- PROFIL -->
         <div id="profilCserelo" class="view box">
             <h3>Profil és Beállítások</h3>
+            <div class="settings-row">
+                <div><strong>Push Értesítések</strong><br><small>Új hibák jelzése a munkahelyi zónában</small></div>
+                <label style="position:relative; display:inline-block; width:44px; height:24px;">
+                    <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" style="opacity:0; width:0; height:0;"><span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#cbd5e1; transition:.3s; border-radius:34px;" id="notifSlider"></span>
+                </label>
+            </div>
             <h4 style="border-top:1px solid var(--border); padding-top:15px; margin-top:20px;">PIN kód módosítása</h4>
             <input type="password" id="regiJelszo" placeholder="Jelenlegi PIN kód"><input type="password" id="ujJelszo" placeholder="Új PIN kód">
             <button onclick="saveSettings()" class="btn-secondary">Beállítások Mentése</button>
@@ -260,14 +161,6 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="statDetailsModal" onclick="closeStatModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <h2 id="statModalTitle" style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;">Részletek</h2>
-        <div id="statModalBody" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;"></div>
-        <button class="btn-close-modal" onclick="closeStatModal(true)">Bezárás</button>
-    </div>
-</div>
-
-<script src="termeles.js?v=2"></script>
+<script src="termeles.js"></script>
 </body>
 </html>

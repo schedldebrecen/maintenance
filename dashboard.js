@@ -27,8 +27,9 @@ let globalExtraWorkers = [];
 let expectedApprovers = [];
 let activeFilter = null; 
 let autoResetTimeout = null;
+
 let optSound = false;
-let optFlash = false;
+let optFlash = true; // Villogás alapértelmezetten BE
 let audioCtx = null;
 let isAlarming = false;
 let knownAdHocIds = new Set();
@@ -37,14 +38,100 @@ let sessionUser = null;
 let sessionRole = null;
 let activeTaskId = null; 
 
+let globalPartsList = [];
+let targetPartInputId = null;
+
 window.onload = function() {
     const szuroKatSelect = document.getElementById('szuroKategoria');
     if(szuroKatSelect) { for (let kat in gepAdatbazis) { szuroKatSelect.add(new Option(kat, kat)); } }
     loadUserList();
     const savedUser = localStorage.getItem("activeUser");
     if(savedUser) { sessionUser = savedUser; sessionRole = localStorage.getItem("activeRole"); extendSession(); }
+    
+    if(optFlash) document.getElementById('btnToggleFlash').classList.add('active-flash');
+
     fetchDashboardData();
+    fetchPartsList(); 
 }
+
+// --- ÚJ RÉSZLETES Kereső (Dashboardhoz) ---
+async function fetchPartsList() {
+    try {
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getPartsList" }) });
+        const r = await res.json();
+        if(r.status === "success") {
+            globalPartsList = r.data || [];
+            if(document.getElementById('partsListContainer')) {
+                document.getElementById('partsListContainer').innerHTML = "<div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek sikeresen betöltve. Kezdj el gépelni a kereséshez!</div>";
+            }
+        }
+    } catch(e) { console.error("Hiba az alkatrészlista betöltésekor", e); }
+}
+
+function openPartsModal(inputId) {
+    targetPartInputId = inputId;
+    if(document.getElementById('partsSearchInput')) document.getElementById('partsSearchInput').value = "";
+    renderPartsList(globalPartsList.slice(0, 50)); 
+    if(document.getElementById('partsModal')) {
+        document.getElementById('partsModal').style.display = "flex";
+        document.getElementById('partsSearchInput').focus();
+    }
+}
+
+function closePartsModal(force=false) {
+    if(force || (event && event.target.id === 'partsModal')) {
+        if(document.getElementById('partsModal')) document.getElementById('partsModal').style.display = "none";
+        targetPartInputId = null;
+    }
+}
+
+function filterPartsList() {
+    let q = document.getElementById('partsSearchInput').value.toLowerCase().trim();
+    if(!q) { renderPartsList(globalPartsList.slice(0, 50)); return; }
+    let filtered = globalPartsList.filter(p => 
+        p.id.toLowerCase().includes(q) || 
+        p.name.toLowerCase().includes(q) || 
+        (p.manuf && p.manuf.toLowerCase().includes(q)) || 
+        (p.machSup && p.machSup.toLowerCase().includes(q))
+    );
+    renderPartsList(filtered.slice(0, 100)); 
+}
+
+function renderPartsList(list) {
+    let c = document.getElementById('partsListContainer');
+    if(!c) return;
+    let validList = list.filter(p => p.qty > 0); 
+    if(validList.length === 0) { c.innerHTML = "<div style='padding:20px; text-align:center; color:var(--text-muted);'>Nincs készleten a keresett alkatrészből!</div>"; return; }
+    
+    let h = "";
+    validList.forEach(p => {
+        h += `<div style="padding:12px 10px; border-bottom:1px solid #cbd5e1; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="selectPart('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'">
+            <div style="flex:1; padding-right:10px;">
+                <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:2px;">${p.name}</div>
+                <div style="font-size:13px; color:var(--text-main); font-family:monospace; font-weight:bold;">Cikkszám: ${p.id}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                    <b>Gyártó:</b> ${p.manuf || '-'} <br>
+                    <b>Gépbeszállító:</b> ${p.machSup || '-'} <br>
+                    <b>Raktárhely:</b> <span style="color:var(--pri-normal); font-weight:bold;">${p.loc || '-'}</span>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:16px; font-weight:bold; color:var(--pri-crit); margin-bottom:5px;">${p.qty} db</div>
+                <button style="background:var(--pri-info); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer; font-weight:bold;">Kiválaszt</button>
+            </div>
+        </div>`;
+    });
+    c.innerHTML = h;
+}
+
+function selectPart(id) {
+    if(targetPartInputId) {
+        let el = document.getElementById(targetPartInputId);
+        if(el) el.value = id;
+    }
+    closePartsModal(true);
+}
+// --- VÉGE AZ ALKATRÉSZ KERESŐNEK ---
 
 function isWorkDay(dObj) {
     let dStr = toLocalISOString(dObj);
@@ -90,17 +177,22 @@ function checkDashLoginCustom(sel) {
     else { document.getElementById('dashLoginNev').value = sel.value; }
 }
 
+// CSAK IKONOK!
 function toggleSound() {
     optSound = !optSound; const btn = document.getElementById('btnToggleSound');
-    if(optSound) { btn.innerText = "🔊 Hang: BE"; btn.classList.add('active-sound'); const AudioContext = window.AudioContext || window.webkitAudioContext; if(AudioContext && !audioCtx) audioCtx = new AudioContext(); if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } 
-    else { btn.innerText = "🔇 Néma"; btn.classList.remove('active-sound'); }
+    if(optSound) { btn.innerText = "🔊"; btn.classList.add('active-sound'); const AudioContext = window.AudioContext || window.webkitAudioContext; if(AudioContext && !audioCtx) audioCtx = new AudioContext(); if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } 
+    else { btn.innerText = "🔇"; btn.classList.remove('active-sound'); }
 }
 
 function toggleFlash() {
     optFlash = !optFlash; const btn = document.getElementById('btnToggleFlash');
-    if(optFlash) { btn.innerText = "🔴 Villogás: BE"; btn.classList.add('active-flash'); } 
-    else { btn.innerText = "⚪ Villogás: KI"; btn.classList.remove('active-flash'); }
+    if(optFlash) { btn.innerText = "🔴"; btn.classList.add('active-flash'); } 
+    else { btn.innerText = "⚪"; btn.classList.remove('active-flash'); document.body.classList.remove('flash-red'); }
 }
+
+function triggerAlert() { isAlarming = true; if(optFlash) document.body.classList.add('flash-red'); if(optSound && audioCtx) playAlarmSound(); document.getElementById('ackAlertBtn').style.display = 'block'; }
+function stopAlert() { isAlarming = false; document.body.classList.remove('flash-red'); document.getElementById('ackAlertBtn').style.display = 'none'; }
+function playAlarmSound() { if (!audioCtx) return; let playBeep = (time) => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(800, audioCtx.currentTime + time); osc.frequency.setValueAtTime(1200, audioCtx.currentTime + time + 0.1); gain.gain.setValueAtTime(0.3, audioCtx.currentTime + time); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + time + 0.5); osc.start(audioCtx.currentTime + time); osc.stop(audioCtx.currentTime + time + 0.5); }; for(let i = 0; i < 10; i++) playBeep(i); }
 
 function toLocalISOString(dateObj) { if(isNaN(dateObj)) return ""; const y = dateObj.getFullYear(), m = String(dateObj.getMonth() + 1).padStart(2, '0'), d = String(dateObj.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
 async function hashPassword(p) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
@@ -141,7 +233,7 @@ function updateShiftAlertBanner() {
 
 async function fetchDashboardData() {
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData" }) });
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: "dashboard" }) });
         const result = await res.json();
         if(result.status === "success") { 
             globalSchedule = result.data.schedule || [];
@@ -189,17 +281,7 @@ function checkMissingShiftLogsAndApprovals() {
     }
 
     let pendingLogUsers = new Set();
-    let myUnapprovedCount = 0;
-    let myUnapprovedLogs = [];
-    let currentUser = sessionUser ? String(sessionUser).trim() : "";
-    let role = sessionRole ? String(sessionRole).toLowerCase() : "";
-    
-    let expectedApproversClean = expectedApprovers.map(a => String(a).trim());
-    let isApprover = currentUser !== "" && (role === "maintenance" || role === "superuser");
-    
-    if (isApprover && !expectedApproversClean.map(x=>x.toLowerCase()).includes(currentUser.toLowerCase())) {
-        expectedApproversClean.push(currentUser);
-    }
+    let expectedApproversClean = expectedApprovers.map(a => String(a).toLowerCase().trim());
 
     globalShiftLogs.forEach(l => {
         let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
@@ -217,68 +299,28 @@ function checkMissingShiftLogsAndApprovals() {
 
             if (now >= vegeIdopont) { szamonKerheto = true; }
 
-            if (szamonKerheto) {
-                if (l.hianyzo) {
-                    myUnapprovedCount++; myUnapprovedLogs.push(l);
-                } else {
-                    let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
-                    let approversLower = approvers.map(x=>x.toLowerCase());
-                    let creatorLower = String(l.felhasznalo).trim().toLowerCase();
-                    
-                    if (!approversLower.includes(creatorLower)) approversLower.push(creatorLower);
+            if (szamonKerheto && !l.hianyzo) {
+                let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
+                let approversLower = approvers.map(x=>x.toLowerCase());
+                
+                let expectedForThisLog = expectedApproversClean.filter(a => {
+                    let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a);
+                    if (sched && sched.tipus.includes('Szabadság')) return false; return true;
+                });
 
-                    let expectedForThisLog = expectedApproversClean.filter(a => {
-                        let sched = globalSchedule.find(s => s.datum === logD && s.user.toLowerCase() === a.toLowerCase());
-                        if (sched && sched.tipus.includes('Szabadság')) return false; return true;
-                    });
-
-                    let expectedLowerFiltered = expectedForThisLog.map(x=>x.toLowerCase());
-                    let missing = expectedForThisLog.filter(a => !approversLower.includes(String(a).toLowerCase()));
-                    missing.forEach(u => pendingLogUsers.add(u));
-
-                    if (isApprover && expectedLowerFiltered.includes(currentUser.toLowerCase()) && !approversLower.includes(currentUser.toLowerCase())) {
-                        myUnapprovedCount++; myUnapprovedLogs.push(l);
-                    }
-                }
+                let missing = expectedForThisLog.filter(a => !approversLower.includes(a));
+                missing.forEach(u => pendingLogUsers.add(u));
             }
         }
     });
 
-    if (myUnapprovedCount > 0) {
-        document.getElementById('dashboardMainUI').style.display = 'none';
-        document.getElementById('dashLockdownScreen').style.display = 'block';
-
-        let listHtml = myUnapprovedLogs.map(l => {
-            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
-            const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
-            
-            if (l.hianyzo) {
-                return `<div style="background:#fee2e2; padding:15px; border-radius:6px; margin-bottom:10px; border: 1px solid #f87171;">
-                    <strong style="font-size:16px; color:var(--pri-crit);">⚠️ HIÁNYZÓ NAPLÓ: ${displayDate} - ${l.muszak}</strong><br>
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Erre a műszakra még senki sem rögzített bejegyzést. Pótold most!</span>
-                    <textarea id="hianyzoSzovegDash_${l.datum}_${l.muszak}" rows="2" placeholder="Írd meg a műszaknaplót..." style="margin-bottom:8px; background:white; width:100%; padding:10px; border-radius:4px; border:1px solid #fca5a5; color:#000; box-sizing:border-box;"></textarea>
-                    <button onclick="submitHianyzoNaploDash('${l.datum}', '${l.muszak}')" style="background:var(--pri-normal); border:none; color:white; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto;">📝 Hiányzó Napló Beküldése</button>
-                </div>`;
-            } else {
-                return `<div style="background:var(--bg-dark); padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);">
-                            <div style="flex:1; padding-right:15px;">
-                                <strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br>
-                                <span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span>
-                                <div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:100px; overflow-y:auto; padding:5px; background:#1e293b; border:1px solid #475569; border-radius:4px;">${String(l.szoveg)}</div>
-                            </div>
-                            <button id="apprBtnDash_${l.id}" onclick="approveShiftLogDash('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:20px;">✅ Jóváhagyom</button>
-                        </div>`;
-            }
-        }).join('');
-        document.getElementById('dashUnapprovedLogsList').innerHTML = listHtml;
-        return;
-    }
-
-    document.getElementById('dashboardMainUI').style.display = 'block';
-    document.getElementById('dashLockdownScreen').style.display = 'none';
-
     if (pendingLogUsers.size > 0) {
-        alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">⚠️ Jóváhagyás hiányzik a következőktől: ${Array.from(pendingLogUsers).join(', ')}</div>`;
+        // Mivel az expectedApprovers a dashboard backend ágán eleve csak a karbantartókat tartalmazza
+        let maintMissing = Array.from(pendingLogUsers).filter(u => expectedApproversClean.includes(u));
+        if (maintMissing.length > 0) {
+            let displayNames = maintMissing.map(u => expectedApprovers.find(ea => String(ea).toLowerCase().trim() === u) || u);
+            alertHtml += `<div style="background:var(--pri-high); color:var(--surface); padding:8px 15px; border-radius:6px; font-size:14px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.3); margin-bottom:10px;">⚠️ Műszaknapló jóváhagyás hiányzik a következő karbantartóktól: ${displayNames.join(', ')}</div>`;
+        }
     }
 
     if (missingLogs.length > 0) {
@@ -291,23 +333,6 @@ function checkMissingShiftLogsAndApprovals() {
         if(origHtml.includes('Egy óra múlva vége')) { alertHtml = origHtml + alertHtml; }
         alertDiv.innerHTML = alertHtml;
     }
-}
-
-async function submitHianyzoNaploDash(datum, muszak) {
-    let szoveg = document.getElementById(`hianyzoSzovegDash_${datum}_${muszak}`).value.trim();
-    if(!szoveg) return alert("A napló szövege nem lehet üres!");
-    try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", reszleg: "maintenance", datum: datum, muszak: muszak, szoveg: szoveg, felhasznalo: localStorage.getItem("activeUser") }) });
-        const r = await res.json();
-        if(r.status === "success") { fetchDashboardData(); } else { alert(r.message); }
-    } catch(e) { alert("Hiba a mentés során!"); }
-}
-
-async function approveShiftLogDash(id) {
-    const btn = document.getElementById('apprBtnDash_' + id);
-    if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
-    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
-    fetchDashboardData();
 }
 
 function processData(allTasks) {
@@ -380,8 +405,15 @@ function renderClosedTasks() {
 function renderScheduleDash() {
     const c = document.getElementById('dashScheduleContainer');
     let uniqueUsers = new Set([...globalBaseWorkers, ...globalExtraWorkers]);
-    let users = Array.from(uniqueUsers).sort();
-    if(users.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted);'>Nincs elérhető beosztás adat.</div>"; return; }
+    uniqueUsers.delete('__UGYELET__'); 
+    let allUsers = Array.from(uniqueUsers).sort();
+    
+    if(allUsers.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted);'>Nincs elérhető beosztás adat.</div>"; return; }
+
+    let expectedApproversClean = expectedApprovers.map(a => String(a).toLowerCase().trim());
+    
+    let maintUsers = allUsers.filter(u => expectedApproversClean.includes(u.toLowerCase()));
+    let prodUsers = allUsers.filter(u => !expectedApproversClean.includes(u.toLowerCase()));
 
     let now = new Date();
     let dayOfWeek = now.getDay() || 7;
@@ -402,38 +434,61 @@ function renderScheduleDash() {
     });
     html += `</tr></thead><tbody>`;
 
+    // 1. ÜGYELET
     html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
     dates.forEach(d => {
         let isWorking = isWorkDay(d);
         let bg = !isWorking ? 'background:rgba(255,255,255,0.05);' : '';
         let dIso = toLocalISOString(d);
         let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__');
-        let text = match ? match.tipus : '';
-        let cls = match ? 'cell-ugy' : '';
-        html += `<td class="${cls}" style="${bg}">${text}</td>`;
+        html += `<td class="${match ? 'cell-ugy' : ''}" style="${bg}">${match ? match.tipus : ''}</td>`;
     });
     html += `</tr>`;
     
-    users.forEach(u => {
-        html += `<tr><td class="sticky-col">${u}</td>`;
-        dates.forEach(d => {
-            let isWorking = isWorkDay(d);
-            let bg = !isWorking ? 'background:rgba(255,255,255,0.05);' : '';
-            let dIso = toLocalISOString(d);
-            let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__');
-            let tipus = match ? match.tipus : '';
-            let cls = ''; let text = '';
-            
-            if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
-            else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
-            else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
-            else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
-            else if(tipus === 'Nappal' || tipus === 'Nappali' || tipus === 'Pihenő') { cls = 'cell-O'; text = 'Nappal'; }
-            
-            html += `<td class="${cls}" style="${bg}">${text}</td>`;
+    // 2. KARBANTARTÁS
+    if(maintUsers.length > 0) {
+        html += `<tr><td colspan="22" style="background:#0f172a; color:var(--pri-info); font-weight:bold; padding:8px 15px; border-bottom:1px solid var(--border);">🔧 Karbantartás</td></tr>`;
+        maintUsers.forEach(u => {
+            html += `<tr><td class="sticky-col">${u}</td>`;
+            dates.forEach(d => {
+                let isWorking = isWorkDay(d);
+                let bg = !isWorking ? 'background:rgba(255,255,255,0.05);' : '';
+                let dIso = toLocalISOString(d);
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u);
+                let tipus = match ? match.tipus : ''; let cls = ''; let text = '';
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+                else if(tipus === 'Nappal' || tipus === 'Nappali' || tipus === 'Pihenő') { cls = 'cell-O'; text = 'Nappal'; }
+                html += `<td class="${cls}" style="${bg}">${text}</td>`;
+            });
+            html += `</tr>`;
         });
-        html += `</tr>`;
-    });
+    }
+
+    // 3. TERMELÉS
+    if(prodUsers.length > 0) {
+        html += `<tr><td colspan="22" style="background:#0f172a; color:var(--pri-high); font-weight:bold; padding:8px 15px; border-bottom:1px solid var(--border); border-top:2px solid var(--border);">🏭 Termelés</td></tr>`;
+        prodUsers.forEach(u => {
+            html += `<tr><td class="sticky-col">${u}</td>`;
+            dates.forEach(d => {
+                let isWorking = isWorkDay(d);
+                let bg = !isWorking ? 'background:rgba(255,255,255,0.05);' : '';
+                let dIso = toLocalISOString(d);
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u);
+                let tipus = match ? match.tipus : ''; let cls = ''; let text = '';
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; }
+                else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; }
+                else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; }
+                else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; }
+                else if(tipus === 'Nappal' || tipus === 'Nappali' || tipus === 'Pihenő') { cls = 'cell-O'; text = 'Nappal'; }
+                html += `<td class="${cls}" style="${bg}">${text}</td>`;
+            });
+            html += `</tr>`;
+        });
+    }
+
     html += `</tbody></table>`;
     c.innerHTML = html;
 }
@@ -586,55 +641,23 @@ function refreshModalActionPanel() {
     }
 }
 
-// ÚJ SOR HOZZÁADÁSA A LISTÁHOZ
 function addAlkatreszRow() {
     const container = document.getElementById('alkatreszekContainer');
     const row = document.createElement('div');
     row.className = "alkatresz-sor";
     row.style.cssText = "display:flex; gap:8px; margin-bottom:5px; align-items:center;";
+    let rId = Math.floor(Math.random()*100000);
     row.innerHTML = `
-        <input type="text" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:2; margin:0; font-size:12px; padding:6px;">
-        <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:12px; padding:6px;">
-        <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; width:26px; height:26px; border-radius:4px; cursor:pointer; font-weight:bold;">✕</button>
+        <div style="flex:3; display:flex; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
+            <input type="text" id="dashAlkCikk_${rId}" class="dash-input alk-cikkszam" placeholder="Cikkszám" style="flex:1; margin:0; font-size:13px; padding:6px; border:none; outline:none; min-width:80px;">
+            <button type="button" onclick="openPartsModal('dashAlkCikk_${rId}')" style="background:var(--pri-obs); color:white; border:none; padding:0 8px; cursor:pointer; font-size:14px; width:36px; display:flex; align-items:center; justify-content:center;">🔍</button>
+        </div>
+        <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
+        <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; width:32px; height:32px; border-radius:4px; cursor:pointer; font-weight:bold; padding:0; display:flex; justify-content:center; align-items:center;">✕</button>
     `;
     container.appendChild(row);
 }
 
-// MÓDOSÍTOTT LEZÁRÁS FÜGGVÉNY (Összegyűjti az összes sort)
-async function dashCloseTask() { 
-    if(!sessionUser || !activeTaskId) return; 
-    const m = document.getElementById(`dashMegoldas`).value;
-    const i = document.getElementById(`dashIdo`).value;
-    const dt = document.getElementById(`dashDowntime`).value; 
-
-    // Összes alkatrész sor összegyűjtése
-    let alkatreszekTomb = [];
-    document.querySelectorAll('.alkatresz-sor').forEach(sor => {
-        let cz = sor.querySelector('.alk-cikkszam').value.trim();
-        let db = sor.querySelector('.alk-db').value.trim();
-        if(cz && db) {
-            alkatreszekTomb.push({ cikkszam: cz, db: parseInt(db) || 1 });
-        }
-    });
-
-    if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
-    
-    await fetch(SCRIPT_URL, { 
-        method: "POST", 
-        body: JSON.stringify({ 
-            action: "closeTask", 
-            id: activeTaskId, 
-            megoldas: m, 
-            ido: i, 
-            downtime: dt, 
-            lezarta: sessionUser,
-            alkatreszek: alkatreszekTomb // Itt küldjük a tömböt
-        }) 
-    }); 
-    fetchDashboardData(); closeModal(true); 
-}
-
-// MODAL NYÍTÁSA KOR TISZTÍTJUK A MEZŐKET
 function openModal(taskId) { 
     activeTaskId = taskId; 
     const task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId); 
@@ -674,13 +697,15 @@ function openModal(taskId) {
     document.getElementById('dashIdo').value = ""; 
     document.getElementById('dashDowntime').value = ""; 
     
-    // Alkatrész mezők alaphelyzetbe állítása (1 üres sor maradjon)
     const alkContainer = document.getElementById('alkatreszekContainer');
     if(alkContainer) {
         alkContainer.innerHTML = `
             <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
-                <input type="text" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:2; margin:0; font-size:12px; padding:6px;">
-                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:12px; padding:6px;">
+                <div style="flex:3; display:flex; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
+                    <input type="text" id="dashAlkCikk_0" class="dash-input alk-cikkszam" placeholder="Cikkszám" style="flex:1; margin:0; font-size:13px; padding:6px; border:none; outline:none; min-width:80px;">
+                    <button type="button" onclick="openPartsModal('dashAlkCikk_0')" style="background:var(--pri-obs); color:white; border:none; padding:0 8px; cursor:pointer; font-size:14px; width:36px; display:flex; align-items:center; justify-content:center;">🔍</button>
+                </div>
+                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
             </div>
         `;
     }
@@ -690,6 +715,7 @@ function openModal(taskId) {
     
     if(sessionUser) extendSession(); 
 }
+
 function closeModal(force = false) {
     if(force === true || event.target.id === 'taskModal') {
         document.getElementById('taskModal').style.display = "none";
@@ -714,10 +740,18 @@ async function dashCloseTask() {
     const m = document.getElementById(`dashMegoldas`).value;
     const i = document.getElementById(`dashIdo`).value;
     const dt = document.getElementById(`dashDowntime`).value; 
-    const alk = document.getElementById(`dashAlkatresz`) ? document.getElementById(`dashAlkatresz`).value : "";
-    const adb = document.getElementById(`dashAlkDb`) ? document.getElementById(`dashAlkDb`).value : "";
+
+    let alkatreszekTomb = [];
+    document.querySelectorAll('.alkatresz-sor').forEach(sor => {
+        let cz = sor.querySelector('.alk-cikkszam').value.trim();
+        let db = sor.querySelector('.alk-db').value.trim();
+        if(cz && db) {
+            alkatreszekTomb.push({ cikkszam: cz, db: parseInt(db) || 1 });
+        }
+    });
 
     if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
+    
     await fetch(SCRIPT_URL, { 
         method: "POST", 
         body: JSON.stringify({ 
@@ -727,8 +761,7 @@ async function dashCloseTask() {
             ido: i, 
             downtime: dt, 
             lezarta: sessionUser,
-            alkatresz: alk,
-            alkatreszDb: adb
+            alkatreszek: alkatreszekTomb
         }) 
     }); 
     fetchDashboardData(); closeModal(true); 
@@ -738,8 +771,6 @@ function populateNavDropdown() {
     const nav = document.getElementById('appNavDropdown');
     if(!nav) return;
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
-    
-    // Nincs több szerepkör vizsgálat, mindenki látja az összes gombot:
     nav.add(new Option("📱 Termelés App", "production.html"));
     nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
     nav.add(new Option("🔧 Karbantartás App", "index.html"));
