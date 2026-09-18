@@ -175,7 +175,7 @@
             <div class="filter-panel">
                 <div class="filter-header"><h4>Lezárt Feladatok Szűrése</h4><button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 Export</button></div>
                 <div class="form-grid">
-                    <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="Keresés leírásban, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
+                    <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="Keresés leírásában, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
                     <select id="szuroLezartReszleg" onchange="renderClosedTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
                     <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden kategória...</option></select>
                     <select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
@@ -248,6 +248,20 @@
         <h2 id="statModalTitle" style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;">Részletek</h2>
         <div id="statModalBody" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;"></div>
         <button class="btn-close-modal" onclick="closeStatModal(true)">Bezárás</button>
+    </div>
+</div>
+
+<!-- ÚJ: ALKATRÉSZ KERESŐ MODAL (Raktár) -->
+<div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
+            <h2 style="margin:0; color:var(--primary);">🔍 Raktár Alkatrész Kereső</h2>
+            <button class="btn-close-modal" style="margin:0; width:auto; padding:5px 10px;" onclick="closePartsModal(true)">✕</button>
+        </div>
+        <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin-bottom:10px; font-size:16px;">
+        <div id="partsListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:5px; background:var(--bg-color);">
+            <div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltése folyamatban...</div>
+        </div>
     </div>
 </div>
 

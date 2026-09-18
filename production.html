@@ -268,6 +268,20 @@
     </div>
 </div>
 
+<!-- ÚJ: ALKATRÉSZ KERESŐ MODAL (Raktár) -->
+<div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
+            <h2 style="margin:0; color:var(--primary);">🔍 Raktár Alkatrész Kereső</h2>
+            <button class="btn-close-modal" style="margin:0; width:auto; padding:5px 10px;" onclick="closePartsModal(true)">✕</button>
+        </div>
+        <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin-bottom:10px; font-size:16px;">
+        <div id="partsListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:5px; background:var(--bg-color);">
+            <div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltése folyamatban...</div>
+        </div>
+    </div>
+</div>
+
 <script src="termeles.js?v=2"></script>
 </body>
 </html>

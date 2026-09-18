@@ -11,14 +11,6 @@
 
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
-    <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
-        <div style="background:var(--surface); color:var(--text-main); padding:30px; border-radius:10px; display:inline-block; text-align:left; max-width:850px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 2px solid var(--pri-crit);">
-            <h2 style="margin-top:0; color:var(--pri-crit);">🚨 Dashboard Lezárva! Elmaradt Műszaknapló</h2>
-            <p style="font-size:16px; margin-bottom:20px; color:var(--text-muted);">Amíg az alábbi naplókat nem pótlod vagy nem hagyod jóvá, a Faliújság nem jeleníti meg a gépeket.</p>
-            <div id="dashUnapprovedLogsList" style="margin-top:20px; max-height:55vh; overflow-y:auto; padding-right:10px;"></div>
-        </div>
-    </div>
-
     <div id="dashboardMainUI">
         <div class="top-bar">
             <div class="title-group">
@@ -32,8 +24,8 @@
 		<button onclick="fetchDashboardData(); timer = REFRESH_INTERVAL_SEC; document.getElementById('progressBar').style.width = '0%'; document.getElementById('countdownDisplay').innerText = timer;" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; font-size:14px; display:flex; align-items:center; gap:5px;">
     		🔄
 		</button>
-                <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn">🔇</button>
-                <button id="btnToggleFlash" onclick="toggleFlash()" class="toggle-btn">⚪</button>
+                <button id="btnToggleSound" onclick="toggleSound()" class="toggle-btn" title="Hangjelzés">🔇</button>
+                <button id="btnToggleFlash" onclick="toggleFlash()" class="toggle-btn active-flash" title="Villogás">🔴</button>
 
                 <div id="activeUserBadge" style="display:none; background:var(--pri-prog); padding:5px 10px; border-radius:4px; font-size:12px; font-weight:bold; align-items:center; gap:10px;">
                     <span>👤 <span id="dashUserName">User</span></span>
@@ -54,6 +46,7 @@
         </div>
 
         <div class="dashboard-container">
+            <!-- SÁRGA FIGYELMEZTETÉS A KARBANTARTÓKNAK -->
             <div id="shiftAlertBanner" style="margin-top:20px;"></div>
 
             <div id="view-nyitott" class="view-section active">
@@ -106,7 +99,7 @@
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL (Feladat kezelő) -->
     <div class="modal-overlay" id="taskModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -131,17 +124,21 @@
                     <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
                         <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
                         
-                        <!-- ALKATRÉSZEK DINAMIKUS LISTÁJA -->
+                        <!-- ALKATRÉSZEK DINAMIKUS LISTÁJA KERESŐ GOMBBAL -->
                         <div id="alkatreszekContainer" style="margin-bottom:10px;">
                             <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
-                                <input type="text" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:2; margin:0; font-size:12px; padding:6px;">
-                                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:12px; padding:6px;">
+                                <div style="flex:3; display:flex; gap:0; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
+                                    <input type="text" id="dashAlkCikk_0" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:1; margin:0; font-size:13px; padding:6px; border:none; outline:none; min-width:80px;">
+                                    <button type="button" onclick="openPartsModal('dashAlkCikk_0')" style="background:var(--pri-obs); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">🔍</button>
+                                </div>
+                                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
                             </div>
                         </div>
-                        <button type="button" onclick="addAlkatreszRow()" style="background:var(--pri-info); color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold; margin-bottom:10px;">➕ Alkatrész hozzáadása</button>
+                        <button type="button" onclick="addAlkatreszRow()" style="background:var(--pri-info); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer; font-weight:bold; margin-bottom:10px;">➕ Alkatrész hozzáadása</button>
                         
                         <div style="display:flex; gap:10px;">
-                            <input type="number" id="dashIdo" step="0.5" class="dash-input" placeholder="Javítás (óra)">
+                            <!-- PERC JAVÍTVA EBBEN A SORBAN -->
+                            <input type="number" id="dashIdo" step="1" class="dash-input" placeholder="Javítás (perc)">
                             <input type="number" id="dashDowntime" step="1" class="dash-input" placeholder="Kiesés (perc)">
                         </div>
                         <button class="dash-btn" style="background:var(--pri-normal);" onclick="dashCloseTask()">✅ Jegy lezárása</button>
@@ -152,7 +149,20 @@
         </div>
     </div>
 
-    <!-- JS behúzása -->
+    <!-- ÚJ: ALKATRÉSZ KERESŐ MODAL (Raktár) -->
+    <div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
+        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
+                <h2 style="margin:0; color:var(--primary);">🔍 Raktár Alkatrész Kereső</h2>
+                <button class="btn-close-modal" style="margin:0; width:auto; padding:5px 10px;" onclick="closePartsModal(true)">✕</button>
+            </div>
+            <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin-bottom:10px; font-size:16px;">
+            <div id="partsListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:5px; background:var(--bg-color);">
+                <div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltése folyamatban...</div>
+            </div>
+        </div>
+    </div>
+
     <script src="dashboard.js"></script>
 </body>
 </html>
