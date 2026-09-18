@@ -17,6 +17,9 @@ let isAlarming = false;
 let knownAdHocIds = new Set(); 
 let isFirstLoad = true;
 
+let globalPartsList = []; 
+let targetPartInputId = null;
+
 window.onload = function() {
     loadUserList(); 
     const savedUser = localStorage.getItem("activeUser"); 
@@ -26,6 +29,7 @@ window.onload = function() {
         extendSession(); 
     } 
     fetchDashboardData();
+    fetchPartsList();
 }
 
 async function loadUserList() { 
@@ -45,6 +49,83 @@ async function loadUserList() {
 async function hashPassword(p) { 
     const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); 
     return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); 
+}
+
+// --- RAKTÁR KERESŐ ---
+async function fetchPartsList() {
+    try {
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getPartsList" }) });
+        const r = await res.json();
+        if(r.status === "success") {
+            globalPartsList = r.data || [];
+            if(document.getElementById('partsListContainer')) {
+                document.getElementById('partsListContainer').innerHTML = "<div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltve. Kezdj el gépelni a kereséshez!</div>";
+            }
+        }
+    } catch(e) {}
+}
+
+function openPartsModal(inputId) {
+    targetPartInputId = inputId;
+    if(document.getElementById('partsSearchInput')) document.getElementById('partsSearchInput').value = "";
+    renderPartsList(globalPartsList.slice(0, 50)); 
+    if(document.getElementById('partsModal')) {
+        document.getElementById('partsModal').style.display = "flex";
+        document.getElementById('partsSearchInput').focus();
+    }
+}
+
+function closePartsModal(force=false) {
+    if(force || (event && event.target.id === 'partsModal')) {
+        if(document.getElementById('partsModal')) document.getElementById('partsModal').style.display = "none";
+        targetPartInputId = null;
+    }
+}
+
+function filterPartsList() {
+    let q = document.getElementById('partsSearchInput').value.toLowerCase().trim();
+    if(!q) { renderPartsList(globalPartsList.slice(0, 50)); return; }
+    let filtered = globalPartsList.filter(p => 
+        p.id.toLowerCase().includes(q) || 
+        p.name.toLowerCase().includes(q) || 
+        (p.manuf && p.manuf.toLowerCase().includes(q)) || 
+        (p.machSup && p.machSup.toLowerCase().includes(q))
+    );
+    renderPartsList(filtered.slice(0, 100)); 
+}
+
+function renderPartsList(list) {
+    let c = document.getElementById('partsListContainer');
+    if(!c) return;
+    let validList = list.filter(p => p.qty > 0); 
+    if(validList.length === 0) { c.innerHTML = "<div style='padding:20px; text-align:center; color:var(--text-muted);'>Nincs készleten a keresett alkatrészből!</div>"; return; }
+    
+    let h = "";
+    validList.forEach(p => {
+        let mInfo = p.manuf ? p.manuf : (p.machSup ? p.machSup : "Ismeretlen gyártó");
+        h += `<div style="padding:12px 10px; border-bottom:1px solid #cbd5e1; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="selectPart('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'">
+            <div style="flex:1; padding-right:10px;">
+                <div style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:2px;">${p.name}</div>
+                <div style="font-size:13px; color:var(--text-main); font-family:monospace; font-weight:bold;">Cikkszám: ${p.id}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                    <b>Gyártó:</b> ${p.manuf || '-'} | <b>Raktárhely:</b> <span style="color:var(--pri-normal); font-weight:bold;">${p.loc || '-'}</span>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:16px; font-weight:bold; color:var(--pri-crit); margin-bottom:5px;">${p.qty} db</div>
+                <button style="background:var(--pri-info); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer; font-weight:bold;">Kiválaszt</button>
+            </div>
+        </div>`;
+    });
+    c.innerHTML = h;
+}
+
+function selectPart(id) {
+    if(targetPartInputId) {
+        let el = document.getElementById(targetPartInputId);
+        if(el) el.value = id;
+    }
+    closePartsModal(true);
 }
 
 setInterval(() => { document.getElementById('clockDisplay').innerText = new Date().toLocaleTimeString('hu-HU'); }, 1000);
@@ -98,8 +179,6 @@ function checkMissingShiftLogsAndApprovals() {
                     let approvers = l.jovahagyok ? String(l.jovahagyok).split(",").map(x=>x.trim()).filter(x=>x) : [];
                     let approversLower = approvers.map(x=>x.toLowerCase());
                     
-                    // Szigorú szűrés: Csak akkor várjuk el a jóváhagyást a karbantartótól, 
-                    // ha az adott napon be volt osztva dolgozni (és nem szabadságon volt)
                     let expectedForThisLog = expectedApproversClean.filter(a => {
                         let sched = globalSchedule.find(s => s.datum === logD && String(s.user).toLowerCase().trim() === a && !String(s.tipus).includes("Szabadság"));
                         return sched !== undefined;
@@ -266,6 +345,24 @@ function refreshModalActionPanel() {
     } 
 }
 
+function addAlkatreszRow() {
+    const container = document.getElementById('alkatreszekContainer');
+    if(!container) return;
+    const row = document.createElement('div');
+    row.className = "alkatresz-sor";
+    row.style.cssText = "display:flex; gap:8px; margin-bottom:5px; align-items:center;";
+    let rId = Math.floor(Math.random()*100000);
+    row.innerHTML = `
+        <div style="flex:3; display:flex; gap:0; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
+            <input type="text" id="dashAlkCikk_${rId}" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:1; margin:0; font-size:13px; padding:6px; border:none; outline:none; min-width:80px;">
+            <button type="button" onclick="openPartsModal('dashAlkCikk_${rId}')" style="background:var(--pri-obs); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">🔍</button>
+        </div>
+        <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
+        <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; width:32px; height:32px; border-radius:4px; cursor:pointer; font-weight:bold; padding:0; display:flex; justify-content:center; align-items:center;">✕</button>
+    `;
+    container.appendChild(row);
+}
+
 function openModal(taskId) { 
     activeTaskId = taskId; 
     const task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId); 
@@ -302,6 +399,19 @@ function openModal(taskId) {
     
     document.getElementById('modalDetails').innerHTML = details; 
     
+    const alkContainer = document.getElementById('alkatreszekContainer');
+    if(alkContainer) {
+        alkContainer.innerHTML = `
+            <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
+                <div style="flex:3; display:flex; gap:0; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
+                    <input type="text" id="dashAlkCikk_0" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:1; margin:0; font-size:13px; padding:6px; border:none; outline:none; min-width:80px;">
+                    <button type="button" onclick="openPartsModal('dashAlkCikk_0')" style="background:var(--pri-obs); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">🔍</button>
+                </div>
+                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
+            </div>
+        `;
+    }
+
     refreshModalActionPanel(); 
     document.getElementById('taskModal').style.display = "flex"; 
     
@@ -320,5 +430,28 @@ async function dashStartTask() {
     if(!sessionUser || !activeTaskId) return; 
     document.getElementById('btnDashStart').innerText = "Feldolgozás..."; 
     await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
+    fetchDashboardData(); closeModal(true); 
+}
+
+async function dashCloseTask() { 
+    if(!sessionUser || !activeTaskId) return; 
+    
+    const m = document.getElementById(`dashMegoldas`).value;
+    const i = document.getElementById(`dashIdo`).value;
+    const dt = document.getElementById(`dashDowntime`).value; 
+
+    let alkatreszekTomb = [];
+    document.querySelectorAll('.alkatresz-sor').forEach(sor => {
+        let cz = sor.querySelector('.alk-cikkszam').value.trim();
+        let db = sor.querySelector('.alk-db').value.trim();
+        if(cz && db) { alkatreszekTomb.push({ cikkszam: cz, db: parseInt(db) || 1 }); }
+    });
+
+    if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
+    
+    await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb }) 
+    }); 
     fetchDashboardData(); closeModal(true); 
 }
