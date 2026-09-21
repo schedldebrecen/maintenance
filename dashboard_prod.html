@@ -47,6 +47,7 @@
         </div>
 
         <div class="dash-nav">
+	    <div class="dash-nav" style="display:none;">
             <button id="tabNyitott" class="active" onclick="switchDashTab('nyitott')">🚨 Aktuális Feladatok</button>
             <button id="tabLezart" onclick="switchDashTab('lezart')">✅ Lezárt Feladatok</button>
             <button id="tabChecklist" onclick="switchDashTab('checklist')">📋 Ellenőrzőlista</button>
@@ -60,7 +61,7 @@
             </div>
 
             <!-- NYITOTT FELADATOK NÉZET -->
-            <div id="view-nyitott" class="view-section active">
+            <div id="view-nyitott" class="view-section">
                 <div class="kpi-bar" style="padding: 20px 0;">
                     <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')"><h3>Termelésleállás</h3><div class="val" id="kpiCrit">0</div></div>
                     <div class="kpi-card high" id="kpiCard-High" onclick="setDashboardFilter('High')"><h3>Sürgős (Magas)</h3><div class="val" id="kpiHigh">0</div></div>
@@ -99,7 +100,7 @@
             </div>
 
             <!-- CHECKLIST NÉZET -->
-            <div id="view-checklist" class="view-section">
+            <div id="view-checklist" class="view-section active">
                 <div style="background:var(--surface); padding:30px; border-radius:10px; margin-top:20px; border:2px solid var(--border);">
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
     			        <h2 style="margin:0; color:var(--pri-info);">📋 Napi Műszakvezetői Ellenőrzőlista</h2>

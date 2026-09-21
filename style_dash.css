@@ -70,3 +70,19 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
 @keyframes flashRedAnim { 0% { background-color: var(--bg-dark); } 50% { background-color: #7f1d1d; } 100% { background-color: var(--bg-dark); } }
 #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 @media (max-width: 768px) { .time-group { text-align: left; } .filter-panel .form-grid { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
+
+/* --- TÁBLÁZATOS CHECKLIST DESIGN --- */
+.cl-table-container { width: 100%; overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #cbd5e1; }
+.cl-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', sans-serif; color: #1e293b; min-width: 900px; }
+.cl-table th { background: #e2e8f0; color: #334155; font-weight: bold; text-align: left; padding: 12px; border: 1px solid #cbd5e1; font-size: 14px; }
+.cl-table th.ok-header { background: #10b981; color: white; text-align: center; }
+.cl-table td { border: 1px solid #cbd5e1; padding: 10px; vertical-align: middle; font-size: 13px; }
+.cl-main-cat { background: #0f3d73; color: white; text-align: center; width: 120px; font-weight: bold; vertical-align: top !important; padding-top: 20px !important; }
+.cl-main-cat-num { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+.cl-main-cat-title { font-size: 12px; line-height: 1.2; text-transform: uppercase; }
+.cl-img-preview { max-width: 120px; max-height: 80px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: pointer; }
+.cl-radio-group { display: flex; flex-direction: column; gap: 5px; }
+.cl-radio-lbl { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; font-size: 11px; padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; background: #f8fafc; }
+.cl-radio-lbl:hover { background: #e2e8f0; }
+.cl-radio-lbl.ok { color: #10b981; } .cl-radio-lbl.nok { color: #ef4444; } .cl-radio-lbl.na { color: #64748b; }
+.cl-comment-input { width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; margin-top: 5px; box-sizing: border-box; background: white; color: black; }

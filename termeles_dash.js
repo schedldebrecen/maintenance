@@ -315,73 +315,104 @@ function renderChecklistTab() {
 
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    let organizedTasks = [];
     let mainTasks = clSablon.filter(t => !t.szuloId);
+    
+    // TÁBLÁZAT FEJLÉC GENERÁLÁSA
+    let html = `
+    <div class="cl-table-container">
+        <table class="cl-table">
+            <thead>
+                <tr>
+                    <th style="width:120px;"># Ellenőrzési terület</th>
+                    <th style="width:30%;">Feladat / Mit kell ellenőrizni?</th>
+                    <th style="width:25%;">Leírás / Utasítás</th>
+                    <th style="width:15%;">Kép / Fájl</th>
+                    <th class="ok-header" style="width:100px;">Jelölés</th>
+                </tr>
+            </thead>`;
+
+    let counter = 1;
 
     mainTasks.forEach(mt => {
         let activeChildren = validSubtasks.filter(ct => ct.szuloId === mt.id);
         if (activeChildren.length > 0) {
-            organizedTasks.push(mt);
-            activeChildren.forEach(ct => organizedTasks.push(ct));
-        }
-    });
-    
-    let orphans = validSubtasks.filter(ct => !mainTasks.find(mt => mt.id === ct.szuloId));
-    organizedTasks.push(...orphans);
+            html += `<tbody>`;
+            activeChildren.forEach((q, index) => {
+                let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
+                let checkedOK = prevAns.valasz === "OK" ? "checked" : "";
+                let checkedNOK = prevAns.valasz === "NOK" ? "checked" : "";
+                let checkedNA = prevAns.valasz === "N.A." ? "checked" : "";
 
-    let html = "";
-    organizedTasks.forEach((q) => {
-        let isMain = !q.szuloId;
-        let gTxt = q.gep ? ` / ${q.gep}` : "";
-        
-        if (isMain) {
-            html += `
-            <div style="background:var(--surface); padding:8px 12px; border-radius:6px; margin-bottom:10px; border:1px solid var(--pri-info); border-left: 5px solid var(--pri-info);">
-                <div style="font-size:11px; font-weight:bold; color:var(--text-muted); margin-bottom:2px; text-transform:uppercase;">Fő feladat [${q.terulet||'Általános'}${gTxt}]</div>
-                <div style="font-size:15px; font-weight:bold; color:var(--text-main); margin:0;">${q.kerdes}</div>
-            </div>`;
-        } else {
-            let extraHtml = "";
-            if (q.utasitas) { extraHtml += `<div style="margin-bottom:8px; font-size:12px; color:var(--pri-high); line-height:1.2;">ℹ️ <b>Utasítás:</b> ${q.utasitas}</div>`; }
-            if (q.kep) { 
-                let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
-                let viewUrl = q.kep;
-                if(m && q.kep.includes("drive.google.com")) { 
-                    imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; 
-                    viewUrl = `https://drive.google.com/file/d/${m[1]}/view`;
+                // Kép és fájl logika
+                let mediaHtml = "";
+                if (q.kep) { 
+                    let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
+                    if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; }
+                    mediaHtml += `<img src="${imgUrl}" class="cl-img-preview" onclick="window.open('${q.kep}', '_blank')" alt="Példa kép"><br>`; 
                 }
-                let fallbackHtml = `<a href="${viewUrl}" target="_blank" style="display:inline-block; background:var(--pri-obs); color:white; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;">📷 Kép megnyitása</a>`;
-                let safeFallback = fallbackHtml.replace(/"/g, '&quot;');
-                extraHtml += `<div style="margin-bottom:8px;"><img src="${imgUrl}" loading="lazy" style="max-width:100%; max-height:150px; border-radius:4px; border:1px solid var(--border); cursor:pointer;" onclick="window.open('${viewUrl}', '_blank')" onerror="this.outerHTML='${safeFallback}'"></div>`; 
-            }
-            if (q.fajl) { 
-                let fNev = q.fajlNev ? q.fajlNev : "📄 Megnyitás";
-                extraHtml += `<div style="margin-bottom:10px;"><a href="${q.fajl}" target="_blank" style="display:inline-block; background:var(--pri-info); color:white; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;">${fNev}</a></div>`; 
-            }
+                if (q.fajl) { 
+                    let fNev = q.fajlNev ? q.fajlNev : "📄 Dokumentum";
+                    mediaHtml += `<a href="${q.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-info); color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">${fNev}</a>`; 
+                }
 
-            let margin = q.isChild ? 20 : 0; 
-            let borderStyle = q.isChild ? "border-left: 3px solid var(--pri-obs);" : "border:1px solid var(--border);";
-            let faIkon = q.isChild ? "↳ " : "";
+                html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
+                
+                // Bal oldali sötétkék összevont cella (Csak az első sornál generáljuk, rowspan-nel)
+                if (index === 0) {
+                    let gTxt = mt.gep ? `<br><small style="color:#94a3b8;">${mt.gep}</small>` : "";
+                    html += `<td rowspan="${activeChildren.length}" class="cl-main-cat">
+                                <div class="cl-main-cat-num">${counter}</div>
+                                <div class="cl-main-cat-title">${mt.kerdes}${gTxt}</div>
+                             </td>`;
+                    counter++;
+                }
 
-            let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
-            let checkedOK = prevAns.valasz === "OK" ? "checked" : "";
-            let checkedNOK = prevAns.valasz === "NOK" ? "checked" : "";
-            let checkedNA = prevAns.valasz === "N.A." ? "checked" : "";
-
-            html += `
-            <div style="background:var(--bg-dark); padding:10px; border-radius:6px; margin-bottom:10px; border:1px solid var(--border); ${borderStyle} margin-left:${margin}px;" class="cl-question-block" data-terulet="${q.terulet}" data-gep="${q.gep}" data-kerdes="${q.kerdes}">
-                <div style="font-size:11px; font-weight:bold; color:var(--pri-info); margin-bottom:4px; display:${q.isChild ? 'none' : 'block'};">[${q.terulet||'Általános'}${gTxt}]</div>
-                <div style="font-size:14px; margin-bottom:8px; color:var(--text-main); font-weight:bold; line-height:1.2;">${faIkon}${q.kerdes}</div>
-                ${extraHtml}
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:bold; color:var(--pri-normal); background:var(--surface); padding:4px 10px; border-radius:4px; border:1px solid var(--pri-normal); width:fit-content;"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK} style="width:14px; height:14px; margin:0;"> OK</label>
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:bold; color:var(--pri-crit); background:var(--surface); padding:4px 10px; border-radius:4px; border:1px solid var(--pri-crit); width:fit-content;"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK} style="width:14px; height:14px; margin:0;"> NOK</label>
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px; font-weight:bold; color:var(--text-muted); background:var(--surface); padding:4px 10px; border-radius:4px; border:1px solid var(--text-muted); width:fit-content;"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA} style="width:14px; height:14px; margin:0;"> N.A.</label>
-                </div>
-                <input type="text" class="dash-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés (Nem kötelező)..." style="margin-bottom:0; padding:6px; font-size:12px;">
-            </div>`;
+                // Feladat és Adat oszlopok
+                html += `
+                    <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
+                    <td style="color:#475569; font-size:12px;">${q.utasitas || ''}</td>
+                    <td style="text-align:center;">${mediaHtml}</td>
+                    <td>
+                        <div class="cl-radio-group">
+                            <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}> OK ✔️</label>
+                            <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}> NOK ❌</label>
+                            <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}> N.A. ➖</label>
+                        </div>
+                        <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody>`;
         }
     });
+
+    // Ha maradtak árvák (szülő nélküli alfeladatok)
+    let orphans = validSubtasks.filter(ct => !mainTasks.find(mt => mt.id === ct.szuloId));
+    if(orphans.length > 0) {
+        html += `<tbody>`;
+        orphans.forEach((q, index) => {
+            let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
+            html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
+            if (index === 0) {
+                html += `<td rowspan="${orphans.length}" class="cl-main-cat"><div class="cl-main-cat-num">?</div><div class="cl-main-cat-title">Egyéb feladatok</div></td>`;
+            }
+            html += `
+                <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
+                <td style="color:#475569; font-size:12px;">${q.utasitas || ''}</td>
+                <td style="text-align:center;">-</td>
+                <td>
+                    <div class="cl-radio-group">
+                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${prevAns.valasz === "OK" ? "checked" : ""}> OK ✔️</label>
+                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${prevAns.valasz === "NOK" ? "checked" : ""}> NOK ❌</label>
+                    </div>
+                    <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
+                </td>
+            </tr>`;
+        });
+        html += `</tbody>`;
+    }
+
+    html += `</table></div>`;
     document.getElementById('clQuestionsList').innerHTML = html;
 }
 
