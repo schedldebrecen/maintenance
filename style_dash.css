@@ -120,3 +120,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
     .cl-radio-group { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
     .cl-radio-lbl { flex: 1; min-width: 30%; justify-content: center; padding: 12px 8px; font-size: 13px; }
 }
+
+/* VÁLTAKOZÓ HÁTTÉRSZÍNEK A KATEGÓRIÁK KÖZÖTT (ZEBRA) */
+.cl-table tr.cat-even td { background-color: rgba(255, 255, 255, 0.03); }
+.cl-table tr.cat-odd td { background-color: transparent; }
+.cl-table td.cl-main-cat { background-color: #1e3a5f !important; /* Anyaosztály színe fix marad */ }
