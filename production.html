@@ -101,9 +101,10 @@
             <div class="filter-panel" style="margin-bottom:20px;">
                 <h4 style="margin-top:0; color:var(--primary);">Új ellenőrzőpont hozzáadása / Szerkesztése</h4>
                 <div class="form-grid">
-                    <div><label style="font-size:12px; color:var(--text-muted);">Terület (Nem kötelező)</label><select id="clSablonTerulet" onchange="frissitClSablonGep()"><option value="">Általános / Válassz területet...</option></select></div>
-                    <div><label style="font-size:12px; color:var(--text-muted);">Gép (Nem kötelező)</label><select id="clSablonGep"><option value="">Általános / Összes gép...</option></select></div>
-                    
+
+                    <div><label style="font-size:12px; color:var(--text-muted);">Terület (Gépcsoport / Anyaosztály neve)</label><input type="text" id="clSablonTerulet" placeholder="Pl.: Gyártósor 1, Csarnok B..."></div>
+                    <div><label style="font-size:12px; color:var(--text-muted);">Gép (Nem kötelező)</label><input type="text" id="clSablonGep" placeholder="Konkrét gép neve..."></div>                    
+                  
                     <div style="grid-column: span 1;"><label style="font-size:12px; color:var(--text-muted);">Kérdés / Feladat (Kötelező!)</label><input type="text" id="clSablonKerdes" placeholder="Pl. Schenck csavarozó kalibrálva? / Takarítás megtörtént?"></div>
                     <div style="grid-column: span 1;">
                         <label style="font-size:12px; color:var(--text-muted);">Hozzárendelés Fő feladathoz</label>

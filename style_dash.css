@@ -87,3 +87,27 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
 .cl-radio-lbl.ok { border-left: 4px solid var(--pri-normal); } .cl-radio-lbl.nok { border-left: 4px solid var(--pri-crit); } .cl-radio-lbl.na { border-left: 4px solid var(--text-muted); }
 .cl-comment-input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; margin-top: 8px; box-sizing: border-box; background: var(--bg-dark); color: white; }
 .cl-comment-input::placeholder { color: var(--text-muted); }
+
+/* Gombok natív színezése (Zöld, Piros, Szürke) */
+.cl-radio-lbl.ok input[type="radio"] { accent-color: #10b981; }
+.cl-radio-lbl.nok input[type="radio"] { accent-color: #ef4444; }
+.cl-radio-lbl.na input[type="radio"] { accent-color: #94a3b8; }
+
+/* MOBILOS TÖRDELÉS EGYMÁS ALÁ (768px alatt) */
+@media (max-width: 768px) {
+    .cl-table, .cl-table tbody, .cl-table tr, .cl-table th, .cl-table td { display: block; width: 100%; box-sizing: border-box; }
+    .cl-table th { display: none; /* Mobilon elrejtjük a táblázat fejlécét */ }
+    
+    .cl-main-cat { display: flex; align-items: center; gap: 15px; text-align: left; padding: 15px !important; border-bottom: 2px solid var(--border); }
+    .cl-main-cat-num { margin-bottom: 0; font-size: 24px; }
+    .cl-main-cat-title { font-size: 16px; }
+    
+    .cl-question-block { border-bottom: 4px solid var(--bg-dark); margin-bottom: 10px; background: var(--surface); padding-bottom: 15px; }
+    .cl-table td { border: none; border-bottom: 1px dashed var(--border); padding: 12px 15px; text-align: left !important; }
+    .cl-table td:last-child { border-bottom: none; padding-bottom: 0; }
+    
+    .cl-img-preview { max-width: 100%; max-height: 150px; }
+    
+    .cl-radio-group { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
+    .cl-radio-lbl { flex: 1; min-width: 30%; justify-content: center; padding: 10px; font-size: 13px; }
+}
