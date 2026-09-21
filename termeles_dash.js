@@ -308,29 +308,29 @@ function renderChecklistTab() {
 
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    // FŐ FELADATOK (Anyaosztályok) KIKERESÉSE
+    // FŐ FELADATOK ÉS CSOPORTOSÍTÁS A SHEET FIZIKAI SORRENDJE ALAPJÁN
     let mainTasks = clSablon.filter(t => !t.szuloId);
-
-    // FELADATOK OKOS CSOPORTOSÍTÁSA (Név lekérése ID alapján, és szülők elrejtése)
     let groupedTasks = {};
-    validSubtasks.forEach(q => {
-        if (!q.szuloId) {
-            // FŐ FELADAT: Van alatta gyerek?
-            let isParent = clSablon.some(child => child.szuloId === q.id);
-            if (isParent) return; // Ha igen, ELREJTJÜK a pipálható listából!
 
-            // Ha nincs alatta gyerek, akkor ez egy árva, önálló feladat
-            if (!groupedTasks["Egyéb / Önálló feladatok"]) groupedTasks["Egyéb / Önálló feladatok"] = [];
-            groupedTasks["Egyéb / Önálló feladatok"].push(q);
-        } else {
-            // RÉSZFELADAT: Megkeressük a Szülő nevét a szuloId alapján
-            let parentTask = mainTasks.find(p => p.id === q.szuloId);
-            let catName = parentTask ? parentTask.kerdes : "Ismeretlen Fő feladat";
-            
-            if (!groupedTasks[catName]) groupedTasks[catName] = [];
-            groupedTasks[catName].push(q);
+    // Végigmegyünk a teljes clSablonon, ami pontosan a Google Sheet sorrendjét hozza
+    clSablon.forEach(item => {
+        if (!item.szuloId) {
+            // Ha ez egy fő feladat, megnézzük, hogy van-e benne olyan gyerek, ami aktív ebben a műszakban
+            let hasActiveChildren = validSubtasks.some(child => child.szuloId === item.id);
+            if (hasActiveChildren) {
+                let catName = item.kerdes;
+                if (!groupedTasks[catName]) {
+                    groupedTasks[catName] = validSubtasks.filter(child => child.szuloId === item.id);
+                }
+            }
         }
     });
+
+    // Ha maradtak olyan aktív feladatok, amiknek nincs szülője (árvák)
+    let orphans = validSubtasks.filter(q => !q.szuloId && !clSablon.some(parent => parent.id === q.id));
+    if (orphans.length > 0) {
+        groupedTasks["Egyéb / Önálló feladatok"] = orphans;
+    }
 
     let html = `
     <div class="cl-table-container">
