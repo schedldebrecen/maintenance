@@ -323,3 +323,13 @@ async function dashStartTask() {
     await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
     fetchDashboardData(); closeModal(true); 
 }
+
+function populateNavDropdown() {
+    const nav = document.getElementById('appNavDropdown');
+    if(!nav) return;
+    nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
+    nav.add(new Option("📱 Termelés App", "production.html"));
+    nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
+    nav.add(new Option("🔧 Karbantartás App", "index.html"));
+    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
+}
