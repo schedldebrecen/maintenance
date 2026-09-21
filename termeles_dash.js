@@ -318,17 +318,17 @@ function renderChecklistTab() {
 
     let mainTasks = clSablon.filter(t => !t.szuloId);
     
-    // TÁBLÁZAT FEJLÉC GENERÁLÁSA
+    // TÁBLÁZAT FEJLÉC GENERÁLÁSA (Fix szélességekkel a PC-s nézethez)
     let html = `
     <div class="cl-table-container">
         <table class="cl-table">
             <thead>
                 <tr>
-                    <th style="width:120px;"># Ellenőrzési terület</th>
+                    <th style="width:15%;"># Ellenőrzési terület</th>
                     <th style="width:30%;">Feladat / Mit kell ellenőrizni?</th>
                     <th style="width:25%;">Leírás / Utasítás</th>
-                    <th style="width:15%;">Kép / Fájl</th>
-                    <th class="ok-header" style="width:100px;">Jelölés</th>
+                    <th style="width:15%; text-align:center;">Kép / Fájl</th>
+                    <th class="ok-header" style="width:15%;">Jelölés</th>
                 </tr>
             </thead>`;
 
@@ -344,26 +344,31 @@ function renderChecklistTab() {
                 let checkedNOK = prevAns.valasz === "NOK" ? "checked" : "";
                 let checkedNA = prevAns.valasz === "N.A." ? "checked" : "";
 
-                // Kép és fájl logika
+                // Kép és fájl logika (Láthatóság és link javítása)
                 let mediaHtml = "";
-                if (q.kep) { 
+                if (q.kep && q.kep.trim() !== "") { 
                     let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
                     if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; }
-                    mediaHtml += `<img src="${imgUrl}" class="cl-img-preview" onclick="window.open('${q.kep}', '_blank')" alt="Példa kép"><br>`; 
+                    mediaHtml += `<a href="${q.kep}" target="_blank"><img src="${imgUrl}" class="cl-img-preview" alt="Megtekintés"></a><br>`; 
                 }
-                if (q.fajl) { 
+                if (q.fajl && q.fajl.trim() !== "") { 
                     let fNev = q.fajlNev ? q.fajlNev : "📄 Dokumentum";
                     mediaHtml += `<a href="${q.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-info); color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">${fNev}</a>`; 
+                }
+                if (mediaHtml === "") {
+                    mediaHtml = `<span style="color:#94a3b8; font-size:11px; font-style:italic;">- Nincs csatolva -</span>`;
                 }
 
                 html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
                 
-                // Bal oldali sötétkék összevont cella (Csak az első sornál generáljuk, rowspan-nel)
+                // Bal oldali sötétkék összevont cella - Anyaosztály (Szülő) Területe és Gépe alapján
                 if (index === 0) {
-                    let gTxt = mt.gep ? `<br><small style="color:#94a3b8;">${mt.gep}</small>` : "";
+                    let szuloTerulet = mt.terulet || 'Általános';
+                    let szuloGepTxt = mt.gep ? `<br><span style="color:#94a3b8; font-size:11px;">${mt.gep}</span>` : "";
+                    
                     html += `<td rowspan="${activeChildren.length}" class="cl-main-cat">
                                 <div class="cl-main-cat-num">${counter}</div>
-                                <div class="cl-main-cat-title">${mt.kerdes}${gTxt}</div>
+                                <div class="cl-main-cat-title">${szuloTerulet}${szuloGepTxt}</div>
                              </td>`;
                     counter++;
                 }
@@ -372,7 +377,7 @@ function renderChecklistTab() {
                 html += `
                     <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
                     <td style="color:#475569; font-size:12px;">${q.utasitas || ''}</td>
-                    <td style="text-align:center;">${mediaHtml}</td>
+                    <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
                     <td>
                         <div class="cl-radio-group">
                             <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}> OK ✔️</label>
@@ -393,6 +398,22 @@ function renderChecklistTab() {
         html += `<tbody>`;
         orphans.forEach((q, index) => {
             let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
+            let checkedOK = prevAns.valasz === "OK" ? "checked" : "";
+            let checkedNOK = prevAns.valasz === "NOK" ? "checked" : "";
+            let checkedNA = prevAns.valasz === "N.A." ? "checked" : ""; // N.A. visszaállítva az árváknál is
+
+            let mediaHtml = "";
+            if (q.kep && q.kep.trim() !== "") { 
+                let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
+                if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; }
+                mediaHtml += `<a href="${q.kep}" target="_blank"><img src="${imgUrl}" class="cl-img-preview" alt="Megtekintés"></a><br>`; 
+            }
+            if (q.fajl && q.fajl.trim() !== "") { 
+                let fNev = q.fajlNev ? q.fajlNev : "📄 Dokumentum";
+                mediaHtml += `<a href="${q.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-info); color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">${fNev}</a>`; 
+            }
+            if (mediaHtml === "") mediaHtml = `<span style="color:#94a3b8; font-size:11px; font-style:italic;">- Nincs csatolva -</span>`;
+
             html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
             if (index === 0) {
                 html += `<td rowspan="${orphans.length}" class="cl-main-cat"><div class="cl-main-cat-num">?</div><div class="cl-main-cat-title">Egyéb feladatok</div></td>`;
@@ -400,11 +421,12 @@ function renderChecklistTab() {
             html += `
                 <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
                 <td style="color:#475569; font-size:12px;">${q.utasitas || ''}</td>
-                <td style="text-align:center;">-</td>
+                <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
                 <td>
                     <div class="cl-radio-group">
-                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${prevAns.valasz === "OK" ? "checked" : ""}> OK ✔️</label>
-                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${prevAns.valasz === "NOK" ? "checked" : ""}> NOK ❌</label>
+                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}> OK ✔️</label>
+                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}> NOK ❌</label>
+                        <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}> N.A. ➖</label>
                     </div>
                     <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
                 </td>
@@ -416,7 +438,6 @@ function renderChecklistTab() {
     html += `</table></div>`;
     document.getElementById('clQuestionsList').innerHTML = html;
 }
-
 async function verifyAndSubmitChecklist() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
