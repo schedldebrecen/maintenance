@@ -275,17 +275,15 @@ function renderChecklistTab() {
     if (existingLog && existingLog.eredmenyek) {
         try {
             let parsed = JSON.parse(existingLog.eredmenyek);
-            parsed.forEach(p => {
-                savedAnswers[p.kerdes] = { valasz: p.valasz, megjegyzes: p.megjegyzes || "" };
-            });
+            parsed.forEach(p => { savedAnswers[p.kerdes] = { valasz: p.valasz, megjegyzes: p.megjegyzes || "" }; });
         } catch(e) {}
     }
 
     let statusContainer = document.getElementById('checklistStatusContainer');
     if (existingLog) {
-        statusContainer.innerHTML = `<div style="background:#d1fae5; color:#065f46; padding:12px 15px; border-radius:6px; margin-bottom:20px; font-weight:bold; border:1px solid #34d399; display:flex; justify-content:space-between; align-items:center;">
+        statusContainer.innerHTML = `<div style="background:rgba(16, 185, 129, 0.2); color:#34d399; padding:12px 15px; border-radius:6px; margin-bottom:20px; font-weight:bold; border:1px solid var(--pri-normal); display:flex; justify-content:space-between; align-items:center;">
             <span>✅ <b>${existingLog.kitolto}</b> már kitöltötte ezt a műszaki checklistát! Alább módosíthatod a válaszokat.</span>
-            <span style="background:#065f46; color:white; padding:4px 8px; border-radius:4px; font-size:12px;">Módosítás Mód</span>
+            <span style="background:var(--pri-normal); color:white; padding:4px 8px; border-radius:4px; font-size:12px;">Módosítás Mód</span>
         </div>`;
         document.getElementById('btnSubmitChecklist').innerText = "Változtatások Hitelesítése & Mentés";
         document.getElementById('clSubmitTitle').innerText = "Módosítás Beküldése";
@@ -295,112 +293,52 @@ function renderChecklistTab() {
         document.getElementById('clSubmitTitle').innerText = "Hitelesítés és Beküldés";
     }
 
-    let sT = document.getElementById('clDashTerulet').value;
-    let sG = document.getElementById('clDashGep').value;
-
+    // Csak műszakra és napra szűrünk (Nincs többé gépes/területes szűrő limit)
     let validSubtasks = clSablon.filter(q => {
-        if (!q.szuloId) return false;
         let freq = String(q.gyakorisag || "").trim();
         let isFreqMatch = (freq === "Minden nap" || freq === todayDayName || (freq === "Minden hétköznap" && isWeekday));
         let isShiftMatch = (q.muszakok && String(q.muszakok).includes(currentShiftShort));
-        let isAreaMatch = sT ? (q.terulet === sT) : true;
-        let isMachMatch = sG ? (q.gep === sG) : true;
-        return isFreqMatch && isShiftMatch && isAreaMatch && isMachMatch;
+        return isFreqMatch && isShiftMatch;
     });
 
     if (validSubtasks.length === 0) {
-        statusContainer.innerHTML += `<div style="color:var(--text-muted); text-align:center;">Jelenleg (erre a szűrésre / műszakra) nincs aktív feladat.</div>`;
+        statusContainer.innerHTML += `<div style="color:var(--text-muted); text-align:center; padding:20px;">Jelenleg (ebben a műszakban) nincs aktív feladat.</div>`;
         document.getElementById('checklistQuestionsContainer').style.display = 'none';
         return;
     }
 
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    let mainTasks = clSablon.filter(t => !t.szuloId);
-    
-    // TÁBLÁZAT FEJLÉC GENERÁLÁSA (Fix szélességekkel a PC-s nézethez)
+    // FELADATOK CSOPORTOSÍTÁSA "TERÜLET" SZERINT (Ez lesz az Anyaosztály)
+    let groupedTasks = {};
+    validSubtasks.forEach(q => {
+        let teruletNev = (q.terulet && q.terulet.trim() !== "") ? q.terulet : "Általános";
+        if(!groupedTasks[teruletNev]) groupedTasks[teruletNev] = [];
+        groupedTasks[teruletNev].push(q);
+    });
+
     let html = `
     <div class="cl-table-container">
         <table class="cl-table">
             <thead>
                 <tr>
-                    <th style="width:15%;"># Ellenőrzési terület</th>
-                    <th style="width:30%;">Feladat / Mit kell ellenőrizni?</th>
+                    <th style="width:18%;"># Ellenőrzési terület</th>
+                    <th style="width:27%;">Feladat / Mit kell ellenőrizni?</th>
                     <th style="width:25%;">Leírás / Utasítás</th>
                     <th style="width:15%; text-align:center;">Kép / Fájl</th>
                     <th class="ok-header" style="width:15%;">Jelölés</th>
                 </tr>
             </thead>`;
 
-    let counter = 1;
-
-    mainTasks.forEach(mt => {
-        let activeChildren = validSubtasks.filter(ct => ct.szuloId === mt.id);
-        if (activeChildren.length > 0) {
-            html += `<tbody>`;
-            activeChildren.forEach((q, index) => {
-                let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
-                let checkedOK = prevAns.valasz === "OK" ? "checked" : "";
-                let checkedNOK = prevAns.valasz === "NOK" ? "checked" : "";
-                let checkedNA = prevAns.valasz === "N.A." ? "checked" : "";
-
-                // Kép és fájl logika (Láthatóság és link javítása)
-                let mediaHtml = "";
-                if (q.kep && q.kep.trim() !== "") { 
-                    let imgUrl = q.kep; let m = q.kep.match(/d\/([a-zA-Z0-9_-]+)/) || q.kep.match(/id=([^&]+)/);
-                    if(m && q.kep.includes("drive.google.com")) { imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; }
-                    mediaHtml += `<a href="${q.kep}" target="_blank"><img src="${imgUrl}" class="cl-img-preview" alt="Megtekintés"></a><br>`; 
-                }
-                if (q.fajl && q.fajl.trim() !== "") { 
-                    let fNev = q.fajlNev ? q.fajlNev : "📄 Dokumentum";
-                    mediaHtml += `<a href="${q.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-info); color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">${fNev}</a>`; 
-                }
-                if (mediaHtml === "") {
-                    mediaHtml = `<span style="color:#94a3b8; font-size:11px; font-style:italic;">- Nincs csatolva -</span>`;
-                }
-
-                html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
-                
-                // Bal oldali sötétkék összevont cella - Anyaosztály (Szülő) Területe és Gépe alapján
-                if (index === 0) {
-                    let szuloTerulet = mt.terulet || 'Általános';
-                    let szuloGepTxt = mt.gep ? `<br><span style="color:#94a3b8; font-size:11px;">${mt.gep}</span>` : "";
-                    
-                    html += `<td rowspan="${activeChildren.length}" class="cl-main-cat">
-                                <div class="cl-main-cat-num">${counter}</div>
-                                <div class="cl-main-cat-title">${szuloTerulet}${szuloGepTxt}</div>
-                             </td>`;
-                    counter++;
-                }
-
-                // Feladat és Adat oszlopok
-                html += `
-                    <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
-                    <td style="color:#475569; font-size:12px;">${q.utasitas || ''}</td>
-                    <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
-                    <td>
-                        <div class="cl-radio-group">
-                            <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}> OK ✔️</label>
-                            <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}> NOK ❌</label>
-                            <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}> N.A. ➖</label>
-                        </div>
-                        <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
-                    </td>
-                </tr>`;
-            });
-            html += `</tbody>`;
-        }
-    });
-
-    // Ha maradtak árvák (szülő nélküli alfeladatok)
-    let orphans = validSubtasks.filter(ct => !mainTasks.find(mt => mt.id === ct.szuloId));
-    if(orphans.length > 0) {
+    for (let terulet in groupedTasks) {
+        let tasksInArea = groupedTasks[terulet];
         html += `<tbody>`;
-        orphans.forEach((q, index) => {
+        
+        tasksInArea.forEach((q, index) => {
             let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
             let checkedOK = prevAns.valasz === "OK" ? "checked" : "";
             let checkedNOK = prevAns.valasz === "NOK" ? "checked" : "";
-            let checkedNA = prevAns.valasz === "N.A." ? "checked" : ""; // N.A. visszaállítva az árváknál is
+            let checkedNA = prevAns.valasz === "N.A." ? "checked" : "";
 
             let mediaHtml = "";
             if (q.kep && q.kep.trim() !== "") { 
@@ -410,17 +348,24 @@ function renderChecklistTab() {
             }
             if (q.fajl && q.fajl.trim() !== "") { 
                 let fNev = q.fajlNev ? q.fajlNev : "📄 Dokumentum";
-                mediaHtml += `<a href="${q.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-info); color:white; padding:4px 8px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">${fNev}</a>`; 
+                mediaHtml += `<a href="${q.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-info); color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">${fNev}</a>`; 
             }
-            if (mediaHtml === "") mediaHtml = `<span style="color:#94a3b8; font-size:11px; font-style:italic;">- Nincs csatolva -</span>`;
+            if (mediaHtml === "") mediaHtml = `<span style="color:var(--text-muted); font-size:11px; font-style:italic;">- Nincs csatolva -</span>`;
 
             html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
+            
+            // Anyaosztály generálása (Csak a csoport első eleménél, rowspan segítségével)
             if (index === 0) {
-                html += `<td rowspan="${orphans.length}" class="cl-main-cat"><div class="cl-main-cat-num">?</div><div class="cl-main-cat-title">Egyéb feladatok</div></td>`;
+                html += `<td rowspan="${tasksInArea.length}" class="cl-main-cat">
+                            <div class="cl-main-cat-title">${terulet}</div>
+                         </td>`;
             }
+
+            let gTxt = q.gep ? `<br><span style="color:var(--pri-info); font-size:12px;">(${q.gep})</span>` : "";
+
             html += `
-                <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
-                <td style="color:#475569; font-size:12px;">${q.utasitas || ''}</td>
+                <td><span style="font-size:14px; font-weight:bold; color:var(--text-main);">${q.kerdes}</span>${gTxt}</td>
+                <td style="color:var(--text-muted); font-size:12px; line-height:1.4;">${q.utasitas || ''}</td>
                 <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
                 <td>
                     <div class="cl-radio-group">
@@ -437,8 +382,7 @@ function renderChecklistTab() {
 
     html += `</table></div>`;
     document.getElementById('clQuestionsList').innerHTML = html;
-}
-async function verifyAndSubmitChecklist() {
+}async function verifyAndSubmitChecklist() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
     if (timeFloat >= 6 && timeFloat < 14) currentShift = "Délelőtt (06:00-14:00)"; else if (timeFloat >= 14 && timeFloat < 22) currentShift = "Délután (14:00-22:00)"; else { currentShift = "Éjszaka (22:00-06:00)"; if (timeFloat < 6) { let yest = new Date(now); yest.setDate(yest.getDate()-1); todayStr = toLocalISOString(yest); } }

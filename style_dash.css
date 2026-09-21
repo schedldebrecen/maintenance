@@ -71,30 +71,19 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
 #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 @media (max-width: 768px) { .time-group { text-align: left; } .filter-panel .form-grid { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
 
-/* --- TÁBLÁZATOS CHECKLIST DESIGN --- */
-.cl-table-container { width: 100%; background: white; border-radius: 8px; border: 1px solid #cbd5e1; overflow: hidden; }
-.cl-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', sans-serif; color: #1e293b; table-layout: fixed; }
-.cl-table th { background: #e2e8f0; color: #334155; font-weight: bold; text-align: left; padding: 12px; border: 1px solid #cbd5e1; font-size: 14px; }
-.cl-table th.ok-header { background: #10b981; color: white; text-align: center; }
-.cl-table td { border: 1px solid #cbd5e1; padding: 10px; vertical-align: middle; font-size: 13px; word-wrap: break-word; }
-.cl-main-cat { background: #0f3d73; color: white; text-align: center; font-weight: bold; vertical-align: top !important; padding-top: 20px !important; }
-.cl-main-cat-num { font-size: 28px; font-weight: bold; margin-bottom: 5px; }
-.cl-main-cat-title { font-size: 12px; line-height: 1.3; text-transform: uppercase; }
-.cl-img-preview { max-width: 100px; max-height: 80px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: pointer; object-fit: cover; }
-.cl-radio-group { display: flex; flex-direction: column; gap: 5px; }
-.cl-radio-lbl { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; font-size: 11px; padding: 6px; border-radius: 4px; border: 1px solid #cbd5e1; background: #f8fafc; }
-.cl-radio-lbl:hover { background: #e2e8f0; }
-.cl-radio-lbl.ok { color: #10b981; } .cl-radio-lbl.nok { color: #ef4444; } .cl-radio-lbl.na { color: #64748b; }
-.cl-comment-input { width: 100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; margin-top: 8px; box-sizing: border-box; background: white; color: black; }
-
-/* MOBILOS TÖRDELÉS (768px alatt) */
-@media (max-width: 768px) {
-    .cl-table, .cl-table tbody, .cl-table tr, .cl-table th, .cl-table td { display: block; width: 100%; box-sizing: border-box; }
-    .cl-table th { display: none; /* Mobilon elrejtjük a fejlécet, magukért beszélnek az adatok */ }
-    .cl-main-cat { display: flex; align-items: center; gap: 15px; text-align: left; padding: 10px !important; }
-    .cl-main-cat-num { margin-bottom: 0; font-size: 20px; }
-    .cl-question-block { border-bottom: 3px solid var(--primary); margin-bottom: 10px; }
-    .cl-table td { border: none; border-bottom: 1px solid #e2e8f0; }
-    .cl-radio-group { flex-direction: row; flex-wrap: wrap; }
-    .cl-radio-lbl { flex: 1; justify-content: center; }
-}
+/* --- TÁBLÁZATOS CHECKLIST DESIGN (DARK MODE & MOBIL GÖRGETÉS) --- */
+.cl-table-container { width: 100%; overflow-x: auto; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); -webkit-overflow-scrolling: touch; }
+.cl-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', sans-serif; color: var(--text-main); min-width: 850px; }
+.cl-table th { background: var(--bg-dark); color: var(--text-muted); font-weight: bold; text-align: left; padding: 12px; border: 1px solid var(--border); font-size: 14px; text-transform: uppercase; }
+.cl-table th.ok-header { background: var(--pri-normal); color: white; text-align: center; }
+.cl-table td { border: 1px solid var(--border); padding: 12px 10px; vertical-align: middle; font-size: 13px; }
+.cl-main-cat { background: #1e3a5f; color: white; text-align: center; font-weight: bold; vertical-align: middle !important; padding: 15px 10px !important; }
+.cl-main-cat-title { font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: 1px; }
+.cl-img-preview { max-width: 100px; max-height: 80px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; object-fit: cover; transition: 0.2s; }
+.cl-img-preview:hover { transform: scale(1.05); }
+.cl-radio-group { display: flex; flex-direction: column; gap: 6px; }
+.cl-radio-lbl { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; font-size: 11px; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-main); transition: 0.2s; }
+.cl-radio-lbl:hover { background: #334155; }
+.cl-radio-lbl.ok { border-left: 4px solid var(--pri-normal); } .cl-radio-lbl.nok { border-left: 4px solid var(--pri-crit); } .cl-radio-lbl.na { border-left: 4px solid var(--text-muted); }
+.cl-comment-input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; margin-top: 8px; box-sizing: border-box; background: var(--bg-dark); color: white; }
+.cl-comment-input::placeholder { color: var(--text-muted); }
