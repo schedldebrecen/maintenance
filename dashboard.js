@@ -389,14 +389,18 @@ function renderClosedTasks() {
 }
 
 // --- MŰSZAKBEOSZTÁS MEGJELENÍTÉSE ---
+// --- MŰSZAKBEOSZTÁS MEGJELENÍTÉSE ---
 function renderScheduleMain() {
     const c = document.getElementById('dashScheduleContainer'); 
     if(!c) return;
     
-    let uniqueUsers = new Set([...globalBaseWorkers, ...globalExtraWorkers]); 
-    let users = Array.from(uniqueUsers).sort();
+    let uniqueBase = new Set([...globalBaseWorkers]); 
+    let usersBase = Array.from(uniqueBase).sort();
     
-    if(users.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px;'>Nincs dolgozó.</div>"; return; }
+    let uniqueExtra = new Set([...globalExtraWorkers]); 
+    let usersExtra = Array.from(uniqueExtra).sort();
+    
+    if(usersBase.length === 0 && usersExtra.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px;'>Nincs dolgozó.</div>"; return; }
     
     let now = new Date(); let dayOfWeek = now.getDay() || 7; 
     let startDate = new Date(now); startDate.setDate(now.getDate() - dayOfWeek + 1 - 7); 
@@ -423,8 +427,9 @@ function renderScheduleMain() {
     }); 
     html += `</tr>`;
     
-    users.forEach(u => {
-        html += `<tr><td class="sticky-col" style="color:var(--text-main);">${u}</td>`;
+    // Karbantartók (Alap dolgozók)
+    usersBase.forEach(u => {
+        html += `<tr><td class="sticky-col" style="color:var(--text-main); font-weight:bold;">${u}</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : ''; let dIso = toLocalISOString(d); 
             let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__'); 
@@ -434,6 +439,23 @@ function renderScheduleMain() {
         }); 
         html += `</tr>`;
     }); 
+    
+    // Termelés dolgozói (Extra dolgozók)
+    if (usersExtra.length > 0) {
+        html += `<tr><td class="sticky-col" style="background:#f1f5f9; color:var(--text-muted); font-size:12px; text-align:center;" colspan="36">-- TERMELÉS DOLGOZÓI --</td></tr>`;
+        usersExtra.forEach(u => {
+            html += `<tr><td class="sticky-col" style="color:var(--text-muted);">${u}</td>`;
+            dates.forEach(d => {
+                let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : ''; let dIso = toLocalISOString(d); 
+                let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__'); 
+                let tipus = match ? match.tipus : ''; let cls = ''; let text = '';
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; } else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; } else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; } else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; } else if(tipus === 'Nappal' || tipus === 'Nappali' || tipus === 'Pihenő') { cls = 'cell-O'; text = 'Nappal'; }
+                html += `<td class="sched-cell ${cls}" style="${bg}">${text}</td>`;
+            }); 
+            html += `</tr>`;
+        });
+    }
+
     html += `</tbody></table></div>`; 
     c.innerHTML = html;
 }
