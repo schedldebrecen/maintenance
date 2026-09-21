@@ -120,10 +120,10 @@
                         
                         <div id="clSubmitSection" style="margin-top:30px; border-top:2px solid var(--border); padding-top:20px; background:var(--bg-dark); padding:20px; border-radius:8px;">
                             <h3 style="color:var(--pri-normal); margin-top:0;" id="clSubmitTitle">Hitelesítés és Beküldés</h3>
-                            <div id="clLoginForm" style="display:flex; gap:10px; align-items:center;">
-                                <select id="clLoginNevSelect" class="dash-input" style="width:300px; margin:0;"><option value="">Név kiválasztása...</option></select>
-                                <input type="password" id="clLoginPin" class="dash-input" style="width:200px; margin:0;" placeholder="PIN kód">
-                                <button class="dash-btn" id="btnSubmitChecklist" style="background:var(--pri-info); margin:0; width:auto;" onclick="verifyAndSubmitChecklist()">Kitöltés Hitelesítése & Mentés</button>
+                            <div id="clLoginForm" style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+                                <select id="clLoginNevSelect" class="dash-input" style="flex: 1; min-width: 250px; margin:0;"><option value="">Név kiválasztása...</option></select>
+                                <input type="password" id="clLoginPin" class="dash-input" style="flex: 1; min-width: 150px; margin:0;" placeholder="PIN kód">
+                                <button class="dash-btn" id="btnSubmitChecklist" style="background:var(--pri-info); margin:0; width:auto; flex: 1; min-width: 200px;" onclick="verifyAndSubmitChecklist()">Kitöltés Hitelesítése & Mentés</button>
                             </div>
                             <div id="clLoginStatus" style="color:var(--pri-crit); font-weight:bold; margin-top:10px;"></div>
                         </div>

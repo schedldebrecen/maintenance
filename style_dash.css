@@ -111,3 +111,23 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
     .cl-radio-group { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
     .cl-radio-lbl { flex: 1; min-width: 30%; justify-content: center; padding: 10px; font-size: 13px; }
 }
+
+/* RÁDIÓGOMB NATÍV KINÉZET FELÜLÍRÁSA (LILA PIPA ELLEN) */
+.cl-radio-lbl input[type="radio"] { 
+    -webkit-appearance: none; appearance: none; 
+    width: 18px; height: 18px; border-radius: 50%; 
+    border: 2px solid var(--text-muted); background: var(--surface); 
+    margin: 0; outline: none; display: inline-block; vertical-align: middle; 
+}
+.cl-radio-lbl.ok input[type="radio"]:checked { background: #10b981; border-color: #10b981; box-shadow: inset 0 0 0 3px var(--surface); }
+.cl-radio-lbl.nok input[type="radio"]:checked { background: #ef4444; border-color: #ef4444; box-shadow: inset 0 0 0 3px var(--surface); }
+.cl-radio-lbl.na input[type="radio"]:checked { background: #94a3b8; border-color: #94a3b8; box-shadow: inset 0 0 0 3px var(--surface); }
+
+/* MOBIL NÉZET JAVÍTÁSA (Képernyő szélességhez igazítás) */
+@media (max-width: 768px) {
+    .cl-table { min-width: 100% !important; }
+    .cl-table, .cl-table tbody, .cl-table tr, .cl-table th, .cl-table td { display: block; width: 100%; box-sizing: border-box !important; }
+    .cl-table td { padding: 12px 15px !important; border-bottom: 1px dashed var(--border) !important; }
+    .cl-table-container { overflow-x: hidden; border: none; background: transparent; }
+    .cl-radio-lbl { padding: 12px 8px; font-size: 14px; }
+}
