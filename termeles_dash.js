@@ -6,6 +6,7 @@ const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "202
 
 let currentActiveTasks = []; let globalClosedTasks = []; let globalShiftLogs = []; let expectedApprovers = []; let globalSchedule = [];
 let clSablon = []; let clNaplo = []; 
+let globalBaseWorkers = []; let globalExtraWorkers = [];
 let REFRESH_INTERVAL_SEC = 300; let timer = REFRESH_INTERVAL_SEC; 
 let sessionUser = null; let sessionRole = null; 
 let optSound = false; let optFlash = false; let audioCtx = null; let isAlarming = false; let knownAdHocIds = new Set(); let isFirstLoad = true;
