@@ -71,7 +71,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
 #ackAlertBtn { display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index: 10000; background:#ef4444; color:white; padding:15px 30px; font-size:20px; font-weight:bold; border-radius:50px; border:2px solid white; cursor:pointer; box-shadow:0 0 20px rgba(239,68,68,0.8); animation: pulse-border 1s infinite; }
 @media (max-width: 768px) { .time-group { text-align: left; } .filter-panel .form-grid { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
 
-/* --- TÁBLÁZATOS CHECKLIST DESIGN (DARK MODE & MOBIL GÖRGETÉS) --- */
+/* --- TÁBLÁZATOS CHECKLIST DESIGN (DARK MODE & MOBIL NÉZET) --- */
 .cl-table-container { width: 100%; overflow-x: auto; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); -webkit-overflow-scrolling: touch; }
 .cl-table { width: 100%; border-collapse: collapse; font-family: 'Segoe UI', sans-serif; color: var(--text-main); min-width: 850px; }
 .cl-table th { background: var(--bg-dark); color: var(--text-muted); font-weight: bold; text-align: left; padding: 12px; border: 1px solid var(--border); font-size: 14px; text-transform: uppercase; }
@@ -81,53 +81,42 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark
 .cl-main-cat-title { font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: 1px; }
 .cl-img-preview { max-width: 100px; max-height: 80px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; object-fit: cover; transition: 0.2s; }
 .cl-img-preview:hover { transform: scale(1.05); }
+
+/* --- RÁDIÓGOMBOK EGYEDI RAJZOLÁSA (LILA PIPA ELLEN) --- */
 .cl-radio-group { display: flex; flex-direction: column; gap: 6px; }
-.cl-radio-lbl { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; font-size: 11px; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-main); transition: 0.2s; }
-.cl-radio-lbl:hover { background: #334155; }
-.cl-radio-lbl.ok { border-left: 4px solid var(--pri-normal); } .cl-radio-lbl.nok { border-left: 4px solid var(--pri-crit); } .cl-radio-lbl.na { border-left: 4px solid var(--text-muted); }
+.cl-radio-lbl { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; font-size: 11px; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-main); transition: 0.2s; }
+.cl-radio-lbl input[type="radio"] { display: none; }
+.cl-radio-lbl .rb-box { width: 14px; height: 14px; border: 2px solid var(--border); border-radius: 4px; display: inline-block; background: var(--surface); transition: 0.2s; position:relative; }
+
+/* Kijelölt állapotok színei */
+.cl-radio-lbl.ok input[type="radio"]:checked + .rb-box { background-color: #10b981; border-color: #10b981; box-shadow: inset 0 0 0 3px var(--surface); }
+.cl-radio-lbl.nok input[type="radio"]:checked + .rb-box { background-color: #ef4444; border-color: #ef4444; box-shadow: inset 0 0 0 3px var(--surface); }
+.cl-radio-lbl.na input[type="radio"]:checked + .rb-box { background-color: #94a3b8; border-color: #94a3b8; box-shadow: inset 0 0 0 3px var(--surface); }
+
+/* Aktív háttér a labelnek, ha ki van választva */
+.cl-radio-lbl:has(input[type="radio"]:checked) { border-color: var(--text-muted); background: #334155; }
+
 .cl-comment-input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; margin-top: 8px; box-sizing: border-box; background: var(--bg-dark); color: white; }
 .cl-comment-input::placeholder { color: var(--text-muted); }
 
-/* Gombok natív színezése (Zöld, Piros, Szürke) */
-.cl-radio-lbl.ok input[type="radio"] { accent-color: #10b981; }
-.cl-radio-lbl.nok input[type="radio"] { accent-color: #ef4444; }
-.cl-radio-lbl.na input[type="radio"] { accent-color: #94a3b8; }
-
-/* MOBILOS TÖRDELÉS EGYMÁS ALÁ (768px alatt) */
+/* MOBIL NÉZET JAVÍTÁSA (Képernyő szélességhez igazítás és egymás alá tördelés) */
 @media (max-width: 768px) {
-    .cl-table, .cl-table tbody, .cl-table tr, .cl-table th, .cl-table td { display: block; width: 100%; box-sizing: border-box; }
-    .cl-table th { display: none; /* Mobilon elrejtjük a táblázat fejlécét */ }
+    .cl-table { min-width: 100% !important; }
+    .cl-table, .cl-table tbody, .cl-table tr, .cl-table th, .cl-table td { display: block; width: 100%; box-sizing: border-box !important; }
+    .cl-table th { display: none; }
     
     .cl-main-cat { display: flex; align-items: center; gap: 15px; text-align: left; padding: 15px !important; border-bottom: 2px solid var(--border); }
     .cl-main-cat-num { margin-bottom: 0; font-size: 24px; }
     .cl-main-cat-title { font-size: 16px; }
     
     .cl-question-block { border-bottom: 4px solid var(--bg-dark); margin-bottom: 10px; background: var(--surface); padding-bottom: 15px; }
-    .cl-table td { border: none; border-bottom: 1px dashed var(--border); padding: 12px 15px; text-align: left !important; }
-    .cl-table td:last-child { border-bottom: none; padding-bottom: 0; }
+    .cl-table td { border: none; border-bottom: 1px dashed var(--border) !important; padding: 12px 15px !important; text-align: left !important; }
+    .cl-table td:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+    
+    .cl-table-container { overflow-x: hidden; border: none; background: transparent; box-shadow: none; }
     
     .cl-img-preview { max-width: 100%; max-height: 150px; }
     
     .cl-radio-group { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
-    .cl-radio-lbl { flex: 1; min-width: 30%; justify-content: center; padding: 10px; font-size: 13px; }
-}
-
-/* RÁDIÓGOMB NATÍV KINÉZET FELÜLÍRÁSA (LILA PIPA ELLEN) */
-.cl-radio-lbl input[type="radio"] { 
-    -webkit-appearance: none; appearance: none; 
-    width: 18px; height: 18px; border-radius: 50%; 
-    border: 2px solid var(--text-muted); background: var(--surface); 
-    margin: 0; outline: none; display: inline-block; vertical-align: middle; 
-}
-.cl-radio-lbl.ok input[type="radio"]:checked { background: #10b981; border-color: #10b981; box-shadow: inset 0 0 0 3px var(--surface); }
-.cl-radio-lbl.nok input[type="radio"]:checked { background: #ef4444; border-color: #ef4444; box-shadow: inset 0 0 0 3px var(--surface); }
-.cl-radio-lbl.na input[type="radio"]:checked { background: #94a3b8; border-color: #94a3b8; box-shadow: inset 0 0 0 3px var(--surface); }
-
-/* MOBIL NÉZET JAVÍTÁSA (Képernyő szélességhez igazítás) */
-@media (max-width: 768px) {
-    .cl-table { min-width: 100% !important; }
-    .cl-table, .cl-table tbody, .cl-table tr, .cl-table th, .cl-table td { display: block; width: 100%; box-sizing: border-box !important; }
-    .cl-table td { padding: 12px 15px !important; border-bottom: 1px dashed var(--border) !important; }
-    .cl-table-container { overflow-x: hidden; border: none; background: transparent; }
-    .cl-radio-lbl { padding: 12px 8px; font-size: 14px; }
+    .cl-radio-lbl { flex: 1; min-width: 30%; justify-content: center; padding: 12px 8px; font-size: 13px; }
 }

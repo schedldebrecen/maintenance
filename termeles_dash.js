@@ -14,8 +14,8 @@ let optSound = false; let optFlash = false; let audioCtx = null; let isAlarming 
 let globalPartsList = []; let targetPartInputId = null;
 
 window.onload = function() {
-    const szuroKatSelect = document.getElementById('szuroKategoria'); const clDashTerulet = document.getElementById('clDashTerulet');
-    if(szuroKatSelect) { for (let kat in gepAdatbazis) { szuroKatSelect.add(new Option(kat, kat)); if(clDashTerulet) clDashTerulet.add(new Option(kat, kat)); } }
+    const szuroKatSelect = document.getElementById('szuroKategoria');
+    if(szuroKatSelect) { for (let kat in gepAdatbazis) { szuroKatSelect.add(new Option(kat, kat)); } }
     loadUserList(); 
     const savedUser = localStorage.getItem("activeUser"); 
     if(savedUser) { sessionUser = savedUser; sessionRole = localStorage.getItem("activeRole"); extendSession(); } 
@@ -114,7 +114,6 @@ function switchDashTab(tabId) {
 }
 
 function frissitSzuroGepek() { const k = document.getElementById('szuroKategoria').value; const s = document.getElementById('szuroGep'); s.innerHTML = '<option value="">Összes gép...</option>'; if (k && gepAdatbazis[k]) { if (gepAdatbazis[k].length === 0) { s.add(new Option("Nincs alegység", "-")); } else { s.add(new Option("— Teljes sor / Általános —", "-")); gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } } renderClosedTasks(); }
-function frissitDashGep() { const k = document.getElementById('clDashTerulet').value; const s = document.getElementById('clDashGep'); s.innerHTML = '<option value="">Általános / Összes gép...</option>'; if (k && gepAdatbazis[k]) { gepAdatbazis[k].forEach(g => s.add(new Option(g, g))); } renderChecklistTab(); }
 
 async function loadUserList() { try { const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) }); const r = await res.json(); if (r.status === "success" && r.data.length > 0) { const sel = document.getElementById('clLoginNevSelect'); if(sel) { sel.innerHTML = '<option value="">Válassz a listából...</option>'; r.data.forEach(user => sel.add(new Option(user, user))); } const sel2 = document.getElementById('dashLoginNevSelectModal'); if(sel2) { sel2.innerHTML = '<option value="">Válassz...</option>'; r.data.forEach(user => sel2.add(new Option(user, user))); } } } catch(e) {} }
 async function hashPassword(p) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
@@ -251,7 +250,7 @@ function checkMidShiftChecklist() {
     }
 }
 
-// 6. PONT: CHECKLIST MÓDOSÍTÁS ÉS VISSZATÖLTÉS
+// 6. PONT: CHECKLIST MÓDOSÍTÁS ÉS VISSZATÖLTÉS (SZÜLŐ ALAPJÁN CSOPORTOSÍTVA)
 function renderChecklistTab() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
@@ -293,7 +292,6 @@ function renderChecklistTab() {
         document.getElementById('clSubmitTitle').innerText = "Hitelesítés és Beküldés";
     }
 
-    // Csak műszakra és napra szűrünk (Nincs többé gépes/területes szűrő limit)
     let validSubtasks = clSablon.filter(q => {
         let freq = String(q.gyakorisag || "").trim();
         let isFreqMatch = (freq === "Minden nap" || freq === todayDayName || (freq === "Minden hétköznap" && isWeekday));
@@ -309,19 +307,18 @@ function renderChecklistTab() {
 
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    // FŐ FELADATOK (ANYAOSZTÁLY) ALAPÚ CSOPORTOSÍTÁS
     let mainTasks = clSablon.filter(t => !t.szuloId);
-
+    
     let html = `
     <div class="cl-table-container">
         <table class="cl-table">
             <thead>
                 <tr>
-                    <th style="width:20%;"># Ellenőrzési terület</th>
-                    <th style="width:30%;">Feladat / Mit kell ellenőrizni?</th>
+                    <th style="width:18%;"># Fő feladat / Kategória</th>
+                    <th style="width:27%;">Részfeladat / Mit kell ellenőrizni?</th>
                     <th style="width:25%;">Leírás / Utasítás</th>
-                    <th style="width:12%; text-align:center;">Kép / Fájl</th>
-                    <th class="ok-header" style="width:13%;">Jelölés</th>
+                    <th style="width:15%; text-align:center;">Kép / Fájl</th>
+                    <th class="ok-header" style="width:15%;">Jelölés</th>
                 </tr>
             </thead>`;
 
@@ -352,26 +349,28 @@ function renderChecklistTab() {
 
                 html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
                 
-                // ANYAOSZTÁLY GENERÁLÁSA
                 if (index === 0) {
+                    let mtArea = mt.terulet ? `<br><span style="font-size:11px; color:#cbd5e1; font-weight:normal;">[${mt.terulet}]</span>` : "";
+                    let mtMach = mt.gep ? `<br><span style="font-size:11px; color:#94a3b8; font-weight:normal;">${mt.gep}</span>` : "";
                     html += `<td rowspan="${activeChildren.length}" class="cl-main-cat">
                                 <div class="cl-main-cat-num">${counter}</div>
-                                <div class="cl-main-cat-title">${mt.kerdes}</div>
+                                <div class="cl-main-cat-title">${mt.kerdes}${mtArea}${mtMach}</div>
                              </td>`;
                     counter++;
                 }
 
                 let gTxt = q.gep ? `<br><span style="color:var(--pri-info); font-size:12px;">(${q.gep})</span>` : "";
+                let tTxt = q.terulet ? `<b style="color:var(--pri-info); font-size:11px;">[${q.terulet}]</b><br>` : "";
 
                 html += `
-                    <td><span style="font-size:14px; font-weight:bold; color:var(--text-main);">${q.kerdes}</span>${gTxt}</td>
+                    <td>${tTxt}<span style="font-size:14px; font-weight:bold; color:var(--text-main);">${q.kerdes}</span>${gTxt}</td>
                     <td style="color:var(--text-muted); font-size:12px; line-height:1.4;">${q.utasitas || ''}</td>
                     <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
                     <td>
                         <div class="cl-radio-group">
-                            <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}> OK ✔️</label>
-                            <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}> NOK ❌</label>
-                            <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}> N.A. ➖</label>
+                            <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}><span class="rb-box"></span> OK ✔️</label>
+                            <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}><span class="rb-box"></span> NOK ❌</label>
+                            <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}><span class="rb-box"></span> N.A. ➖</label>
                         </div>
                         <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
                     </td>
@@ -381,7 +380,6 @@ function renderChecklistTab() {
         }
     });
 
-    // ÁRVÁK (Szülő nélküli alfeladatok)
     let orphans = validSubtasks.filter(ct => !mainTasks.find(mt => mt.id === ct.szuloId));
     if(orphans.length > 0) {
         html += `<tbody>`;
@@ -405,17 +403,21 @@ function renderChecklistTab() {
 
             html += `<tr class="cl-question-block" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
             if (index === 0) {
-                html += `<td rowspan="${orphans.length}" class="cl-main-cat"><div class="cl-main-cat-num">?</div><div class="cl-main-cat-title">Egyéb feladatok</div></td>`;
+                html += `<td rowspan="${orphans.length}" class="cl-main-cat"><div class="cl-main-cat-num">?</div><div class="cl-main-cat-title">Egyéb / Önálló feladatok</div></td>`;
             }
+            
+            let gTxt = q.gep ? `<br><span style="color:var(--pri-info); font-size:12px;">(${q.gep})</span>` : "";
+            let tTxt = q.terulet ? `<b style="color:var(--pri-info); font-size:11px;">[${q.terulet}]</b><br>` : "";
+
             html += `
-                <td><b style="color:var(--pri-info);">[${q.terulet||'Általános'}]</b><br><span style="font-size:14px; font-weight:bold;">${q.kerdes}</span></td>
+                <td>${tTxt}<span style="font-size:14px; font-weight:bold; color:var(--text-main);">${q.kerdes}</span>${gTxt}</td>
                 <td style="color:var(--text-muted); font-size:12px; line-height:1.4;">${q.utasitas || ''}</td>
                 <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
                 <td>
                     <div class="cl-radio-group">
-                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}> OK ✔️</label>
-                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}> NOK ❌</label>
-                        <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}> N.A. ➖</label>
+                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}><span class="rb-box"></span> OK ✔️</label>
+                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}><span class="rb-box"></span> NOK ❌</label>
+                        <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}><span class="rb-box"></span> N.A. ➖</label>
                     </div>
                     <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
                 </td>
