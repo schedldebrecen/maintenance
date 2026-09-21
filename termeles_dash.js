@@ -18,6 +18,7 @@ window.onload = function() {
     loadUserList(); 
     const savedUser = localStorage.getItem("activeUser"); 
     if(savedUser) { sessionUser = savedUser; sessionRole = localStorage.getItem("activeRole"); extendSession(); } 
+    populateNavDropdown();
     fetchDashboardData();
     fetchPartsList();
 }

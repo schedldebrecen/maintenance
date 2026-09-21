@@ -25,6 +25,7 @@ window.onload = function() {
         sessionRole = localStorage.getItem("activeRole"); 
         extendSession(); 
     } 
+    populateNavDropdown();
     fetchDashboardData();
 }
 
