@@ -371,7 +371,7 @@ function renderChecklistTab() {
             }
             if (mediaHtml === "") mediaHtml = `<span style="color:var(--text-muted); font-size:11px; font-style:italic;">- Nincs csatolva -</span>`;
 
-            html += `<tr class="cl-question-block ${rowClass}" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
+            html += `<tr class="cl-question-block ${rowClass}" data-focim="${catName}" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
             
             // Fő feladat neve (Anyaosztály), csak a blokk legelső eleménél
             if (index === 0) {
@@ -406,6 +406,7 @@ function renderChecklistTab() {
     html += `</tbody></table></div>`;
     document.getElementById('clQuestionsList').innerHTML = html;
 }
+
 async function verifyAndSubmitChecklist() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
@@ -417,12 +418,16 @@ async function verifyAndSubmitChecklist() {
     let eredmenyek = []; 
     let blocks = document.querySelectorAll('.cl-question-block');
     for (let i = 0; i < blocks.length; i++) {
-        let block = blocks[i]; let terulet = block.getAttribute('data-terulet'); let gep = block.getAttribute('data-gep'); let kerdes = block.getAttribute('data-kerdes');
+        let block = blocks[i]; 
+        let focim = block.getAttribute('data-focim'); // ÚJ: Kiolvassuk a Fő feladatot
+        let terulet = block.getAttribute('data-terulet'); 
+        let gep = block.getAttribute('data-gep'); 
+        let kerdes = block.getAttribute('data-kerdes');
         let radios = block.querySelectorAll('input[type="radio"]'); let val = null;
         for(let r of radios) { if(r.checked) val = r.value; }
         if(!val) { stat.innerText = `Hiba: Kérlek minden kérdésre válaszolj!`; return; }
         let megjegyzes = block.querySelector('.cl-comment').value.trim();
-        eredmenyek.push({ kerdes: kerdes, terulet: terulet, gep: gep, valasz: val, megjegyzes: megjegyzes });
+        eredmenyek.push({ focim: focim, kerdes: kerdes, terulet: terulet, gep: gep, valasz: val, megjegyzes: megjegyzes });
     }
 
     stat.innerText = "Hitelesítés és mentés...";

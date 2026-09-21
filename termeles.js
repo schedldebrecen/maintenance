@@ -308,21 +308,27 @@ async function viewChecklistLogs() {
     logs.forEach(l => {
         html += `<div class="task-card" style="border-left-color: var(--pri-normal); margin-bottom:15px;">
             <div class="task-header"><span class="badge badge-normal">Kitöltve</span><span><b>Dátum:</b> ${l.datum} | <b>Műszak:</b> ${l.muszak}</span></div>
-            <div style="font-size:14px; margin-bottom:8px;">Kitöltötte: <b>${l.kitolto}</b></div>
-            <div style="background:#f8fafc; padding:10px; border-radius:6px; border:1px solid var(--border); max-height:200px; overflow-y:auto; font-size:13px;">`;
+            <div style="font-size:14px; margin-bottom:8px;">Módosító / Kitöltő: <b style="color:var(--pri-info);">${l.kitolto}</b></div>
+            <div style="overflow-x:auto;">
+            <table class="admin-table" style="width:100%; min-width:700px; margin-top:10px;">
+                <thead><tr><th style="width:20%;">Fő feladat</th><th style="width:20%;">Terület / Gép</th><th style="width:40%;">Kérdés</th><th style="width:10%;">Eredmény</th><th style="width:10%;">Megjegyzés</th></tr></thead>
+                <tbody>`;
         try {
             let parsed = JSON.parse(l.eredmenyek);
             parsed.forEach(p => {
                 let color = p.valasz === 'OK' ? '#10b981' : (p.valasz === 'NOK' ? '#ef4444' : '#94a3b8');
-                html += `<div style="border-bottom:1px solid #e2e8f0; padding:4px 0; display:flex; justify-content:space-between;">
-                    <span><b>[${p.terulet||'Általános'}]</b> ${p.kerdes}</span>
-                    <span style="color:${color}; font-weight:bold;">${p.valasz} ${p.megjegyzes ? '('+p.megjegyzes+')' : ''}</span>
-                </div>`;
+                let tTxt = p.terulet ? `<b style="color:var(--text-muted); font-size:11px;">[${p.terulet}]</b><br>` : "";
+                let gTxt = p.gep ? p.gep : "-";
+                html += `<tr>
+                    <td style="font-weight:bold; color:var(--primary); font-size:12px; background:rgba(0,0,0,0.02);">${p.focim || '-'}</td>
+                    <td style="font-size:12px;">${tTxt}${gTxt}</td>
+                    <td style="font-size:13px;">${p.kerdes}</td>
+                    <td style="color:${color}; font-weight:bold; white-space:nowrap;">${p.valasz}</td>
+                    <td style="font-size:12px; color:var(--text-muted);">${p.megjegyzes || '-'}</td>
+                </tr>`;
             });
-        } catch(e) {
-            html += `<i>Nem olvasható adatok.</i>`;
-        }
-        html += `</div></div>`;
+        } catch(e) { html += `<tr><td colspan="5"><i>Nem olvasható adatok.</i></td></tr>`; }
+        html += `</tbody></table></div></div>`;
     });
     container.innerHTML = html;
 }
@@ -330,12 +336,12 @@ async function viewChecklistLogs() {
 async function exportChecklistLogs() {
     let f = await getFilteredChecklistLogs();
     if(f.length > 0) {
-        let csv = "Dátum;Műszak;Kitöltő;Státusz;Terület/Gép;Kérdés;Válasz;Megjegyzés\n";
+        let csv = "Dátum;Műszak;Módosító;Fő feladat;Terület;Gép;Kérdés;Válasz;Megjegyzés\n";
         f.forEach(l => { 
             try { 
                 let parsed = JSON.parse(l.eredmenyek); 
                 parsed.forEach(p => { 
-                    csv += `"${l.datum}";"${l.muszak}";"${l.kitolto}";"${l.statusz}";"${p.terulet||'-'}/${p.gep||'-'}";"${p.kerdes}";"${p.valasz}";"${p.megjegyzes||'-'}"\n`; 
+                    csv += `"${l.datum}";"${l.muszak}";"${l.kitolto}";"${p.focim||'-'}";"${p.terulet||'-'}";"${p.gep||'-'}";"${p.kerdes}";"${p.valasz}";"${p.megjegyzes||'-'}"\n`; 
                 }); 
             } catch(e) {} 
         });
@@ -344,7 +350,6 @@ async function exportChecklistLogs() {
     } else { alert("Nincs a szűrésnek megfelelő adat!"); }
 }
 
-// PDF EXPORT OLDALTÖRÉSSEL (Minden műszak új oldalon kezdődik)
 async function exportChecklistPDF() {
     let f = await getFilteredChecklistLogs(); 
     if(f.length === 0) { alert("Nincs a szűrésnek megfelelő adat a PDF-hez!"); return; }
@@ -355,22 +360,22 @@ async function exportChecklistPDF() {
         .log-box { margin-bottom: 30px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; page-break-before: always; } 
         .log-box:first-of-type { page-break-before: avoid; }
         .log-header { background: #e2e8f0; padding: 12px 15px; font-weight: bold; font-size: 16px; color: #1e293b; } 
-        table { width: 100%; border-collapse: collapse; font-size: 14px; } 
-        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; } 
-        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 12px; } 
+        table { width: 100%; border-collapse: collapse; font-size: 12px; } 
+        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; vertical-align: top; } 
+        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 11px; } 
         .ok { color: #10b981; font-weight:bold; } .nok { color: #ef4444; font-weight:bold; } .na { color: #94a3b8; font-weight:bold; } 
         @media print { body { padding: 0; } } 
     </style></head><body><h1>Műszakvezetői Ellenőrzőlista Napló</h1>`;
     
     f.forEach(l => {
-        html += `<div class="log-box"><div class="log-header">📅 ${l.datum} | 🕒 ${l.muszak} | 👤 Kitöltötte: ${l.kitolto}</div><table><tr><th width="25%">Terület / Gép</th><th width="40%">Ellenőrzött Feladat</th><th width="10%">Eredmény</th><th width="25%">Megjegyzés</th></tr>`;
+        html += `<div class="log-box"><div class="log-header">📅 ${l.datum} | 🕒 ${l.muszak} | 👤 Módosító / Kitöltő: ${l.kitolto}</div><table><tr><th width="20%">Fő feladat</th><th width="20%">Terület / Gép</th><th width="35%">Ellenőrzött Feladat</th><th width="10%">Eredmény</th><th width="15%">Megjegyzés</th></tr>`;
         try { 
             let parsed = JSON.parse(l.eredmenyek); 
             parsed.forEach(p => { 
                 let cls = p.valasz === 'OK' ? 'ok' : (p.valasz === 'NOK' ? 'nok' : 'na'); 
-                html += `<tr><td><b>${p.terulet||'-'}</b><br><small>${p.gep||''}</small></td><td>${p.kerdes}</td><td class="${cls}">${p.valasz}</td><td>${p.megjegyzes || '-'}</td></tr>`; 
+                html += `<tr><td><b>${p.focim||'-'}</b></td><td><b>[${p.terulet||'-'}]</b><br><small>${p.gep||''}</small></td><td>${p.kerdes}</td><td class="${cls}">${p.valasz}</td><td>${p.megjegyzes || '-'}</td></tr>`; 
             }); 
-        } catch(e) { html += `<tr><td colspan="4"><i>Hiba az adatok beolvasásakor.</i></td></tr>`; }
+        } catch(e) { html += `<tr><td colspan="5"><i>Hiba az adatok beolvasásakor.</i></td></tr>`; }
         html += `</table></div>`;
     });
     html += `</body></html>`; 
@@ -378,7 +383,6 @@ async function exportChecklistPDF() {
     win.document.close(); 
     setTimeout(() => { win.print(); }, 800);
 }
-
 function downloadCSV(csv, fn) { 
     let a=document.createElement("a"); 
     a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); 
