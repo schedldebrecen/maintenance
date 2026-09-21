@@ -465,27 +465,56 @@ async function loadSchedule() {
 }
 
 function renderScheduleMain() {
-    const c = document.getElementById('scheduleContainer'); let uniqueUsers = new Set([...globalBaseWorkers, ...globalExtraWorkers]); let users = Array.from(uniqueUsers).sort();
-    if(users.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px;'>Nincs dolgozó.</div>"; return; }
+    const c = document.getElementById('scheduleContainer'); 
+    
+    let uniqueBase = new Set([...globalBaseWorkers]); 
+    let usersBase = Array.from(uniqueBase).sort();
+    
+    let uniqueExtra = new Set([...globalExtraWorkers]); 
+    let usersExtra = Array.from(uniqueExtra).sort();
+    
+    if(usersBase.length === 0 && usersExtra.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px;'>Nincs dolgozó.</div>"; return; }
+    
     let now = new Date(); let dayOfWeek = now.getDay() || 7; let startDate = new Date(now); startDate.setDate(now.getDate() - dayOfWeek + 1 - 7); 
     let dates = []; for(let i=0; i<35; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
     let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col">Név / Dátum</th>`;
     dates.forEach(d => { let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.05); color:#94a3b8;' : ''; let dStr = d.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}); let isToday = (toLocalISOString(d) === toLocalISOString(now)); if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high); font-weight:bold;'; html += `<th style="${bg}">${dStr}</th>`; });
     html += `</tr></thead><tbody>`; let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : '';
+    
     html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
     dates.forEach(d => {
         let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : ''; let dIso = toLocalISOString(d); let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__'); let text = match ? match.tipus : ''; let cls = match ? 'cell-ugy' : '';
         let tdId = `maincell___UGYELET___${dIso}`; let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('__UGYELET__', '${dIso}', '${tdId}')"` : ''; html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
     }); html += `</tr>`;
-    users.forEach(u => {
-        let isExtra = globalExtraWorkers.includes(u); let delBtn = (sessionRole === 'superuser' && isExtra) ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;">❌</button>` : ''; html += `<tr><td class="sticky-col">${u} ${delBtn}</td>`;
+    
+    // KARBANTARTÁS DOLGOZÓI
+    usersBase.forEach(u => {
+        let delBtn = (sessionRole === 'superuser' && globalExtraWorkers.includes(u)) ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;">❌</button>` : ''; 
+        html += `<tr><td class="sticky-col" style="font-weight:bold;">${u} ${delBtn}</td>`;
         dates.forEach(d => {
             let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : ''; let dIso = toLocalISOString(d); let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__'); let tipus = match ? match.tipus : ''; let cls = ''; let text = '';
             if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; } else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; } else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; } else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; } else if(tipus === 'Nappal' || tipus === 'Nappali' || tipus === 'Pihenő') { cls = 'cell-O'; text = 'Nappal'; }
             let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`; let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : ''; html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
         }); html += `</tr>`;
-    }); html += `</tbody></table></div>`; c.innerHTML = html;
+    }); 
+    
+    // TERMELÉS DOLGOZÓI
+    if (usersExtra.length > 0) {
+        html += `<tr><td class="sticky-col" style="background:#f1f5f9; color:var(--text-muted); font-size:12px; text-align:center;" colspan="36">-- TERMELÉS DOLGOZÓI --</td></tr>`;
+        usersExtra.forEach(u => {
+            let delBtn = (sessionRole === 'superuser') ? `<button onclick="deleteScheduleWorker('${u}')" style="background:transparent; border:none; color:var(--pri-crit); cursor:pointer; font-size:12px; margin-left:6px;">❌</button>` : ''; 
+            html += `<tr><td class="sticky-col" style="color:var(--text-muted);">${u} ${delBtn}</td>`;
+            dates.forEach(d => {
+                let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : ''; let dIso = toLocalISOString(d); let match = globalSchedule.find(s => s.datum === dIso && s.user === u && s.user !== '__UGYELET__'); let tipus = match ? match.tipus : ''; let cls = ''; let text = '';
+                if(tipus === 'Délelőtt') { cls = 'cell-MS'; text = 'Délelőtt'; } else if(tipus === 'Délután') { cls = 'cell-AS'; text = 'Délután'; } else if(tipus === 'Éjszaka') { cls = 'cell-NS'; text = 'Éjszaka'; } else if(tipus === 'Szabadság') { cls = 'cell-H'; text = 'Szabadság'; } else if(tipus === 'Nappal' || tipus === 'Nappali' || tipus === 'Pihenő') { cls = 'cell-O'; text = 'Nappal'; }
+                let tdId = `maincell_${u.replace(/\s+/g,'_')}_${dIso}`; let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('${u}', '${dIso}', '${tdId}')"` : ''; html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
+            }); html += `</tr>`;
+        });
+    }
+
+    html += `</tbody></table></div>`; c.innerHTML = html;
 }
+
 async function addScheduleWorker() { const inp = document.getElementById('ujBeosztasDolgozo'); const nev = inp.value.trim(); if(!nev) return alert("Add meg a nevet!"); await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addScheduleWorkerOnly", reszleg: RESZLEG, nev: nev }) }); inp.value = ""; showToast("Hozzáadva!"); loadSchedule(); }
 async function deleteScheduleWorker(nev) { if(!confirm(`Törlöd?`)) return; await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteScheduleWorkerOnly", reszleg: RESZLEG, nev: nev }) }); showToast("Törölve!"); loadSchedule(); }
 
