@@ -131,11 +131,31 @@ setInterval(() => {
     document.getElementById('progressBar').style.width = (((REFRESH_INTERVAL_SEC - timer) / REFRESH_INTERVAL_SEC) * 100) + "%"; 
 }, 1000);
 
+// --- ADATLEKÉRÉS GYORSÍTÓTÁRRAL (CACHE) ---
 async function fetchDashboardData() {
+    let cachedData = localStorage.getItem('dashCache_Prod');
+    if (cachedData) {
+        try {
+            let result = JSON.parse(cachedData);
+            clSablon = result.data.checklistSablon || []; 
+            clNaplo = result.data.checklistNaplo || [];
+            globalShiftLogs = result.data.shiftLogs || [];
+            expectedApprovers = result.data.expectedApprovers || [];
+            globalSchedule = result.data.schedule || [];
+            processData(result.data.tasks); 
+            checkMissingShiftLogsAndApprovals();
+            checkMidShiftChecklist();
+            if(document.getElementById('view-checklist').classList.contains('active')) renderChecklistTab();
+        } catch(e) {}
+    }
+
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); const result = await res.json();
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
+        const result = await res.json();
         if(result.status === "success") { 
-            clSablon = result.data.checklistSablon || []; clNaplo = result.data.checklistNaplo || [];
+            localStorage.setItem('dashCache_Prod', JSON.stringify(result)); // Cache mentése
+            clSablon = result.data.checklistSablon || []; 
+            clNaplo = result.data.checklistNaplo || [];
             globalShiftLogs = result.data.shiftLogs || [];
             expectedApprovers = result.data.expectedApprovers || [];
             globalSchedule = result.data.schedule || [];
@@ -145,7 +165,7 @@ async function fetchDashboardData() {
             checkMidShiftChecklist();
             if(document.getElementById('view-checklist').classList.contains('active')) renderChecklistTab();
         } 
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Háttér hiba, cacheből megyünk tovább: ", e); }
 }
 
 function checkMissingShiftLogsAndApprovals() {
@@ -205,7 +225,6 @@ function checkMissingShiftLogsAndApprovals() {
     }
 }
 
-// 4. PONT: ÉJSZAKAI ÉS BEOSZTÁSFÜGGŐ CHECKLIST ALARM TILTÁSA
 function checkMidShiftChecklist() {
     let now = new Date(); let h = now.getHours(); let m = now.getMinutes(); let timeFloat = h + (m/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
@@ -220,17 +239,14 @@ function checkMidShiftChecklist() {
     if (timeFloat >= 6 && timeFloat < 14) currentShift = "Délelőtt (06:00-14:00)"; 
     else if (timeFloat >= 14 && timeFloat < 22) currentShift = "Délután (14:00-22:00)"; 
     else {
-        // Éjszaka nincs checklist riasztás
         document.getElementById('checklistAlarmBanner').style.display = 'none'; 
         document.body.classList.remove('flash-red');
         return;
     }
 
-    // BEOSZTÁS ELLENŐRZÉS: Van-e beosztva bárki a Termelésről?
     let isScheduled = globalSchedule.some(s => s.datum === todayStr && s.tipus === currentShift.split(" ")[0] && expectedApprovers.includes(s.user) && !String(s.tipus).includes("Szabadság"));
 
     if (!isScheduled) {
-        // Nincs termelés dolgozó beosztva erre a műszakra, nem kell riasztani!
         document.getElementById('checklistAlarmBanner').style.display = 'none'; 
         document.body.classList.remove('flash-red');
         return;
@@ -250,7 +266,7 @@ function checkMidShiftChecklist() {
     }
 }
 
-// 6. PONT: CHECKLIST MÓDOSÍTÁS ÉS VISSZATÖLTÉS (SZÜLŐ ALAPJÁN CSOPORTOSÍTVA)
+// --- CHECKLIST MEGJELENÍTÉSE FIZIKAI SORRENDBEN, ZEBRA CSÍKOZÁSSAL ---
 function renderChecklistTab() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
@@ -292,7 +308,6 @@ function renderChecklistTab() {
         document.getElementById('clSubmitTitle').innerText = "Hitelesítés és Beküldés";
     }
 
-    // ALAP SZŰRÉS (Műszak és Nap alapján)
     let validSubtasks = clSablon.filter(q => {
         let freq = String(q.gyakorisag || "").trim();
         let isFreqMatch = (freq === "Minden nap" || freq === todayDayName || (freq === "Minden hétköznap" && isWeekday));
@@ -308,14 +323,12 @@ function renderChecklistTab() {
 
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    // FŐ FELADATOK ÉS CSOPORTOSÍTÁS A SHEET FIZIKAI SORRENDJE ALAPJÁN
+    // CSOPORTOSÍTÁS A GOOGLE SHEET FIZIKAI SORRENDJE ALAPJÁN
     let mainTasks = clSablon.filter(t => !t.szuloId);
     let groupedTasks = {};
 
-    // Végigmegyünk a teljes clSablonon, ami pontosan a Google Sheet sorrendjét hozza
     clSablon.forEach(item => {
         if (!item.szuloId) {
-            // Ha ez egy fő feladat, megnézzük, hogy van-e benne olyan gyerek, ami aktív ebben a műszakban
             let hasActiveChildren = validSubtasks.some(child => child.szuloId === item.id);
             if (hasActiveChildren) {
                 let catName = item.kerdes;
@@ -326,7 +339,6 @@ function renderChecklistTab() {
         }
     });
 
-    // Ha maradtak olyan aktív feladatok, amiknek nincs szülője (árvák)
     let orphans = validSubtasks.filter(q => !q.szuloId && !clSablon.some(parent => parent.id === q.id));
     if (orphans.length > 0) {
         groupedTasks["Egyéb / Önálló feladatok"] = orphans;
@@ -347,11 +359,11 @@ function renderChecklistTab() {
             <tbody>`;
 
     let counter = 1;
-    let isEven = false; // Váltakozó háttérszínhez
+    let isEven = false; 
 
     for (let catName in groupedTasks) {
         let tasksInArea = groupedTasks[catName];
-        let rowClass = isEven ? "cat-even" : "cat-odd"; // CSS osztály a csíkozáshoz
+        let rowClass = isEven ? "cat-even" : "cat-odd"; 
         
         tasksInArea.forEach((q, index) => {
             let prevAns = savedAnswers[q.kerdes] || { valasz: "", megjegyzes: "" };
@@ -373,7 +385,6 @@ function renderChecklistTab() {
 
             html += `<tr class="cl-question-block ${rowClass}" data-focim="${catName}" data-terulet="${q.terulet||''}" data-gep="${q.gep||''}" data-kerdes="${q.kerdes}">`;
             
-            // Fő feladat neve (Anyaosztály), csak a blokk legelső eleménél
             if (index === 0) {
                 html += `<td rowspan="${tasksInArea.length}" class="cl-main-cat">
                             <div class="cl-main-cat-num">${counter}</div>
@@ -400,7 +411,7 @@ function renderChecklistTab() {
             </tr>`;
         });
         
-        isEven = !isEven; // Színváltás a következő kategóriára
+        isEven = !isEven; 
     }
 
     html += `</tbody></table></div>`;
@@ -419,7 +430,7 @@ async function verifyAndSubmitChecklist() {
     let blocks = document.querySelectorAll('.cl-question-block');
     for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i]; 
-        let focim = block.getAttribute('data-focim'); // ÚJ: Kiolvassuk a Fő feladatot
+        let focim = block.getAttribute('data-focim'); 
         let terulet = block.getAttribute('data-terulet'); 
         let gep = block.getAttribute('data-gep'); 
         let kerdes = block.getAttribute('data-kerdes');
@@ -697,14 +708,4 @@ async function dashCloseTask() {
         body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb }) 
     }); 
     fetchDashboardData(); closeModal(true); 
-}
-
-function populateNavDropdown() {
-    const nav = document.getElementById('appNavDropdown');
-    if(!nav) return;
-    nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
-    nav.add(new Option("📱 Termelés App", "production.html"));
-    nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    nav.add(new Option("🔧 Karbantartás App", "index.html"));
-    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }

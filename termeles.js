@@ -90,28 +90,47 @@ window.onload = async function() {
     }
 };
 
-// --- LOCKDOWN ÉS INICIALIZÁLÁS (SZIGORÍTOTT BEOSZTÁS ALAPJÁN) ---
+// --- LOCKDOWN ÉS INICIALIZÁLÁS (GYORSÍTOTT CACHE) ---
 async function checkLockdownAndInit() {
+    // 1. Azonnali betöltés memóriából (0.1 mp)
+    let cachedData = localStorage.getItem('appCache_Prod');
+    if (cachedData) {
+        try {
+            let rAll = JSON.parse(cachedData);
+            globalSchedule = rAll.data.schedule || []; 
+            globalShiftLogs = rAll.data.shiftLogs || []; 
+            expectedApprovers = rAll.data.expectedApprovers || []; 
+            processLockdownDisplay();
+        } catch(e) {}
+    }
+
+    // 2. Háttérfrissítés a Google-ből
     try {
         const resAll = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
         const rAll = await resAll.json();
         
         if(rAll.status === "success") { 
+            localStorage.setItem('appCache_Prod', JSON.stringify(rAll)); // Cache mentése
             globalSchedule = rAll.data.schedule || []; 
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
-            
-            const isLocked = evaluateLockdown();
-            if (isLocked) { 
-                document.getElementById('lockdownScreen').style.display = 'block'; document.getElementById('appView').style.display = 'none'; 
-            } else {
-                document.getElementById('lockdownScreen').style.display = 'none'; document.getElementById('appView').style.display = 'block'; 
-                const lastTabId = sessionStorage.getItem("activeAppTab");
-                if(lastTabId) { const btn = document.querySelector(`button[onclick*="'${lastTabId}'"]`); if(btn) btn.click(); else loadShiftLogs(); } 
-                else { switchTab('muszakatadasView', document.querySelector(`button[onclick*="'muszakatadasView'"]`)); loadShiftLogs(); }
-            }
+            processLockdownDisplay();
         }
-    } catch(e) { document.getElementById('appView').style.display = 'block'; loadShiftLogs(); }
+    } catch(e) { 
+        document.getElementById('appView').style.display = 'block'; loadShiftLogs(); 
+    }
+}
+
+function processLockdownDisplay() {
+    const isLocked = evaluateLockdown();
+    if (isLocked) { 
+        document.getElementById('lockdownScreen').style.display = 'block'; document.getElementById('appView').style.display = 'none'; 
+    } else {
+        document.getElementById('lockdownScreen').style.display = 'none'; document.getElementById('appView').style.display = 'block'; 
+        const lastTabId = sessionStorage.getItem("activeAppTab");
+        if(lastTabId) { const btn = document.querySelector(`button[onclick*="'${lastTabId}'"]`); if(btn) btn.click(); else loadShiftLogs(); } 
+        else { switchTab('muszakatadasView', document.querySelector(`button[onclick*="'muszakatadasView'"]`)); loadShiftLogs(); }
+    }
 }
 
 function evaluateLockdown() {
@@ -280,7 +299,7 @@ function exportShiftLogs() {
     let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'})); a.download = "Muszaknaplo_Export.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS PDF EXPORT
+// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS PDF EXPORT (BŐVÍTETT)
 async function getFilteredChecklistLogs() {
     const sTol = document.getElementById('clExpTol').value; 
     const sIg = document.getElementById('clExpIg').value; 
@@ -383,6 +402,7 @@ async function exportChecklistPDF() {
     win.document.close(); 
     setTimeout(() => { win.print(); }, 800);
 }
+
 function downloadCSV(csv, fn) { 
     let a=document.createElement("a"); 
     a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); 
