@@ -1,7 +1,7 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 const RESZLEG = "production";
 
-// GÉPADATBÁZIS MOZGATÁSA LEGFELÜLRE A LISTÁK FELTÖLTÉSÉHEZ
+// GÉPADATBÁZIS
 const gepAdatbazis = { "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ], "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ], "Production - Egyedi gépek": [ "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop", "HP1 - Hydraulic Press - Strautmann" ], "Magasraktár - High Bay System": [ "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas" ], "Palettázó B&O": [ "Szekventáló robot - B&O" ], "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ], "Facility": [ "Épülettel kapcsolatos dolgok" ], "IT": [ "Szerverek", "Hálózati eszközök (Switch/AP)", "Kliens gépek (PC/Laptop)", "Nyomtatók és szkennerek", "Szoftver és rendszerek", "Egyéb IT eszköz" ], "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ], "Aggregátor": [] };
 
 let globalShiftLogs = []; 
@@ -20,7 +20,6 @@ function showToast(msg, isError = false) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    // ADMIN LEGÖRDÜLŐ FELTÖLTÉSE INDULÁSKOR
     const teruletSel = document.getElementById('clSablonTerulet');
     if (teruletSel) { for (let kat in gepAdatbazis) { teruletSel.add(new Option(kat, kat)); } }
 
@@ -90,9 +89,9 @@ window.onload = async function() {
     }
 };
 
-// --- LOCKDOWN ÉS INICIALIZÁLÁS (GYORSÍTOTT CACHE) ---
+// --- LOCKDOWN ÉS INICIALIZÁLÁS (GYORSÍTOTT CACHE LOGIKÁVAL) ---
 async function checkLockdownAndInit() {
-    // 1. Azonnali betöltés memóriából (0.1 mp)
+    // 1. Gyors betöltés a memóriából
     let cachedData = localStorage.getItem('appCache_Prod');
     if (cachedData) {
         try {
@@ -110,7 +109,7 @@ async function checkLockdownAndInit() {
         const rAll = await resAll.json();
         
         if(rAll.status === "success") { 
-            localStorage.setItem('appCache_Prod', JSON.stringify(rAll)); // Cache mentése
+            localStorage.setItem('appCache_Prod', JSON.stringify(rAll));
             globalSchedule = rAll.data.schedule || []; 
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
@@ -144,14 +143,14 @@ function evaluateLockdown() {
     globalShiftLogs.forEach(l => {
         let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
         if (logD >= "2026-09-01") {
-            let szamonKerheto = false; let logDateObj = new Date(logD + "T00:00:00"); let muszakVégeH = 0;
-            if(String(l.muszak).includes("Délelőtt")) muszakVégeH = 14; 
-            else if(String(l.muszak).includes("Délután")) muszakVégeH = 22; 
-            else if(String(l.muszak).includes("Éjszaka")) muszakVégeH = 6; 
+            let szamonKerheto = false; let logDateObj = new Date(logD + "T00:00:00"); let muszakVegeH = 0;
+            if(String(l.muszak).includes("Délelőtt")) muszakVegeH = 14; 
+            else if(String(l.muszak).includes("Délután")) muszakVegeH = 22; 
+            else if(String(l.muszak).includes("Éjszaka")) muszakVegeH = 6; 
             
             let vegeIdopont = new Date(logDateObj); 
-            if (muszakVégeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1); 
-            vegeIdopont.setHours(muszakVégeH, 0, 0, 0);
+            if (muszakVegeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1); 
+            vegeIdopont.setHours(muszakVegeH, 0, 0, 0);
             
             if (now >= vegeIdopont) { szamonKerheto = true; }
             
@@ -299,7 +298,7 @@ function exportShiftLogs() {
     let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'})); a.download = "Muszaknaplo_Export.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS PDF EXPORT (BŐVÍTETT)
+// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS PDF EXPORT
 async function getFilteredChecklistLogs() {
     const sTol = document.getElementById('clExpTol').value; 
     const sIg = document.getElementById('clExpIg').value; 
