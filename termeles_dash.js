@@ -153,7 +153,7 @@ async function fetchDashboardData() {
         const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
         const result = await res.json();
         if(result.status === "success") { 
-            localStorage.setItem('dashCache_Prod', JSON.stringify(result)); // Cache mentése
+            localStorage.setItem('dashCache_Prod', JSON.stringify(result)); 
             clSablon = result.data.checklistSablon || []; 
             clNaplo = result.data.checklistNaplo || [];
             globalShiftLogs = result.data.shiftLogs || [];
@@ -708,4 +708,14 @@ async function dashCloseTask() {
         body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb }) 
     }); 
     fetchDashboardData(); closeModal(true); 
+}
+
+function populateNavDropdown() {
+    const nav = document.getElementById('appNavDropdown');
+    if(!nav) return;
+    nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
+    nav.add(new Option("📱 Termelés App", "production.html"));
+    nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
+    nav.add(new Option("🔧 Karbantartás App", "index.html"));
+    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }
