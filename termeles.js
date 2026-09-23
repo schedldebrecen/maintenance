@@ -372,21 +372,41 @@ async function exportChecklistPDF() {
     let f = await getFilteredChecklistLogs(); 
     if(f.length === 0) { alert("Nincs a szűrésnek megfelelő adat a PDF-hez!"); return; }
     let win = window.open('', '_blank');
+    
+    // BEÉPÍTETT TÖRDELÉSVÉDELEM ÉS NYOMTATÁSI OPTIMALIZÁLÁS
     let html = `<html><head><title>Műszakvezetői Ellenőrzőlista PDF</title><style> 
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #333; } 
-        h1 { text-align: center; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; margin-bottom: 30px; } 
-        .log-box { margin-bottom: 30px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; page-break-before: always; } 
-        .log-box:first-of-type { page-break-before: avoid; }
-        .log-header { background: #e2e8f0; padding: 12px 15px; font-weight: bold; font-size: 16px; color: #1e293b; } 
-        table { width: 100%; border-collapse: collapse; font-size: 12px; } 
-        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; vertical-align: top; } 
-        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 11px; } 
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 15px; color: #333; } 
+        h1 { text-align: center; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 15px; font-size: 20px; } 
+        
+        /* -- NYOMTATÁSI BEÁLLÍTÁSOK -- */
+        @page { size: A4 portrait; margin: 10mm; } /* Kisebb papírmargó, több hely az adatoknak */
+        @media print { 
+            body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; } /* SOSEM VÁG FÉLBE FELADATOT */
+            td, th { padding: 4px 6px !important; } /* Kompaktabb sorok, hogy ráférjen 1 oldalra */
+            .log-box { page-break-after: always; margin-bottom: 0; border: none; } /* Minden műszak garantáltan ÚJ OLDALON kezdődik */
+        }
+
+        .log-box { margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; } 
+        .log-header { background: #e2e8f0; padding: 8px 15px; font-weight: bold; font-size: 14px; color: #1e293b; } 
+        table { width: 100%; border-collapse: collapse; font-size: 11px; } /* Kisebb alap betűméret */
+        th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; vertical-align: middle; } 
+        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 10px; } 
         .ok { color: #10b981; font-weight:bold; } .nok { color: #ef4444; font-weight:bold; } .na { color: #94a3b8; font-weight:bold; } 
-        @media print { body { padding: 0; } } 
     </style></head><body><h1>Műszakvezetői Ellenőrzőlista Napló</h1>`;
     
     f.forEach(l => {
-        html += `<div class="log-box"><div class="log-header">📅 ${l.datum} | 🕒 ${l.muszak} | 👤 Módosító / Kitöltő: ${l.kitolto}</div><table><tr><th width="20%">Fő feladat</th><th width="20%">Terület / Gép</th><th width="35%">Ellenőrzött Feladat</th><th width="10%">Eredmény</th><th width="15%">Megjegyzés</th></tr>`;
+        // -- ÚJ OSZLOPSZÉLESSÉGEK (Fókuszban a feladat) --
+        html += `<div class="log-box"><div class="log-header">📅 ${l.datum} | 🕒 ${l.muszak} | 👤 Módosító / Kitöltő: ${l.kitolto}</div>
+        <table>
+            <tr>
+                <th width="15%">Fő feladat</th>
+                <th width="20%">Terület / Gép</th>
+                <th width="42%">Ellenőrzött Feladat</th>
+                <th width="8%">Eredmény</th>
+                <th width="15%">Megjegyzés</th>
+            </tr>`;
         try { 
             let parsed = JSON.parse(l.eredmenyek); 
             parsed.forEach(p => { 
