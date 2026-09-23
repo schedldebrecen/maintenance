@@ -389,7 +389,6 @@ function renderClosedTasks() {
 }
 
 // --- MŰSZAKBEOSZTÁS MEGJELENÍTÉSE ---
-// --- MŰSZAKBEOSZTÁS MEGJELENÍTÉSE ---
 function renderScheduleMain() {
     const c = document.getElementById('dashScheduleContainer'); 
     if(!c) return;
@@ -571,6 +570,14 @@ function openModal(taskId) {
     if (task.statusz === 'Lezárt') details += `<div style="background: rgba(16, 185, 129, 0.2); padding:10px; border-radius:6px; color:#10b981; margin-top:15px; border:1px solid var(--pri-normal);">✅ <b>Megoldás:</b><br>${task.megoldas}</div>`; 
     
     document.getElementById('modalDetails').innerHTML = details; 
+
+    // --- ÚJ RÉSZ: MEZŐK KIÜRÍTÉSE MINDEN MEGNYITÁSKOR ---
+    if (document.getElementById('dashMegoldas')) document.getElementById('dashMegoldas').value = "";
+    if (document.getElementById('dashIdo')) document.getElementById('dashIdo').value = "";
+    if (document.getElementById('dashDowntime')) document.getElementById('dashDowntime').value = "";
+    if (document.getElementById('megoldas')) document.getElementById('megoldas').value = "";
+    if (document.getElementById('ido')) document.getElementById('ido').value = "";
+    if (document.getElementById('downtime')) document.getElementById('downtime').value = "";
 
     const alkContainer = document.getElementById('alkatreszekContainer');
     if(alkContainer) {
