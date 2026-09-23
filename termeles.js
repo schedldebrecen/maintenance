@@ -377,13 +377,13 @@ async function exportChecklistPDF() {
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 15px; color: #333; } 
         h1 { text-align: center; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 15px; font-size: 18px; } 
         
-        /* -- NYOMTATÁSI BEÁLLÍTÁSOK (ULTRA KOMPAKT) -- */
-        @page { size: A4 portrait; margin: 8mm; } 
+/* -- NYOMTATÁSI BEÁLLÍTÁSOK (ULTRA KOMPAKT) -- */
+        @page { size: A4 portrait; margin: 0; } /* Ez a nullázás tünteti el az about:blank feliratot! */
         @media print { 
-            body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { padding: 8mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* Ide raktuk át a papír margóját */
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
-            td, th { padding: 3px 4px !important; } /* Extrém kicsi belső margó a sorok magasságának csökkentésére */
+            td, th { padding: 3px 4px !important; } 
             .log-box { page-break-after: always; margin-bottom: 0; border: none; }
         }
 
