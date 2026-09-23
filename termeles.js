@@ -373,45 +373,55 @@ async function exportChecklistPDF() {
     if(f.length === 0) { alert("Nincs a szűrésnek megfelelő adat a PDF-hez!"); return; }
     let win = window.open('', '_blank');
     
-    // BEÉPÍTETT TÖRDELÉSVÉDELEM ÉS NYOMTATÁSI OPTIMALIZÁLÁS
     let html = `<html><head><title>Műszakvezetői Ellenőrzőlista PDF</title><style> 
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 15px; color: #333; } 
-        h1 { text-align: center; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 15px; font-size: 20px; } 
+        h1 { text-align: center; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 15px; font-size: 18px; } 
         
-        /* -- NYOMTATÁSI BEÁLLÍTÁSOK -- */
-        @page { size: A4 portrait; margin: 10mm; } /* Kisebb papírmargó, több hely az adatoknak */
+        /* -- NYOMTATÁSI BEÁLLÍTÁSOK (ULTRA KOMPAKT) -- */
+        @page { size: A4 portrait; margin: 8mm; } 
         @media print { 
             body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             table { page-break-inside: auto; }
-            tr { page-break-inside: avoid; page-break-after: auto; } /* SOSEM VÁG FÉLBE FELADATOT */
-            td, th { padding: 4px 6px !important; } /* Kompaktabb sorok, hogy ráférjen 1 oldalra */
-            .log-box { page-break-after: always; margin-bottom: 0; border: none; } /* Minden műszak garantáltan ÚJ OLDALON kezdődik */
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            td, th { padding: 3px 4px !important; } /* Extrém kicsi belső margó a sorok magasságának csökkentésére */
+            .log-box { page-break-after: always; margin-bottom: 0; border: none; }
         }
 
         .log-box { margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; } 
-        .log-header { background: #e2e8f0; padding: 8px 15px; font-weight: bold; font-size: 14px; color: #1e293b; } 
-        table { width: 100%; border-collapse: collapse; font-size: 11px; } /* Kisebb alap betűméret */
-        th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; vertical-align: middle; } 
-        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 10px; } 
+        .log-header { background: #e2e8f0; padding: 6px 12px; font-weight: bold; font-size: 13px; color: #1e293b; } 
+        
+        /* ALAP TÁBLÁZAT BEÁLLÍTÁSOK */
+        table { width: 100%; border-collapse: collapse; font-size: 10px; line-height: 1.15; } /* Szűk sormagasság */
+        th, td { border: 1px solid #e2e8f0; padding: 4px 6px; text-align: left; vertical-align: middle; } 
+        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 9px; } 
+        
+        /* EGYEDI KIEMELÉSEK */
         .ok { color: #10b981; font-weight:bold; } .nok { color: #ef4444; font-weight:bold; } .na { color: #94a3b8; font-weight:bold; } 
+        .gep-cell { font-size: 8.5px; color: #475569; display: block; margin-top: 1px; } /* Kisebb betű a hosszú gépneveknek */
     </style></head><body><h1>Műszakvezetői Ellenőrzőlista Napló</h1>`;
     
     f.forEach(l => {
-        // -- ÚJ OSZLOPSZÉLESSÉGEK (Fókuszban a feladat) --
         html += `<div class="log-box"><div class="log-header">📅 ${l.datum} | 🕒 ${l.muszak} | 👤 Módosító / Kitöltő: ${l.kitolto}</div>
         <table>
             <tr>
-                <th width="15%">Fő feladat</th>
-                <th width="20%">Terület / Gép</th>
+                <th width="12%">Fő feladat</th>
+                <th width="24%">Terület / Gép</th>
                 <th width="42%">Ellenőrzött Feladat</th>
-                <th width="8%">Eredmény</th>
+                <th width="7%">Eredmény</th>
                 <th width="15%">Megjegyzés</th>
             </tr>`;
         try { 
             let parsed = JSON.parse(l.eredmenyek); 
             parsed.forEach(p => { 
                 let cls = p.valasz === 'OK' ? 'ok' : (p.valasz === 'NOK' ? 'nok' : 'na'); 
-                html += `<tr><td><b>${p.focim||'-'}</b></td><td><b>[${p.terulet||'-'}]</b><br><small>${p.gep||''}</small></td><td>${p.kerdes}</td><td class="${cls}">${p.valasz}</td><td>${p.megjegyzes || '-'}</td></tr>`; 
+                // Itt vettem ki a felesleges <br> taget, és tettem kompakttá a Terület/Gép cellát
+                html += `<tr>
+                    <td><b>${p.focim||'-'}</b></td>
+                    <td><b style="color:#0f172a; font-size: 10px;">${p.terulet||'-'}</b><span class="gep-cell">${p.gep||''}</span></td>
+                    <td style="font-size: 10.5px;">${p.kerdes}</td>
+                    <td class="${cls}" style="text-align: center;">${p.valasz}</td>
+                    <td>${p.megjegyzes || '-'}</td>
+                </tr>`; 
             }); 
         } catch(e) { html += `<tr><td colspan="5"><i>Hiba az adatok beolvasásakor.</i></td></tr>`; }
         html += `</table></div>`;
@@ -421,7 +431,6 @@ async function exportChecklistPDF() {
     win.document.close(); 
     setTimeout(() => { win.print(); }, 800);
 }
-
 function downloadCSV(csv, fn) { 
     let a=document.createElement("a"); 
     a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); 
