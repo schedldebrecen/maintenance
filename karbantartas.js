@@ -602,3 +602,16 @@ function populateNavDropdown() {
 
 function toggleNotifications() { const c = document.getElementById('notifToggle').checked; localStorage.setItem("notificationsEnabled", c ? "true" : "false"); }
 async function saveSettings() { showToast("Mentve!"); }
+
+// --- ENTER GOMB FIGYELÉSE A BEJELENTKEZÉSHEZ ---
+document.addEventListener('DOMContentLoaded', () => {
+    const jelszoMezo = document.getElementById('loginJelszo'); 
+    if (jelszoMezo) {
+        jelszoMezo.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                login(); 
+            }
+        });
+    }
+});

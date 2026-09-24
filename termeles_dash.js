@@ -719,3 +719,28 @@ function populateNavDropdown() {
     nav.add(new Option("🔧 Karbantartás App", "index.html"));
     nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }
+
+// --- ENTER GOMB FIGYELÉSE A BEJELENTKEZÉSHEZ ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Alap bejelentkező mező
+    const dashPin = document.getElementById('dashLoginPin');
+    if (dashPin) {
+        dashPin.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                dashLogin();
+            }
+        });
+    }
+    
+    // Felugró (Modal) bejelentkező mező, ha létezik
+    const dashPinModal = document.getElementById('dashLoginPinModal');
+    if (dashPinModal) {
+        dashPinModal.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                typeof dashLoginModal === "function" ? dashLoginModal() : dashLogin();
+            }
+        });
+    }
+});
