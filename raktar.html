@@ -1,4 +1,121 @@
-// --- ÚJ, VILLÁMGYORS KÉP TÖMÖRÍTŐ ---
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vonalkódos Raktárkezelő</title>
+    <meta name="theme-color" content="#0D6EFD">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #F8F9FA; padding: 15px; margin: 0; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        h2 { color: #0D6EFD; margin-top: 0; }
+        input[type="text"], input[type="number"], input[type="password"] { width: 90%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        button { width: 90%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-primary { background: #0D6EFD; }
+        .btn-cam { background: #6C757D; }
+        .btn-remove { background: #DC3545; }
+        .btn-add { background: #198754; }
+        #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 8px; overflow: hidden; display: none; }
+        #item_info { margin: 15px 0; font-size: 15px; min-height: 50px; text-align: left; background: #f1f3f5; padding: 10px; border-radius: 8px;}
+        #loader { display: none; color: #FFC107; font-weight: bold; margin-bottom: 10px; }
+        
+        .tabs { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #0D6EFD; }
+        .tab { flex: 1; padding: 10px; background: white; color: #0D6EFD; font-weight: bold; cursor: pointer; border: none; font-size: 14px; }
+        .tab.active { background: #0D6EFD; color: white; }
+        
+        .list-container { max-height: 400px; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .search-item { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; }
+        .search-item:nth-child(even) { background-color: #f9f9f9; }
+        .search-item:active { background: #e2e6ea; }
+        .tag { font-weight: bold; color: #0D6EFD; }
+        
+        .image-box { margin: 10px auto; text-align: left; background: #e9ecef; padding: 15px; border-radius: 8px; width: 90%; box-sizing: border-box; }
+        .image-box label { font-weight: bold; cursor: pointer; display: block; font-size: 16px;}
+        .image-box input[type="file"] { margin-top: 10px; width: 100%; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="login_screen">
+    <h2>🔐 Bejelentkezés</h2>
+    <input type="text" id="login_user" placeholder="Felhasználónév (pl. Admin)">
+    <input type="password" id="login_pin" placeholder="PIN Kód" inputmode="numeric">
+    <button class="btn-primary" onclick="doLogin()">Belépés</button>
+    <div id="login_loader" style="display:none; color: #FFC107;">Azonosítás folyamatban...</div>
+</div>
+
+<div class="card" id="app_screen" style="display:none; position: relative; padding-top: 10px;">
+    
+    <div class="tabs">
+        <button class="tab active" id="tab_scan" onclick="switchTab('scan')">📷 Olvasó & Könyvelés</button>
+        <button class="tab" id="tab_browse" onclick="switchTab('browse')">🔍 Böngésző</button>
+    </div>
+
+    <div id="scan_view">
+        <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Vonalkód Olvasása</button>
+        <div id="reader"></div>
+        
+        <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()" style="font-weight: bold;">
+        
+        <div id="loader">⏳ Adatok feldolgozása...</div>
+        <div id="item_info">Nincs kiválasztott tétel.</div>
+        
+        <input type="number" id="qty" placeholder="Mennyiség (db)" min="1" value="1">
+        <input type="text" id="remark" placeholder="Megjegyzés (Kötelező)">
+        
+        <div class="image-box">
+            <label>
+                <input type="checkbox" id="use_image" onchange="toggleImageInput()" style="width: auto; transform: scale(1.3); margin-right: 10px;"> 
+                Fénykép csatolása
+            </label>
+            <div id="image_container" style="display: none;">
+                <input type="file" id="camera_input" accept="image/*" capture="environment" onchange="previewImage(event)">
+                <img id="image_preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border-radius: 5px; border: 1px solid #ccc;">
+            </div>
+        </div>
+
+        <button class="btn-remove" onclick="konyvel('remove')">➖ KIVÉT (Kiadás)</button>
+        <button class="btn-add" onclick="konyvel('return_item')">➕ VISSZAVÉTELEZÉS</button>
+    </div>
+
+    <div id="browse_view" style="display: none;">
+        <input type="text" id="local_search" placeholder="Gyorskeresés a cikkek között..." oninput="filterList()" autocomplete="off">
+        <div id="browse_loader" style="display: none; color: #198754; font-weight: bold; margin: 10px;">Adatok letöltése...</div>
+        <div id="item_list" class="list-container"></div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz31ckHWQXgMuapMDOD7xyKxRIAJoCjbwvYLWoL7b6UqPz5-WZXbzpGH5i_y9yXpPo/exec"; 
+    const html5QrCode = new Html5Qrcode("reader");
+    let currentUser = "";
+    let allItems = []; 
+
+    function toggleImageInput() {
+        const isChecked = document.getElementById('use_image').checked;
+        document.getElementById('image_container').style.display = isChecked ? 'block' : 'none';
+        if (!isChecked) {
+            document.getElementById('camera_input').value = "";
+            document.getElementById('image_preview').style.display = "none";
+        }
+    }
+
+    function previewImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('image_preview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // --- ÚJ, VILLÁMGYORS KÉP TÖMÖRÍTŐ ---
     function compressImage(file, maxSize) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -19,6 +136,107 @@
         });
     }
 
+    async function doFetch(payload) {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        try { return JSON.parse(text); } 
+        catch(e) { throw new Error("Szerver hiba:\n" + text); }
+    }
+
+    async function doLogin() {
+        const u = document.getElementById("login_user").value.trim();
+        const p = document.getElementById("login_pin").value.trim();
+        if(!u || !p) return alert("Add meg a nevet és a PIN kódot!");
+        
+        document.getElementById("login_loader").style.display = "block";
+        try {
+            const data = await doFetch({ action: 'login', user: u, pin: p });
+            document.getElementById("login_loader").style.display = "none";
+            if (data.status === 'ok') {
+                currentUser = data.name;
+                document.getElementById("login_screen").style.display = "none";
+                document.getElementById("app_screen").style.display = "block";
+            } else { alert(data.message); }
+        } catch(e) {
+            document.getElementById("login_loader").style.display = "none";
+            alert("Hálózati hiba:\n" + e.message);
+        }
+    }
+
+    function switchTab(tab) {
+        if (tab === 'scan') {
+            document.getElementById('scan_view').style.display = 'block';
+            document.getElementById('browse_view').style.display = 'none';
+            document.getElementById('tab_scan').classList.add('active');
+            document.getElementById('tab_browse').classList.remove('active');
+        } else {
+            document.getElementById('scan_view').style.display = 'none';
+            document.getElementById('browse_view').style.display = 'block';
+            document.getElementById('tab_scan').classList.remove('active');
+            document.getElementById('tab_browse').classList.add('active');
+            if (allItems.length === 0) loadAllItems();
+        }
+    }
+
+    async function loadAllItems() {
+        document.getElementById('browse_loader').style.display = "block";
+        try {
+            const data = await doFetch({ action: 'get_all' });
+            if (data.status === 'ok') {
+                allItems = data.results;
+                renderList(allItems);
+            } else { alert(data.message); }
+        } catch(e) { alert("Hiba a cikkek letöltésekor: " + e.message); }
+        document.getElementById('browse_loader').style.display = "none";
+    }
+
+    function renderList(items) {
+        const div = document.getElementById('item_list');
+        div.innerHTML = "";
+        items.forEach(r => {
+            const el = document.createElement('div');
+            el.className = 'search-item';
+            el.innerHTML = `<span class="tag">${r.erpid}</span><br>${r.name} <br><small>Hely: ${r.location} | Készlet: <b style="color:#198754">${r.qty} db</b></small>`;
+            el.onclick = () => {
+                document.getElementById("erp_id").value = r.erpid;
+                switchTab('scan');
+                keresCikk();
+            };
+            div.appendChild(el);
+        });
+    }
+
+    function filterList() {
+        const q = document.getElementById("local_search").value.toLowerCase();
+        const filtered = allItems.filter(r => r.erpid.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+        renderList(filtered);
+    }
+
+    function startScanner() {
+        document.getElementById("reader").style.display = "block";
+        document.getElementById("camBtn").style.display = "none";
+        const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+        
+        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+            document.getElementById("erp_id").value = decodedText;
+            if (navigator.vibrate) navigator.vibrate(200);
+            stopScanner();
+            keresCikk(); 
+        }).catch(err => {
+            alert("Kamera hiba: Engedélyezd a böngészőnek a kamera használatát!");
+            stopScanner();
+        });
+    }
+
+    function stopScanner() {
+        try { html5QrCode.stop(); } catch(e) {}
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("camBtn").style.display = "inline-block";
+    }
+
     async function uploadItemImage(event) {
         const file = event.target.files[0];
         const erpid = document.getElementById("erp_id").value.trim();
@@ -27,7 +245,6 @@
         document.getElementById("loader").innerText = "⏳ Fénykép tömörítése és feltöltése...";
         document.getElementById("loader").style.display = "block";
         try {
-            // Itt csökkentettük 800-ról 600 pixelre a méretet
             const base64Image = await compressImage(file, 600);
             const data = await doFetch({ action: 'upload_item_image', erp_id: erpid, image_data: base64Image });
             document.getElementById("loader").style.display = "none";
@@ -38,6 +255,49 @@
         } catch(e) {
             document.getElementById("loader").style.display = "none";
             alert("Hiba a feltöltéskor!");
+        }
+    }
+
+    async function keresCikk() {
+        const erpid = document.getElementById("erp_id").value.trim();
+        if (!erpid) return;
+        
+        document.getElementById("item_info").innerHTML = "";
+        document.getElementById("loader").innerText = "⏳ Adatok lekérése...";
+        document.getElementById("loader").style.display = "block";
+        
+        try {
+            const data = await doFetch({ action: 'get', erp_id: erpid });
+            document.getElementById("loader").style.display = "none";
+            
+            if (data.status === 'ok') {
+                let imgHtml = "";
+                if (data.image_url) {
+                    let thumbUrl = data.image_url;
+                    if(thumbUrl.includes("export=view")) {
+                        thumbUrl = thumbUrl.replace("uc?export=view&id=", "thumbnail?id=") + "&sz=w800";
+                    }
+                    imgHtml = `<img src="${thumbUrl}" style="width:100%; max-height:200px; object-fit:contain; margin-top:10px; border-radius:8px; border:1px solid #ccc;">`;
+                }
+                
+                document.getElementById("item_info").innerHTML = `
+                    <span class="tag">${data.name}</span><br>
+                    <span style="color: gray;">Raktárhely:</span> <b>${data.location}</b><br>
+                    <span style="color: gray;">Készlet:</span> <b style="color: #198754; font-size: 18px;">${data.qty} db</b>
+                    ${imgHtml}
+                    <div style="margin-top:15px; text-align:center;">
+                        <label class="btn-cam" style="display:inline-block; width:90%; padding:10px; cursor:pointer; font-size:14px; border-radius:8px; color:white; font-weight:bold;">
+                            📷 Új fotó a cikkhez (Kamera)
+                            <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadItemImage(event)">
+                        </label>
+                    </div>
+                `;
+            } else {
+                document.getElementById("item_info").innerHTML = `<span style="color: red;">${data.message}</span>`;
+            }
+        } catch(e) {
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("item_info").innerHTML = `<span style="color: red;">Hiba: ${e.message}</span>`;
         }
     }
 
@@ -63,7 +323,6 @@
         try {
             let base64Image = "";
             if (useImage && fileInput.files[0]) {
-                // Itt is csökkentettük 800-ról 600 pixelre a méretet
                 base64Image = await compressImage(fileInput.files[0], 600); 
             }
 
@@ -98,3 +357,6 @@
             alert("Könyvelési hiba:\n" + e.message);
         }
     }
+</script>
+</body>
+</html>
