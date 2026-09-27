@@ -25,6 +25,21 @@ let isFirstLoad = true;
 let globalPartsList = []; 
 let targetPartInputId = null;
 
+// --- ÚJ: BIZTONSÁGI HÁLÓZATI HÍVÓ ---
+async function secureFetch(payload) {
+    if (payload.action !== "login" && payload.action !== "getUsers") {
+        payload.token = localStorage.getItem("sessionToken");
+    }
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) {
+        alert("Biztonsági hiba: Lejárt a munkamenet vagy érvénytelen kulcs! Kérlek, jelentkezz be újra.");
+        dashLogout();
+        throw new Error("ACCESS_DENIED");
+    }
+    return { json: () => Promise.resolve(data) };
+}
+
 function toLocalISOString(dateObj) { if(isNaN(dateObj)) return ""; const y = dateObj.getFullYear(), m = String(dateObj.getMonth() + 1).padStart(2, '0'), d = String(dateObj.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
 function isWorkDay(dObj) { let dStr = toLocalISOString(dObj); if (huWorkWeekends.includes(dStr)) return true; if (huHolidays.includes(dStr)) return false; let day = dObj.getDay(); return day !== 0 && day !== 6; }
 
@@ -60,7 +75,7 @@ function switchDashTab(tabId) {
 
 async function loadUserList() { 
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) }); 
+        const res = await secureFetch({ action: "getUsers" }); 
         const r = await res.json(); 
         if (r.status === "success" && r.data.length > 0) { 
             const sel2 = document.getElementById('dashLoginNevSelect'); 
@@ -91,7 +106,7 @@ async function hashPassword(p) {
 // --- RAKTÁR KERESŐ ---
 async function fetchPartsList() {
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getPartsList" }) });
+        const res = await secureFetch({ action: "getPartsList" });
         const r = await res.json();
         if(r.status === "success") {
             globalPartsList = r.data || [];
@@ -175,7 +190,7 @@ setInterval(() => {
 
 async function fetchDashboardData() {
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
+        const res = await secureFetch({ action: "getAllData", reszleg: RESZLEG }); 
         const result = await res.json();
         if(result.status === "success") { 
             globalShiftLogs = result.data.shiftLogs || [];
@@ -477,11 +492,12 @@ async function dashLogin() {
     if(!n || !j) { stat.innerText = "Add meg a PIN-t!"; return; } 
     stat.innerText = "Ellenőrzés..."; 
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
+        const res = await secureFetch({ action: "login", nev: n, jelszo: await hashPassword(j) }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             sessionUser = n; 
             sessionRole = r.role || "maintenance"; 
+            localStorage.setItem("sessionToken", r.token); // <--- ÚJ TOKEN MENTÉS
             extendSession(); 
             document.getElementById('dashLoginPin').value = ""; 
             stat.innerText = ""; 
@@ -494,6 +510,7 @@ function dashLogout() {
     sessionRole = null; 
     localStorage.removeItem("activeUser"); 
     localStorage.removeItem("activeRole"); 
+    localStorage.removeItem("sessionToken"); // <--- ÚJ TOKEN TÖRLÉS
     document.getElementById('activeUserBadge').style.display = 'none'; 
     window.location.href = window.location.pathname; 
 }
@@ -609,7 +626,7 @@ function closeModal(force = false) {
 async function dashStartTask() { 
     if(!sessionUser || !activeTaskId) return; 
     document.getElementById('btnDashStart').innerText = "Feldolgozás..."; 
-    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }) }); 
+    await secureFetch({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }); 
     fetchDashboardData(); closeModal(true); 
 }
 
@@ -628,9 +645,8 @@ async function dashCloseTask() {
 
     if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
     
-    await fetch(SCRIPT_URL, { 
-        method: "POST", 
-        body: JSON.stringify({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb }) 
+    await secureFetch({ 
+        action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb 
     }); 
     fetchDashboardData(); closeModal(true); 
 }
