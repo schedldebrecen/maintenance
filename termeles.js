@@ -10,6 +10,21 @@ let expectedApprovers = [];
 let globalChecklistSablon = []; 
 let editClSablonId = null;
 
+// --- ÚJ: BIZTONSÁGI HÁLÓZATI HÍVÓ ---
+async function secureFetch(payload) {
+    if (payload.action !== "login" && payload.action !== "getUsers") {
+        payload.token = localStorage.getItem("sessionToken");
+    }
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) {
+        alert("Biztonsági hiba: Lejárt a munkamenet vagy érvénytelen kulcs! Kérlek, jelentkezz be újra.");
+        logout();
+        throw new Error("ACCESS_DENIED");
+    }
+    return { json: () => Promise.resolve(data) };
+}
+
 function showToast(msg, isError = false) { 
     const t = document.getElementById('toastMessage'); 
     t.style.background = isError ? "var(--pri-crit)" : "var(--pri-normal)"; 
@@ -37,7 +52,7 @@ function toLocalISOString(dateObj) {
 
 async function loadUserList() { 
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getUsers" }) }); 
+        const res = await secureFetch({ action: "getUsers" }); 
         const r = await res.json(); 
         if (r.status === "success" && r.data.length > 0) { 
             const sel = document.getElementById('loginNevSelect'); 
@@ -105,7 +120,7 @@ async function checkLockdownAndInit() {
 
     // 2. Háttérfrissítés a Google-ből
     try {
-        const resAll = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
+        const resAll = await secureFetch({ action: "getAllData", reszleg: RESZLEG }); 
         const rAll = await resAll.json();
         
         if(rAll.status === "success") { 
@@ -196,7 +211,7 @@ async function submitHianyzoNaplo(datum, muszak) {
     let szoveg = document.getElementById(`hianyzoSzoveg_${datum}_${muszak}`).value.trim();
     if(!szoveg) return alert("A napló szövege nem lehet üres!");
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", reszleg: RESZLEG, datum: datum, muszak: muszak, szoveg: szoveg, felhasznalo: localStorage.getItem("activeUser") }) });
+        const res = await secureFetch({ action: "addShiftLog", reszleg: RESZLEG, datum: datum, muszak: muszak, szoveg: szoveg, felhasznalo: localStorage.getItem("activeUser") });
         const r = await res.json();
         if(r.status === "success") { showToast("Napló sikeresen rögzítve!"); checkLockdownAndInit(); } else { alert(r.message); }
     } catch(e) { alert("Hiba a mentés során!"); }
@@ -204,7 +219,7 @@ async function submitHianyzoNaplo(datum, muszak) {
 
 async function approveShiftLogLockdown(id) {
     const btn = document.getElementById('lockdownApprBtn_' + id); if(btn) { btn.disabled = true; btn.innerText = "⏳ Töltés..."; }
-    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveShiftLog", reszleg: RESZLEG, id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() }) });
+    await secureFetch({ action: "approveShiftLog", reszleg: RESZLEG, id: id, felhasznalo: String(localStorage.getItem("activeUser")).trim() });
     showToast("Jóváhagyva!"); checkLockdownAndInit(); 
 }
 
@@ -222,11 +237,12 @@ async function login() {
     if(!n || !j) return alert("Add meg az adatokat!"); 
     document.getElementById('loginStatus').innerText = "Ellenőrzés..."; 
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
+        const res = await secureFetch({ action: "login", nev: n, jelszo: await hashPassword(j) }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             localStorage.setItem("activeUser", n); 
             localStorage.setItem("activeRole", r.role || "production"); 
+            localStorage.setItem("sessionToken", r.token); // --- ÚJ: TOKEN MENTÉSE
             location.reload(); 
         } else { 
             document.getElementById('loginStatus').innerText = r.message; 
@@ -239,6 +255,7 @@ async function login() {
 function logout() { 
     localStorage.removeItem("activeUser"); 
     localStorage.removeItem("activeRole"); 
+    localStorage.removeItem("sessionToken"); // --- ÚJ: TOKEN TÖRLÉSE
     sessionStorage.clear(); 
     window.location.href = window.location.pathname; 
 }
@@ -247,7 +264,7 @@ function logout() {
 async function loadShiftLogs() {
     const c = document.getElementById('shiftLogsContainer'); if(!c) return; c.innerHTML = "Betöltés...";
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getShiftLogs", reszleg: RESZLEG }) }); 
+        const res = await secureFetch({ action: "getShiftLogs", reszleg: RESZLEG }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             globalShiftLogs = r.data; 
@@ -261,7 +278,7 @@ async function submitShiftLog() {
     if (!d || !s) { alert("Dátum és szöveg kötelező!"); return; } 
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addShiftLog", reszleg: RESZLEG, datum: d, muszak: m, szoveg: s, felhasznalo: localStorage.getItem("activeUser") }) }); 
+        const res = await secureFetch({ action: "addShiftLog", reszleg: RESZLEG, datum: d, muszak: m, szoveg: s, felhasznalo: localStorage.getItem("activeUser") }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             showToast("Napló mentve!"); 
@@ -289,7 +306,7 @@ function renderShiftLogs() {
         let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); const dateStr = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
         let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : []; let statusHtml = "";
         if (approvers.length > 0) statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-normal);"><b style="color:var(--text-muted);">Látta:</b> ${approvers.join(', ')}</div>`; else statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-crit);">Még senki nem látta!</div>`;
-        h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${l.szoveg}</div><div style="font-size:12px; color:var(--text-muted border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
+        h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${l.szoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
     }); c.innerHTML = h;
 }
 
@@ -304,7 +321,7 @@ async function getFilteredChecklistLogs() {
     const sIg = document.getElementById('clExpIg').value; 
     const sMuszak = document.getElementById('clExpMuszak').value;
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getChecklistFullLog" }) }); 
+        const res = await secureFetch({ action: "getChecklistFullLog" }); 
         const r = await res.json(); 
         let logs = r.data || [];
         return logs.filter(l => { 
@@ -377,10 +394,9 @@ async function exportChecklistPDF() {
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 15px; color: #333; } 
         h1 { text-align: center; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 15px; font-size: 18px; } 
         
-/* -- NYOMTATÁSI BEÁLLÍTÁSOK (ULTRA KOMPAKT) -- */
-        @page { size: A4 portrait; margin: 0; } /* Ez a nullázás tünteti el az about:blank feliratot! */
+        @page { size: A4 portrait; margin: 0; }
         @media print { 
-            body { padding: 8mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* Ide raktuk át a papír margóját */
+            body { padding: 8mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
             table { page-break-inside: auto; }
             tr { page-break-inside: avoid; page-break-after: auto; }
             td, th { padding: 3px 4px !important; } 
@@ -390,14 +406,12 @@ async function exportChecklistPDF() {
         .log-box { margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; } 
         .log-header { background: #e2e8f0; padding: 6px 12px; font-weight: bold; font-size: 13px; color: #1e293b; } 
         
-        /* ALAP TÁBLÁZAT BEÁLLÍTÁSOK */
-        table { width: 100%; border-collapse: collapse; font-size: 10px; line-height: 1.15; } /* Szűk sormagasság */
+        table { width: 100%; border-collapse: collapse; font-size: 10px; line-height: 1.15; }
         th, td { border: 1px solid #e2e8f0; padding: 4px 6px; text-align: left; vertical-align: middle; } 
         th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 9px; } 
         
-        /* EGYEDI KIEMELÉSEK */
         .ok { color: #10b981; font-weight:bold; } .nok { color: #ef4444; font-weight:bold; } .na { color: #94a3b8; font-weight:bold; } 
-        .gep-cell { font-size: 8.5px; color: #475569; display: block; margin-top: 1px; } /* Kisebb betű a hosszú gépneveknek */
+        .gep-cell { font-size: 8.5px; color: #475569; display: block; margin-top: 1px; }
     </style></head><body><h1>Műszakvezetői Ellenőrzőlista Napló</h1>`;
     
     f.forEach(l => {
@@ -414,7 +428,6 @@ async function exportChecklistPDF() {
             let parsed = JSON.parse(l.eredmenyek); 
             parsed.forEach(p => { 
                 let cls = p.valasz === 'OK' ? 'ok' : (p.valasz === 'NOK' ? 'nok' : 'na'); 
-                // Itt vettem ki a felesleges <br> taget, és tettem kompakttá a Terület/Gép cellát
                 html += `<tr>
                     <td><b>${p.focim||'-'}</b></td>
                     <td><b style="color:#0f172a; font-size: 10px;">${p.terulet||'-'}</b><span class="gep-cell">${p.gep||''}</span></td>
@@ -431,6 +444,7 @@ async function exportChecklistPDF() {
     win.document.close(); 
     setTimeout(() => { win.print(); }, 800);
 }
+
 function downloadCSV(csv, fn) { 
     let a=document.createElement("a"); 
     a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8;'})); 
@@ -461,7 +475,7 @@ function frissitSzuloLista() {
 async function loadChecklistData() { 
     const c = document.getElementById('checklistAdminList'); if(c) c.innerHTML = "Sablonok betöltése..."; 
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "getAllData", reszleg: RESZLEG }) }); 
+        const res = await secureFetch({ action: "getAllData", reszleg: RESZLEG }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             globalChecklistSablon = r.data.checklistSablon || []; 
@@ -560,14 +574,14 @@ async function addChecklistSablon() {
     if(editClSablonId) payload.id = editClSablonId;
 
     try { 
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload)}); 
+        await secureFetch(payload); 
         document.getElementById('clSablonKerdes').value = ""; document.getElementById('clSablonUtasitas').value = ""; document.getElementById('clSablonKep').value = ""; document.getElementById('clSablonFajl').value = ""; document.getElementById('clSablonFajlNev').value = ""; document.getElementById('clSablonSzulo').value = "";
         editClSablonId = null;
         showToast("Sikeresen mentve!"); loadChecklistData(); 
     } catch(e) { showToast("Hiba a mentés során!", true); } finally { btn.disabled = false; btn.innerText = "💾 Feladat hozzáadása a faliújságra"; btn.style.background = "var(--pri-info)"; }
 }
 
-async function deleteChecklistSablon(id) { if(!confirm("Biztosan törlöd ezt az ellenőrzőpontot?")) return; try { await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteChecklistSablon", id: id }) }); showToast("Törölve!"); loadChecklistData(); } catch(e) { showToast("Hiba!", true); } }
+async function deleteChecklistSablon(id) { if(!confirm("Biztosan törlöd ezt az ellenőrzőpontot?")) return; try { await secureFetch({ action: "deleteChecklistSablon", id: id }); showToast("Törölve!"); loadChecklistData(); } catch(e) { showToast("Hiba!", true); } }
 
 function populateNavDropdown() {
     const nav = document.getElementById('appNavDropdown');
