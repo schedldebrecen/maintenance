@@ -129,6 +129,31 @@
                     </div>
                     <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Kezdő dátum (Ha üres, azonnal indítja)</label><input type="date" id="ismKezdoDatum"></div>
                 </div>
+				<!-- Kiegészítő HTML a munkautasításhoz -->
+                <div style="margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                    <label style="font-weight:bold; color:var(--primary);">📘 Munkautasítás / Leírás (Opcionális):</label>
+                    <textarea id="ismUtasitas" class="dash-input" rows="2" placeholder="Ide írhatod a szerelési útmutatót vagy extra instrukciót..."></textarea>
+                    
+                    <label style="margin-top:5px; font-weight:bold; color:var(--primary);">🖼️ Kép csatolása (Opcionális Drive Link):</label>
+                    <input type="text" id="ismKep" class="dash-input" placeholder="https://drive.google.com/...">
+                    
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <div style="flex:1;">
+                            <label style="font-weight:bold; color:var(--primary);">📄 Dokumentum / PDF Link (Opcionális):</label>
+                            <input type="text" id="ismFajl" class="dash-input" placeholder="https://drive.google.com/...">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-weight:bold; color:var(--primary);">🏷️ Fájl Gomb Felirata:</label>
+                            <input type="text" id="ismFajlNev" class="dash-input" placeholder="Pl. Kezelési útmutató">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit); margin-top:15px;">Beállítás mentése</button>
+            </div>
+            <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
+        </div>
+				
                 <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit);">Beállítás mentése</button>
             </div>
             <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
@@ -141,25 +166,6 @@
                     <div><select id="muszakTipus"><option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option><option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option><option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option></select></div>
                     <div><input type="date" id="muszakDatum"></div>
                     <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
-					<!-- Kiegészítő HTML a munkautasításhoz -->
-<div style="margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1;">
-    <label style="font-weight:bold; color:var(--primary);">📘 Munkautasítás / Leírás (Opcionális):</label>
-    <textarea id="ismUtasitas" class="dash-input" rows="2" placeholder="Ide írhatod a szerelési útmutatót vagy extra instrukciót..."></textarea>
-    
-    <label style="margin-top:5px; font-weight:bold; color:var(--primary);">🖼️ Kép csatolása (Opcionális Drive Link):</label>
-    <input type="text" id="ismKep" class="dash-input" placeholder="https://drive.google.com/...">
-    
-    <div style="display:flex; gap:10px; margin-top:5px;">
-        <div style="flex:1;">
-            <label style="font-weight:bold; color:var(--primary);">📄 Dokumentum / PDF Link (Opcionális):</label>
-            <input type="text" id="ismFajl" class="dash-input" placeholder="https://drive.google.com/...">
-        </div>
-        <div style="flex:1;">
-            <label style="font-weight:bold; color:var(--primary);">🏷️ Fájl Gomb Felirata:</label>
-            <input type="text" id="ismFajlNev" class="dash-input" placeholder="Pl. Kezelési útmutató">
-        </div>
-    </div>
-</div>
                 </div>
                 <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
             </div>
