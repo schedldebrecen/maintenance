@@ -25,7 +25,7 @@ let isFirstLoad = true;
 let globalPartsList = []; 
 let targetPartInputId = null;
 
-// --- ÚJ: BIZTONSÁGI HÁLÓZATI HÍVÓ ---
+// --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
     if (payload.action !== "login" && payload.action !== "getUsers") {
         payload.token = localStorage.getItem("sessionToken");
@@ -38,6 +38,19 @@ async function secureFetch(payload) {
         throw new Error("ACCESS_DENIED");
     }
     return { json: () => Promise.resolve(data) };
+}
+
+// --- ÚJ: MUNKAUTASÍTÁS DEKÓDOLÓ ---
+function parseChecklistData(raw) {
+    let res = { cl: "", ut: "", kep: "", fajl: "", fnev: "" };
+    if (!raw) return res; 
+    let text = String(raw);
+    let mU = text.match(/\[UT\]([\s\S]*?)\[\/UT\]/); if(mU){ res.ut = mU[1]; text = text.replace(mU[0],""); }
+    let mK = text.match(/\[KEP\]([\s\S]*?)\[\/KEP\]/); if(mK){ res.kep = mK[1]; text = text.replace(mK[0],""); }
+    let mF = text.match(/\[FAJL\]([\s\S]*?)\[\/FAJL\]/); if(mF){ res.fajl = mF[1]; text = text.replace(mF[0],""); }
+    let mFN = text.match(/\[FNEV\]([\s\S]*?)\[\/FNEV\]/); if(mFN){ res.fnev = mFN[1]; text = text.replace(mFN[0],""); }
+    res.cl = text.trim(); 
+    return res;
 }
 
 function toLocalISOString(dateObj) { if(isNaN(dateObj)) return ""; const y = dateObj.getFullYear(), m = String(dateObj.getMonth() + 1).padStart(2, '0'), d = String(dateObj.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
@@ -298,7 +311,6 @@ function processData(allTasks) {
     if(document.getElementById('kpiInfo')) document.getElementById('kpiInfo').innerText = cInfo; 
     if(document.getElementById('kpiTotal')) document.getElementById('kpiTotal').innerText = currentActiveTasks.length - cInfo;
 
-    // Hívjuk meg a filtert alapértelmezetten, ami elrejti az Info-t!
     setDashboardFilter(activeFilterPrio);
 }
 
@@ -310,8 +322,6 @@ function setDashboardFilter(prio) {
     
     let filtered = currentActiveTasks.filter(t => {
         const pLower = String(t.prioritas).toLowerCase();
-        
-        // Ha nincs szűrő kiválasztva (Tehát a FŐ lista aktív), elrejtjük az Informatív/Megfigyelés jegyeket!
         if (!activeFilterPrio) {
             if (pLower.includes("informatív") || pLower.includes("megfigyelés")) return false;
             return true;
@@ -355,7 +365,6 @@ function generateCardHtml(t) {
     }
 }
 
-// --- LEZÁRT FELADATOK SZŰRÉSE ÉS MEGJELENÍTÉSE ---
 function frissitSzuroGepek() { 
     const k = document.getElementById('szuroKategoria').value; 
     const s = document.getElementById('szuroGep'); 
@@ -403,7 +412,6 @@ function renderClosedTasks() {
     c.innerHTML = h; 
 }
 
-// --- MŰSZAKBEOSZTÁS MEGJELENÍTÉSE ---
 function renderScheduleMain() {
     const c = document.getElementById('dashScheduleContainer'); 
     if(!c) return;
@@ -416,7 +424,6 @@ function renderScheduleMain() {
     
     if(usersBase.length === 0 && usersExtra.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px;'>Nincs dolgozó.</div>"; return; }
     
-    // Naptár: 28 nap vissza, 63 nap összesen
     let now = new Date(); let dayOfWeek = now.getDay() || 7; 
     let startDate = new Date(now); startDate.setDate(now.getDate() - dayOfWeek + 1 - 28); 
     let dates = []; 
@@ -578,21 +585,45 @@ function openModal(taskId) {
     
     let details = `<p style="margin:5px 0;"><b>Státusz:</b> <span style="color:var(--pri-info);">${task.statusz}</span></p><p style="margin:5px 0;"><b>Rögzítette:</b> ${task.felhasznalo} <span style="color:var(--text-muted); font-size:13px;">(${new Date(task.idopont).toLocaleString('hu-HU')})</span></p>`; 
     
-    if (task.checklist) {
+    let parsedData = parseChecklistData(task.checklist);
+    let utasitasHtml = "";
+    if (parsedData.ut || parsedData.kep || parsedData.fajl) {
+        let mediaHtml = "";
+        if (parsedData.kep && String(parsedData.kep).trim() !== "") { 
+            let imgUrl = parsedData.kep; let m = parsedData.kep.match(/d\/([a-zA-Z0-9_-]+)/) || parsedData.kep.match(/id=([^&]+)/);
+            if(m && parsedData.kep.includes("drive.google.com")) { imgUrl = `https://lh3.googleusercontent.com/d/${m[1]}`; }
+            mediaHtml += `<a href="${parsedData.kep}" target="_blank"><img src="${imgUrl}" style="max-width:150px; max-height:150px; border-radius:4px; margin-top:5px; cursor:pointer;" alt="Kép"></a><br>`; 
+        }
+        if (parsedData.fajl && String(parsedData.fajl).trim() !== "") { 
+            let fNev = (parsedData.fnev && String(parsedData.fnev).trim() !== "") ? parsedData.fnev : "📄 Dokumentum megnyitása";
+            mediaHtml += `<a href="${parsedData.fajl}" target="_blank" style="display:inline-block; margin-top:5px; background:var(--pri-normal); color:white; padding:6px 12px; border-radius:4px; text-decoration:none; font-size:12px; font-weight:bold;">${fNev}</a>`; 
+        }
+        let utText = parsedData.ut ? `<div style="font-size:14px; color:var(--text-main); margin-bottom:5px;">${parsedData.ut.replace(/\n/g, '<br>')}</div>` : "";
+        utasitasHtml = `<div style="background:#f8fafc; border:1px solid #cbd5e1; padding:12px; border-radius:6px; margin-bottom:15px; margin-top:15px;"><strong style="color:var(--pri-obs); display:block; margin-bottom:5px; font-size:15px;">📘 Munkautasítás / Dokumentáció:</strong>${utText}${mediaHtml}</div>`;
+    }
+
+    if (parsedData.cl || utasitasHtml) {
         if (task.statusz !== 'Lezárt') {
             let clHtml = "";
-            String(task.checklist).split('\n').filter(i => i.trim() !== "").forEach(item => {
-                let text = item.trim();
-                if (text.endsWith(':')) {
-                    clHtml += `<div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;"><span style="flex:1; color:white; font-weight:bold; font-size:14px;">${text}</span> <input type="text" class="dash-input task-cl-input" data-label="${text}" style="flex:1; margin:0; padding:8px; font-size:14px; background:var(--surface);" placeholder="Érték..."></div>`;
-                } else {
-                    clHtml += `<label style="display:flex; align-items:center; margin-bottom:10px; cursor:pointer; background:var(--surface); padding:8px 12px; border-radius:6px; border:1px solid var(--border);"><input type="checkbox" class="task-cl-chk" data-label="${text}" style="width:20px; height:20px; margin:0; margin-right:12px;"> <span style="font-weight:bold; color:var(--text-main);">${text}</span></label>`;
-                }
-            });
-            details += `<div style="background:var(--bg-dark); border:2px solid var(--pri-info); padding:15px; border-radius:8px; margin-top:15px;"><strong style="color:var(--pri-info); font-size:16px; display:block; margin-bottom:15px;">📋 Kötelező Checklist Kitöltése:</strong><div id="activeChecklistContainer_${task.id}">${clHtml}</div></div>`;
+            if(parsedData.cl) {
+                String(parsedData.cl).split('\n').filter(i => i.trim() !== "").forEach(item => {
+                    let text = item.trim();
+                    if (text.endsWith(':')) {
+                        clHtml += `<div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;"><span style="flex:1; color:white; font-weight:bold; font-size:14px;">${text}</span> <input type="text" class="dash-input task-cl-input" data-label="${text}" style="flex:1; margin:0; padding:8px; font-size:14px; background:var(--surface);" placeholder="Érték..."></div>`;
+                    } else {
+                        clHtml += `<label style="display:flex; align-items:center; margin-bottom:10px; cursor:pointer; background:var(--surface); padding:8px 12px; border-radius:6px; border:1px solid var(--border);"><input type="checkbox" class="task-cl-chk" data-label="${text}" style="width:20px; height:20px; margin:0; margin-right:12px;"> <span style="font-weight:bold; color:var(--text-main);">${text}</span></label>`;
+                    }
+                });
+            }
+            let checkBoxHtml = clHtml ? `<strong style="color:var(--pri-info); font-size:16px; display:block; margin-bottom:15px;">📋 Kötelező Checklist Kitöltése:</strong><div id="activeChecklistContainer_${task.id}">${clHtml}</div>` : "";
+            details += `${utasitasHtml}`;
+            if (checkBoxHtml) { details += `<div style="background:var(--bg-dark); border:2px solid var(--pri-info); padding:15px; border-radius:8px; margin-top:15px;">${checkBoxHtml}</div>`; }
         } else {
-            let items = String(task.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('');
-            details += `<div style="background:#0f172a; border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:15px; color:#cbd5e1;"><strong style="color:var(--pri-normal); font-size:16px;">📝 Eredeti Checklist Sablon:</strong><ul style="margin:10px 0 0 0; padding-left:20px;">${items}</ul></div>`;
+            details += `${utasitasHtml}`;
+            if (parsedData.cl) {
+                let items = String(parsedData.cl).split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('');
+                details += `<div style="background:#0f172a; border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:15px; color:#cbd5e1;"><strong style="color:var(--pri-normal); font-size:16px;">📝 Eredeti Checklist Sablon:</strong><ul style="margin:10px 0 0 0; padding-left:20px;">${items}</ul></div>`;
+            }
         }
     }
 
@@ -639,7 +670,6 @@ async function dashStartTask() {
     fetchDashboardData(); closeModal(true); 
 }
 
-// --- ÚJ: OKOS CHECKLIST LEZÁRÁSA A FALIÚJSÁGON ---
 async function dashCloseTask() { 
     if(!sessionUser || !activeTaskId) return; 
     let m = document.getElementById(`dashMegoldas`).value.trim();
@@ -674,9 +704,27 @@ function populateNavDropdown() {
     nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }
 
-// --- ENTER GOMB FIGYELÉSE A BEJELENTKEZÉSHEZ ---
+async function dashLoginModal() { 
+    const n = document.getElementById('dashLoginNevSelectModal').value !== "" ? document.getElementById('dashLoginNevSelectModal').value : document.getElementById('dashLoginNevModal').value; 
+    const j = document.getElementById('dashLoginPinModal').value; 
+    const stat = document.getElementById('dashLoginStatusModal'); 
+    if(!n || !j) { stat.innerText = "Add meg a PIN-t!"; return; } 
+    stat.innerText = "Ellenőrzés..."; 
+    try { 
+        const res = await secureFetch({ action: "login", nev: n, jelszo: await hashPassword(j) }); 
+        const r = await res.json(); 
+        if(r.status === "success") { 
+            sessionUser = n; 
+            sessionRole = r.role || "production"; 
+            localStorage.setItem("sessionToken", r.token); 
+            extendSession(); 
+            document.getElementById('dashLoginPinModal').value = ""; 
+            stat.innerText = ""; 
+        } else { stat.innerText = r.message; } 
+    } catch(e) { stat.innerText = "Hiba!"; } 
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Alap bejelentkező mező
     const dashPin = document.getElementById('dashLoginPin');
     if (dashPin) {
         dashPin.addEventListener('keypress', function(e) {
@@ -687,7 +735,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Felugró (Modal) bejelentkező mező, ha létezik
     const dashPinModal = document.getElementById('dashLoginPinModal');
     if (dashPinModal) {
         dashPinModal.addEventListener('keypress', function(e) {
