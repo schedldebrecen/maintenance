@@ -416,7 +416,11 @@ function renderScheduleMain() {
     
     if(usersBase.length === 0 && usersExtra.length === 0) { c.innerHTML = "<div style='text-align:center; padding:30px;'>Nincs dolgozó.</div>"; return; }
     
-    let now = new Date(); let dayOfWeek = now.getDay() || 7; let startDate = new Date(now); startDate.setDate(now.getDate() - dayOfWeek + 1 - 28); let dates = []; for(let i=0; i<63; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
+    // Naptár: 28 nap vissza, 63 nap összesen
+    let now = new Date(); let dayOfWeek = now.getDay() || 7; 
+    let startDate = new Date(now); startDate.setDate(now.getDate() - dayOfWeek + 1 - 28); 
+    let dates = []; 
+    for(let i=0; i<63; i++){ let d = new Date(startDate); d.setDate(startDate.getDate() + i); dates.push(d); }
     
     let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col">Név / Dátum</th>`;
     dates.forEach(d => { 
@@ -438,7 +442,6 @@ function renderScheduleMain() {
     }); 
     html += `</tr>`;
     
-    // Karbantartók (Alap dolgozók)
     usersBase.forEach(u => {
         html += `<tr><td class="sticky-col" style="color:var(--text-main); font-weight:bold;">${u}</td>`;
         dates.forEach(d => {
@@ -451,9 +454,8 @@ function renderScheduleMain() {
         html += `</tr>`;
     }); 
     
-    // Termelés dolgozói (Extra dolgozók)
     if (usersExtra.length > 0) {
-        html += `<tr><td class="sticky-col" style="background:#f1f5f9; color:var(--text-muted); font-size:12px; text-align:center;" colspan="36">-- TERMELÉS DOLGOZÓI --</td></tr>`;
+        html += `<tr><td class="sticky-col" style="background:#f1f5f9; color:var(--text-muted); font-size:12px; text-align:center;" colspan="63">-- TERMELÉS DOLGOZÓI --</td></tr>`;
         usersExtra.forEach(u => {
             html += `<tr><td class="sticky-col" style="color:var(--text-muted);">${u}</td>`;
             dates.forEach(d => {
@@ -494,7 +496,7 @@ async function dashLogin() {
         if(r.status === "success") { 
             sessionUser = n; 
             sessionRole = r.role || "maintenance"; 
-            localStorage.setItem("sessionToken", r.token); // <--- ÚJ TOKEN MENTÉS
+            localStorage.setItem("sessionToken", r.token);
             extendSession(); 
             document.getElementById('dashLoginPin').value = ""; 
             stat.innerText = ""; 
@@ -507,7 +509,7 @@ function dashLogout() {
     sessionRole = null; 
     localStorage.removeItem("activeUser"); 
     localStorage.removeItem("activeRole"); 
-    localStorage.removeItem("sessionToken"); // <--- ÚJ TOKEN TÖRLÉS
+    localStorage.removeItem("sessionToken");
     document.getElementById('activeUserBadge').style.display = 'none'; 
     window.location.href = window.location.pathname; 
 }
@@ -549,6 +551,7 @@ function addAlkatreszRow() {
     container.appendChild(row);
 }
 
+// --- ÚJ: OKOS CHECKLIST RENDERELÉSE A FALIÚJSÁGON ---
 function openModal(taskId) { 
     activeTaskId = taskId; 
     const task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId); 
@@ -576,8 +579,21 @@ function openModal(taskId) {
     let details = `<p style="margin:5px 0;"><b>Státusz:</b> <span style="color:var(--pri-info);">${task.statusz}</span></p><p style="margin:5px 0;"><b>Rögzítette:</b> ${task.felhasznalo} <span style="color:var(--text-muted); font-size:13px;">(${new Date(task.idopont).toLocaleString('hu-HU')})</span></p>`; 
     
     if (task.checklist) {
-        let items = String(task.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('');
-        details += `<div style="background:#0f172a; border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:15px; color:#cbd5e1;"><strong style="color:var(--pri-normal); font-size:16px;">📝 Teendők / Checklist:</strong><ul style="margin:10px 0 0 0; padding-left:20px;">${items}</ul></div>`;
+        if (task.statusz !== 'Lezárt') {
+            let clHtml = "";
+            String(task.checklist).split('\n').filter(i => i.trim() !== "").forEach(item => {
+                let text = item.trim();
+                if (text.endsWith(':')) {
+                    clHtml += `<div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;"><span style="flex:1; color:white; font-weight:bold; font-size:14px;">${text}</span> <input type="text" class="dash-input task-cl-input" data-label="${text}" style="flex:1; margin:0; padding:8px; font-size:14px; background:var(--surface);" placeholder="Érték..."></div>`;
+                } else {
+                    clHtml += `<label style="display:flex; align-items:center; margin-bottom:10px; cursor:pointer; background:var(--surface); padding:8px 12px; border-radius:6px; border:1px solid var(--border);"><input type="checkbox" class="task-cl-chk" data-label="${text}" style="width:20px; height:20px; margin:0; margin-right:12px;"> <span style="font-weight:bold; color:var(--text-main);">${text}</span></label>`;
+                }
+            });
+            details += `<div style="background:var(--bg-dark); border:2px solid var(--pri-info); padding:15px; border-radius:8px; margin-top:15px;"><strong style="color:var(--pri-info); font-size:16px; display:block; margin-bottom:15px;">📋 Kötelező Checklist Kitöltése:</strong><div id="activeChecklistContainer_${task.id}">${clHtml}</div></div>`;
+        } else {
+            let items = String(task.checklist).split('\n').filter(i => i.trim() !== "").map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('');
+            details += `<div style="background:#0f172a; border:1px solid var(--border); padding:15px; border-radius:6px; margin-top:15px; color:#cbd5e1;"><strong style="color:var(--pri-normal); font-size:16px;">📝 Eredeti Checklist Sablon:</strong><ul style="margin:10px 0 0 0; padding-left:20px;">${items}</ul></div>`;
+        }
     }
 
     if (task.statusz === 'Folyamatban') details += `<div style="background: rgba(139, 92, 246, 0.2); padding:10px; border-radius:6px; color:#a78bfa; margin-top:15px; border:1px solid var(--pri-prog);">👷 <b>${task.felelos}</b> dolgozik rajta</div>`; 
@@ -585,13 +601,9 @@ function openModal(taskId) {
     
     document.getElementById('modalDetails').innerHTML = details; 
 
-    // --- ÚJ RÉSZ: MEZŐK KIÜRÍTÉSE MINDEN MEGNYITÁSKOR ---
     if (document.getElementById('dashMegoldas')) document.getElementById('dashMegoldas').value = "";
     if (document.getElementById('dashIdo')) document.getElementById('dashIdo').value = "";
     if (document.getElementById('dashDowntime')) document.getElementById('dashDowntime').value = "";
-    if (document.getElementById('megoldas')) document.getElementById('megoldas').value = "";
-    if (document.getElementById('ido')) document.getElementById('ido').value = "";
-    if (document.getElementById('downtime')) document.getElementById('downtime').value = "";
 
     const alkContainer = document.getElementById('alkatreszekContainer');
     if(alkContainer) {
@@ -627,11 +639,19 @@ async function dashStartTask() {
     fetchDashboardData(); closeModal(true); 
 }
 
+// --- ÚJ: OKOS CHECKLIST LEZÁRÁSA A FALIÚJSÁGON ---
 async function dashCloseTask() { 
     if(!sessionUser || !activeTaskId) return; 
-    const m = document.getElementById(`dashMegoldas`).value;
+    let m = document.getElementById(`dashMegoldas`).value.trim();
     const i = document.getElementById(`dashIdo`).value;
     const dt = document.getElementById(`dashDowntime`).value; 
+
+    let clResults = "";
+    document.querySelectorAll('.task-cl-chk').forEach(chk => { clResults += (chk.checked ? "✅ " : "❌ (Kihagyva) ") + chk.dataset.label + "\n"; });
+    document.querySelectorAll('.task-cl-input').forEach(inp => { clResults += "📊 " + inp.dataset.label + " " + (inp.value || "-") + "\n"; });
+
+    if(m === "" && clResults === "") return alert("A Megoldás mező vagy a Checklist kitöltése kötelező!"); 
+    if (clResults !== "") m = m === "" ? "--- CHECKLIST EREDMÉNYEK ---\n" + clResults.trim() : m + "\n\n--- CHECKLIST EREDMÉNYEK ---\n" + clResults.trim();
 
     let alkatreszekTomb = [];
     document.querySelectorAll('.alkatresz-sor').forEach(sor => {
@@ -640,11 +660,7 @@ async function dashCloseTask() {
         if(cz && db) { alkatreszekTomb.push({ cikkszam: cz, db: parseInt(db) || 1 }); }
     });
 
-    if(!m) return alert("A Megoldás mező kitöltése kötelező!"); 
-    
-    await secureFetch({ 
-        action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb 
-    }); 
+    await secureFetch({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb }); 
     fetchDashboardData(); closeModal(true); 
 }
 
