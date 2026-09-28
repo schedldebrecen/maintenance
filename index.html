@@ -173,7 +173,13 @@
 
         <div id="lezartFeladatok" class="view box">
             <div class="filter-panel">
-                <div class="filter-header"><h4>Lezárt Feladatok Szűrése</h4><button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 Export</button></div>
+                <div class="filter-header">
+    				<h4>Lezárt Feladatok Szűrése</h4>
+    				<div style="display:flex; gap:10px;">
+        				<button class="btn-export" style="background:var(--pri-crit);" onclick="exportClosedTasksPDF()">📄 PDF Feladatlapok</button>
+        				<button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 CSV Export</button>
+    				</div>
+				</div>
                 <div class="form-grid">
                     <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="Keresés leírásában, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
                     <select id="szuroLezartReszleg" onchange="renderClosedTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
