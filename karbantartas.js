@@ -589,3 +589,64 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+// --- ÚJ: LEZÁRT FELADATOK PDF EXPORT (HIVATALOS FELADATLAPOK) ---
+async function exportClosedTasksPDF() {
+    let f = getFilteredClosedTasks();
+    if(f.length === 0) { alert("Nincs a szűrésnek megfelelő feladat a PDF-hez!"); return; }
+    
+    let win = window.open('', '_blank');
+    let html = `<html><head><title>Karbantartási Feladatlapok</title><style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 0; color: #0f172a; }
+        @page { size: A4 portrait; margin: 15mm; }
+        @media print { 
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+            .task-sheet { page-break-after: always; } /* Minden feladat új oldalra kerül */
+            .task-sheet:last-child { page-break-after: auto; }
+        }
+        .task-sheet { border: 2px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 15px; }
+        .title { font-size: 20px; font-weight: bold; color: #1e293b; text-transform: uppercase; }
+        .meta { font-size: 12px; color: #64748b; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
+        th { background: #f1f5f9; width: 25%; font-weight: bold; color: #334155; }
+        .solution-box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 4px; font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
+    </style></head><body>`;
+    
+    f.forEach(t => {
+        const dateStr = new Date(t.idopont).toLocaleString('hu-HU');
+        let dtTxt = t.downtime ? `${t.downtime} perc` : "Nincs";
+        let idoTxt = t.ido ? `${t.ido} perc` : "-";
+        
+        let tipusTxt = String(t.id).startsWith("PREV-") ? "Tervezett Karbantartás (Ismétlődő)" : "Eseti Hibajavítás";
+        
+        html += `
+        <div class="task-sheet">
+            <div class="header">
+                <div class="title">Karbantartási Feladatlap</div>
+                <div class="meta">Jegy azonosító: <b>${t.id}</b><br>Rögzítve: ${dateStr}</div>
+            </div>
+            <table>
+                <tr><th>Jelleg</th><td><b style="color:#0ea5e9;">${tipusTxt}</b></td></tr>
+                <tr><th>Gép / Terület</th><td><b style="font-size:15px;">${t.gep}</b></td></tr>
+                <tr><th>Prioritás</th><td>${t.prioritas}</td></tr>
+                <tr><th>Feladat leírása</th><td style="white-space:pre-wrap;">${String(t.hiba)}</td></tr>
+                <tr><th>Kiírta</th><td>${t.felhasznalo}</td></tr>
+            </table>
+            
+            <h4 style="margin-bottom:8px; margin-top:20px; color:#1e293b; border-bottom:1px solid #cbd5e1; padding-bottom:5px;">Elvégzett munka és Checklist eredmények:</h4>
+            <div class="solution-box">${String(t.megoldas || "Nincs megadva megoldás.").replace(/\n/g, '<br>')}</div>
+            
+            <table style="margin-top:20px; width:60%;">
+                <tr><th>Ráfordított munkaidő</th><td>${idoTxt}</td></tr>
+                <tr><th>Gépkiesés (Downtime)</th><td>${dtTxt}</td></tr>
+                <tr><th>Feladatot lezárta</th><td style="font-size:14px;"><b>${t.lezarta}</b></td></tr>
+            </table>
+        </div>`;
+    });
+    
+    html += `</body></html>`;
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => { win.print(); }, 800);
+}
