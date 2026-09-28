@@ -69,7 +69,8 @@
                 Fénykép csatolása
             </label>
             <div id="image_container" style="display: none;">
-                <input type="file" id="camera_input" accept="image/*" capture="environment" onchange="previewImage(event)">
+                <!-- KIVÉVE A CAPTURE="ENVIRONMENT", ÍGY TALLÓZNI IS LEHET -->
+                <input type="file" id="camera_input" accept="image/*" onchange="previewImage(event)">
                 <img id="image_preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border-radius: 5px; border: 1px solid #ccc;">
             </div>
         </div>
@@ -115,12 +116,11 @@
         }
     }
 
-    // --- ÚJ, VILLÁMGYORS KÉP TÖMÖRÍTŐ ---
     function compressImage(file, maxSize) {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
-                URL.revokeObjectURL(img.src); // Memória azonnali felszabadítása
+                URL.revokeObjectURL(img.src); 
                 const canvas = document.createElement('canvas');
                 let width = img.width, height = img.height;
                 if (width > height && width > maxSize) { height *= maxSize / width; width = maxSize; } 
@@ -128,11 +128,10 @@
                 canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                // 60%-os minőség, extra kis fájlméret a gyors hálózati küldéshez
                 resolve(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]); 
             };
             img.onerror = () => reject(new Error("Hiba a kép beolvasásakor"));
-            img.src = URL.createObjectURL(file); // A FileReader-nél 10x gyorsabb beolvasás
+            img.src = URL.createObjectURL(file); 
         });
     }
 
@@ -287,8 +286,9 @@
                     ${imgHtml}
                     <div style="margin-top:15px; text-align:center;">
                         <label class="btn-cam" style="display:inline-block; width:90%; padding:10px; cursor:pointer; font-size:14px; border-radius:8px; color:white; font-weight:bold;">
-                            📷 Új fotó a cikkhez (Kamera)
-                            <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadItemImage(event)">
+                            📷 Új fotó a cikkhez (Fájl/Kamera)
+                            <!-- KIVÉVE A CAPTURE="ENVIRONMENT" -->
+                            <input type="file" accept="image/*" style="display:none;" onchange="uploadItemImage(event)">
                         </label>
                     </div>
                 `;
@@ -313,7 +313,7 @@
         if (!remark) return alert("Könyveléshez a megjegyzés mező kitöltése kötelező!");
         
         if (useImage && (!fileInput.files || fileInput.files.length === 0)) {
-            return alert("Kiválasztottad a kép csatolását, de nem készítettél fotót!");
+            return alert("Kiválasztottad a kép csatolását, de nem csatoltál fotót!");
         }
 
         document.getElementById("loader").style.display = "block";
