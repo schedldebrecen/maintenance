@@ -124,7 +124,6 @@ async function checkLockdownAndInit() {
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
             
-            // Lementjük a feladatokat a csempékhez
             let allTasks = rAll.data.tasks || [];
             processAppTasks(allTasks);
 
@@ -142,7 +141,6 @@ async function checkLockdownAndInit() {
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
             
-            // Frissítjük a feladatokat a hálózatról is
             let allTasks = rAll.data.tasks || [];
             processAppTasks(allTasks);
 
@@ -153,25 +151,20 @@ async function checkLockdownAndInit() {
     }
 }
 
+// -- ÚJ VÁLTOZÓK A MŰSZAKNAPLÓ FELADATKIVÁLASZTÁSHOZ --
+let muszakValaszthatoFeladatok = [];
+let selectedShiftTasks = []; 
+
 // --- FELADATOK SZÉTVÁLOGATÁSA ÉS CSEMPÉK MEGJELENÍTÉSE ---
 function processAppTasks(allTasks) {
-    currentActiveTasks = [];
-    globalClosedTasks = [];
+    muszakValaszthatoFeladatok = [];
     
     allTasks.forEach(t => { 
-        if (!String(t.id).includes("PROD-")) return; // Csak termeléses feladatok kellenek ide
-        
-        let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
-        if (isPrev && !String(t.id).toUpperCase().includes("PROD")) return;
-        
-        if(t.statusz !== "Lezárt") {
-            currentActiveTasks.push(t);
-        } else {
-            globalClosedTasks.push(t);
-        }
+        // MOST MÁR MINDENT BEENGEDÜNK (Termelés, Karbantartás, IT, Épület)
+        muszakValaszthatoFeladatok.push(t);
     });
 
-    // Miután megvannak a listák, azonnal frissítjük a Műszaknapló csempéit
+    // Miután megvan a lista, azonnal frissítjük a Műszaknapló csempéit
     frissitMuszakFeladatok();
 }
 
@@ -182,20 +175,29 @@ function frissitMuszakFeladatok() {
 
     selectedShiftTasks = []; // Újraszámolásnál nullázzuk a kijelölést
 
-    // Kikeressük az aktív (nyitott) feladatokat
-    let nyitott = currentActiveTasks;
-    
-    // Kikeressük az aznapi lezárt feladatokat
-    let lezart = globalClosedTasks.filter(t => String(t.idopont).substring(0, 10) === datum);
+    // Kikeressük a feladatokat:
+    // 1. Ami jelenleg nyitott (Folyamatban vagy Új) - Dátumtól függetlenül!
+    // 2. Ami lezárt, de PONT AZON A NAPON zárták le / rögzítették
+    let osszes = muszakValaszthatoFeladatok.filter(t => {
+        if (t.statusz !== "Lezárt") return true; 
 
-    let osszes = [...nyitott, ...lezart];
+        // Golyóálló dátum kinyerés a Google adataiból (mindegy, hogy "2026-09-29" vagy "2026. 09. 29.")
+        let dStr = String(t.idopont);
+        let taskDate = "";
+        let parts = dStr.split(/\D+/); // Minden nem-szám karakternél darabol
+        if (parts.length >= 3) {
+            taskDate = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        }
+
+        return taskDate === datum;
+    });
 
     if (osszes.length === 0) {
-        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs ehhez a naphoz kapcsolódó, vagy jelenleg nyitott termelési hiba.</div>";
+        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs ehhez a naphoz kapcsolódó lezárt, vagy jelenleg nyitott hiba.</div>";
         return;
     }
 
-    // Sorrend: Nyitottak előre, Lezártak hátra, időrendben
+    // Sorrend: Nyitottak előre, Lezártak hátra, azon belül időrendben
     osszes.sort((a,b) => {
         if(a.statusz !== "Lezárt" && b.statusz === "Lezárt") return -1;
         if(a.statusz === "Lezárt" && b.statusz !== "Lezárt") return 1;
@@ -204,11 +206,14 @@ function frissitMuszakFeladatok() {
 
     let html = "";
     osszes.forEach(t => {
-        const timeStr = new Date(t.idopont).toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+        let parts = String(t.idopont).split(/\D+/);
+        let timeStr = parts.length >= 5 ? `${parts[3].padStart(2,'0')}:${parts[4].padStart(2,'0')}` : "00:00";
+        
         let eC = t.statusz === "Lezárt" ? "closed" : (String(t.prioritas).toLowerCase().includes("leállás") ? "Termelésleállás" : "Folyamatban");
         let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
         let cardId = `shiftTaskCard_${t.id}`;
         
+        let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
         let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
         html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
@@ -216,7 +221,7 @@ function frissitMuszakFeladatok() {
                 ${statusBadge}
                 <span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${timeStr}</span>
             </div>
-            <div class="machine-name" style="font-size:14px; margin-bottom:5px;">🏭 ${t.gep}</div>
+            <div class="machine-name" style="font-size:14px; margin-bottom:5px;">${ikon} ${t.gep}</div>
             <div class="issue-desc" style="white-space:pre-wrap; font-size:12px;">${t.hiba}</div>
         </div>`;
     });
