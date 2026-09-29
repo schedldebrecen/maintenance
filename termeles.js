@@ -251,7 +251,7 @@ function frissitMuszakFeladatok() {
             ${t.statusz === "Lezárt" ? `<div>Lezárta: <b>${t.lezarta || "-"}</b></div>` : ''}
         </div>`;
 
-        html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
+        html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 2px solid #cbd5e1; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
             <div class="card-header">
                 <div style="display:flex; gap:5px; align-items:center;">
                     ${t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : ''}
@@ -277,7 +277,7 @@ function toggleMuszakTask(taskId, gepNeve, statusz) {
 
     if (index > -1) {
         selectedShiftTasks.splice(index, 1);
-        card.style.borderColor = "transparent";
+        card.style.borderColor = "#cbd5e1";
         card.style.boxShadow = "none";
         card.style.transform = "scale(1)";
     } else {
@@ -331,7 +331,7 @@ function generateLockdownTaskHtml(datum, logKey) {
         let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
         let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
-        html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s; padding:8px;" onclick="toggleLockdownTask('${t.id}', '${safeGep}', '${t.statusz}', '${logKey}')">
+        html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 2px solid #cbd5e1; transition: 0.2s; padding:8px;" onclick="toggleLockdownTask('${t.id}', '${safeGep}', '${t.statusz}', '${logKey}')">
             <div class="card-header" style="margin-bottom:4px;">
                 ${statusBadge}
                 <span style="color: var(--text-muted); font-size: 11px; font-weight:bold;">${timeStr}</span>
@@ -351,7 +351,7 @@ function toggleLockdownTask(taskId, gepNeve, statusz, logKey) {
 
     if (index > -1) {
         lockdownSelectedTasks[logKey].splice(index, 1);
-        card.style.borderColor = "transparent";
+        card.style.borderColor = "#cbd5e1";
         card.style.boxShadow = "none";
         card.style.transform = "scale(1)";
     } else {
