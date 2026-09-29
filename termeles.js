@@ -13,7 +13,7 @@ let currentActiveTasks = [];
 let globalClosedTasks = [];
 let muszakValaszthatoFeladatok = [];
 let selectedShiftTasks = []; 
-let lockdownSelectedTasks = {}; // Új: a hiányzó naplókhoz
+let lockdownSelectedTasks = {};
 
 // --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
@@ -151,15 +151,25 @@ async function checkLockdownAndInit() {
 // --- FELADATOK SZÉTVÁLOGATÁSA ÉS CSEMPÉK MEGJELENÍTÉSE ---
 function processAppTasks(allTasks) {
     muszakValaszthatoFeladatok = [];
+    currentActiveTasks = [];
+    globalClosedTasks = [];
     
     allTasks.forEach(t => { 
+        // 1. Kiszűrjük az Ismétlődő feladatokat a műszaknapló csempéiből
         let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
-        if (isPrev) return;
-
+        // 2. Kiszűrjük az Informatív jegyeket a műszaknapló csempéiből
         let pLower = String(t.prioritas).toLowerCase();
-        if (pLower.includes("informatív")) return;
+        
+        if (!isPrev && !pLower.includes("informatív")) {
+            muszakValaszthatoFeladatok.push(t);
+        }
 
-        muszakValaszthatoFeladatok.push(t);
+        // Fő listák feltöltése (a részletek megjelenítéséhez kell!)
+        if(t.statusz !== "Lezárt") {
+            currentActiveTasks.push(t);
+        } else {
+            globalClosedTasks.push(t);
+        }
     });
 
     frissitMuszakFeladatok();
@@ -181,7 +191,6 @@ function frissitMuszakFeladatok() {
         if (parts.length >= 3) {
             taskDate = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
         }
-
         return taskDate === datum;
     });
 
@@ -200,7 +209,6 @@ function frissitMuszakFeladatok() {
     osszes.forEach(t => {
         let parts = String(t.idopont).split(/\D+/);
         let timeStr = parts.length >= 5 ? `${parts[3].padStart(2,'0')}:${parts[4].padStart(2,'0')}` : "00:00";
-        let dateStr = new Date(t.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
         
         let pLower = String(t.prioritas).toLowerCase();
         let eC = t.statusz === "Lezárt" ? "closed" : (pLower.includes("leállás") ? "Termelésleállás" : (t.statusz === "Folyamatban" ? "Folyamatban" : (pLower.includes("magas") ? "Magas" : "")));
@@ -298,7 +306,6 @@ function processLockdownDisplay() {
     }
 }
 
-// Generálja a hiányzó naplóhoz tartozó feladat kártyákat
 function generateLockdownTaskHtml(datum, logKey) {
     let osszes = muszakValaszthatoFeladatok.filter(t => {
         if (t.statusz !== "Lezárt") return true; 
@@ -409,9 +416,8 @@ function evaluateLockdown() {
             const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
             
             if (l.hianyzo) {
-                // ÚJ: ÁLLÁSIDŐ ÉS FELADATVÁLASZTÓ A LOCKDOWN KÉPERNYŐN
                 let logKey = `${l.datum}_${l.muszak}`;
-                lockdownSelectedTasks[logKey] = []; // Kijelölés nullázása erre a naplóra
+                lockdownSelectedTasks[logKey] = []; 
                 let taskHtml = generateLockdownTaskHtml(l.datum, logKey);
 
                 return `<div style="background:#fee2e2; padding:15px; border-radius:6px; margin-bottom:10px; border: 1px solid #f87171;">
@@ -433,14 +439,16 @@ function evaluateLockdown() {
                     <button onclick="submitHianyzoNaplo('${l.datum}', '${l.muszak}')" style="background:var(--pri-normal); border:none; color:white; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto;">📝 Hiányzó Napló Beküldése</button>
                 </div>`;
             } else {
-                return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);"><div style="flex:1; padding-right:15px;"><strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br><span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span><div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:150px; overflow-y:auto; padding:5px; background:var(--bg-color); border:1px solid #cbd5e1; border-radius:4px;">${String(l.szoveg)}</div></div><button id="lockdownApprBtn_${l.id}" onclick="approveShiftLogLockdown('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:25px;">✅ Jóváhagyom</button></div>`;
+                let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                safeSzoveg = safeSzoveg.replace(/\[(PROD-KB-\d+\vert{}KB-\d+\vert{}PREV-[^\]]+|ISM-\d+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
+
+                return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);"><div style="flex:1; padding-right:15px;"><strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br><span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span><div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:150px; overflow-y:auto; padding:5px; background:var(--bg-color); border:1px solid #cbd5e1; border-radius:4px;">${safeSzoveg}</div></div><button id="lockdownApprBtn_${l.id}" onclick="approveShiftLogLockdown('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:25px;">✅ Jóváhagyom</button></div>`;
             }
         }).join('');
         document.getElementById('unapprovedLogsList').innerHTML = listHtml; return true;
     } return false;
 }
 
-// --- ÚJ: BŐVÍTETT MENTÉS A LOCKDOWN KÉPERNYŐRŐL ---
 async function submitHianyzoNaplo(datum, muszak) {
     let logKey = `${datum}_${muszak}`;
     let szoveg = document.getElementById(`hianyzoSzoveg_${logKey}`).value.trim();
@@ -456,7 +464,10 @@ async function submitHianyzoNaplo(datum, muszak) {
     if (lockdownSelectedTasks[logKey] && lockdownSelectedTasks[logKey].length > 0) {
         extraHeader += `🔗 Műszakhoz kapcsolódó leállások / hibák:\n`;
         lockdownSelectedTasks[logKey].forEach(task => {
-            extraHeader += `   - ${task.gep} (${task.statusz})\n`;
+            let fullTask = muszakValaszthatoFeladatok.find(t => t.id === task.id);
+            let tHiba = fullTask ? fullTask.hiba.replace(/\n/g, ' | ') : "";
+            let tDowntime = fullTask && fullTask.downtime ? fullTask.downtime : 0;
+            extraHeader += `   - [${task.id}] ${task.gep} - ${tHiba} (Állás: ${tDowntime} perc)\n`;
         });
     }
 
@@ -535,6 +546,7 @@ async function submitShiftLog() {
     if (!d || !s) { alert("Dátum és a szöveg kitöltése kötelező!"); return; } 
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
 
+    // Összefűzzük az extra adatokat (ID, Gép, Szöveg, Perc)
     let extraHeader = "";
     if (downtime && downtime > 0) {
         extraHeader += `⏳ Teljes állásidő a műszakban: ${downtime} perc\n`;
@@ -542,7 +554,10 @@ async function submitShiftLog() {
     if (selectedShiftTasks.length > 0) {
         extraHeader += `🔗 Műszakhoz kapcsolódó leállások / hibák:\n`;
         selectedShiftTasks.forEach(task => {
-            extraHeader += `   - ${task.gep} (${task.statusz})\n`;
+            let fullTask = muszakValaszthatoFeladatok.find(t => t.id === task.id);
+            let tHiba = fullTask ? fullTask.hiba.replace(/\n/g, ' | ') : ""; // Sortörés kivétele, hogy szépen egy sorban maradjon
+            let tDowntime = fullTask && fullTask.downtime ? fullTask.downtime : 0;
+            extraHeader += `   - [${task.id}] ${task.gep} - ${tHiba} (Állás: ${tDowntime} perc)\n`;
         });
     }
 
@@ -581,9 +596,71 @@ function renderShiftLogs() {
         let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); const dateStr = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
         let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : []; let statusHtml = "";
         if (approvers.length > 0) statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-normal);"><b style="color:var(--text-muted);">Látta:</b> ${approvers.join(', ')}</div>`; else statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-crit);">Még senki nem látta!</div>`;
-        h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${l.szoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
+        
+        // --- ÚJ: FELISMERI AZ AZONOSÍTÓT ÉS GOMBBÁ ALAKÍTJA A NAPLÓ SZÖVEGÉBEN ---
+        let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        safeSzoveg = safeSzoveg.replace(/\[(PROD-KB-\d+\vert{}KB-\d+\vert{}PREV-[^\]]+|ISM-\d+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
+
+        h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${safeSzoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
     }); c.innerHTML = h;
 }
+
+// --- ÚJ: FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
+function viewTaskDetails(taskId) {
+    // Megkeressük a feladatot az aktív és a lezárt listában is
+    let task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId);
+    if(!task) {
+        alert("A feladat részletei nem találhatóak a memóriában (lehet, hogy 30 napnál régebbi, vagy másik részleghez tartozik).");
+        return;
+    }
+    
+    document.getElementById('statModalTitle').innerHTML = `🔍 ${task.id} Részletei`;
+    
+    let dtTxt = parseFloat(task.downtime) > 0 ? `<b style="color:var(--pri-crit);">(${task.downtime} perc kiesés)</b>` : '';
+    
+    let html = `<div style="padding:10px 0;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <span style="font-size:15px;"><b>Gép:</b> ${task.gep}</span>
+            <span class="badge badge-normal">${task.statusz}</span>
+        </div>
+        <div style="background:#f8fafc; padding:10px; border-radius:4px; border:1px solid var(--border); margin-bottom:10px;">
+            <b style="color:var(--text-main);">Hiba leírása:</b><br>
+            <span style="white-space:pre-wrap; font-size:13px;">${task.hiba}</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+            <b>Rögzítette:</b> ${task.felhasznalo} <br>
+            <b>Időpont:</b> ${new Date(task.idopont).toLocaleString('hu-HU')}
+        </div>
+    `;
+    
+    if (task.statusz === "Lezárt") {
+        html += `
+        <div style="background:#f0fdf4; padding:10px; border-radius:4px; border:1px solid #bbf7d0; margin-bottom:10px;">
+            <b style="color:var(--pri-normal);">Megoldás:</b><br>
+            <span style="white-space:pre-wrap; font-size:13px;">${task.megoldas || 'Nem lett kitöltve megoldás.'}</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted);">
+            <b>Lezárta:</b> ${task.lezarta} <br>
+            <b>Javítási idő:</b> ${task.ido || 0} perc <br>
+            <b>Leállás:</b> ${dtTxt || '0 perc'}
+        </div>`;
+    } else if (task.statusz === "Folyamatban") {
+        html += `<div style="background: rgba(139, 92, 246, 0.2); padding:10px; border-radius:6px; color:#a78bfa; margin-top:15px; border:1px solid var(--pri-prog);">👷 <b>${task.felelos}</b> dolgozik rajta</div>`;
+    }
+    
+    html += `</div>`;
+    
+    document.getElementById('statModalBody').innerHTML = html;
+    document.getElementById('statDetailsModal').style.display = 'flex';
+}
+
+function closeStatModal(force = false) { 
+    if(force === true || (event && event.target.id === 'statDetailsModal')) {
+        let modal = document.getElementById('statDetailsModal');
+        if (modal) modal.style.display = "none";
+    }
+}
+// -----------------------------------------------------------------
 
 function exportShiftLogs() {
     let csv = "Dátum;Műszak;Írta;Szöveg;Jóváhagyók\n"; globalShiftLogs.forEach(l => { let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); csv += `"${logD}";"${l.muszak}";"${l.felhasznalo}";"${String(l.szoveg).replace(/"/g,'""')}";"${l.jovahagyok||""}"\n`; });
