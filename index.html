@@ -160,8 +160,14 @@
                 <h3>Műszaknapló írása</h3>
                 <div class="form-grid">
                     <div><select id="muszakTipus"><option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option><option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option><option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option></select></div>
-                    <div><input type="date" id="muszakDatum"></div>
+                    <div><input type="date" id="muszakDatum" onchange="frissitMuszakFeladatok()"></div>
                     <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
+                </div>
+                <div class="form-full" style="background:#f8fafc; padding:15px; border:1px solid #cbd5e1; border-radius:6px; margin-top:15px; margin-bottom:15px;">
+                    <label style="font-weight:bold; color:var(--pri-crit); display:block; padding-top:5px;">🔗 Mely feladatokon dolgoztál a műszakban? (Kattints a kártyákra)</label>
+                    <div id="muszakTaskContainer" class="grid-cards" style="margin-top: 10px; max-height: 350px; overflow-y: auto; padding: 5px; gap:10px;">
+                        <div style="color:var(--text-muted);">Feladatok betöltése...</div>
+                    </div>
                 </div>
                 <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
             </div>
@@ -278,7 +284,6 @@
     </div>
 </div>
 
-<!-- ÚJ: ALKATRÉSZ KERESŐ MODAL (Raktár) -->
 <div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
     <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
@@ -292,6 +297,6 @@
     </div>
 </div>
 
-<script src="karbantartas.js"></script>
+<script src="karbantartas.js?v=20"></script>
 </body>
 </html>
