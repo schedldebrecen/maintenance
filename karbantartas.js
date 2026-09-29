@@ -313,7 +313,12 @@ function renderScheduleMain() {
     
     let html = `<div class="sched-container"><table class="sched-table"><thead><tr><th class="sticky-col">Név / Dátum</th>`;
     dates.forEach(d => { let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.05); color:#94a3b8;' : ''; let dStr = d.toLocaleDateString('hu-HU', {month:'short', day:'numeric'}); let isToday = (toLocalISOString(d) === toLocalISOString(now)); if(isToday) bg += 'border-bottom:3px solid var(--pri-high); color:var(--pri-high); font-weight:bold;'; html += `<th style="${bg}">${dStr}</th>`; });
-    html += `</tr></thead><tbody><tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
+    html += `</tr></thead><tbody>`;
+    
+    // --- EZ A SOR HIÁNYZOTT: ---
+    let ptr = (sessionRole === 'superuser') ? 'cursor:pointer; hoverable' : ''; 
+    
+    html += `<tr><td class="sticky-col" style="color:var(--pri-crit);">📞 Ügyeletes</td>`;
     dates.forEach(d => {
         let isWorking = isWorkDay(d); let bg = !isWorking ? 'background:rgba(0,0,0,0.15);' : ''; let dIso = toLocalISOString(d); let match = globalSchedule.find(s => s.datum === dIso && s.user === '__UGYELET__'); let text = match ? match.tipus : ''; let cls = match ? 'cell-ugy' : '';
         let tdId = `maincell___UGYELET___${dIso}`; let clickAttr = (sessionRole === 'superuser') ? `onclick="paintCell('__UGYELET__', '${dIso}', '${tdId}')"` : ''; html += `<td id="${tdId}" class="sched-cell ${cls} ${ptr}" style="${bg}" ${clickAttr}>${text}</td>`;
@@ -329,7 +334,7 @@ function renderScheduleMain() {
     }); 
     
     if (usersExtra.length > 0) {
-        html += `<tr><td class="sticky-col" style="background:#f1f5f9; color:var(--text-muted); font-size:12px; text-align:center;" colspan="36">-- TERMELÉS DOLGOZÓI --</td></tr>`;
+        html += `<tr><td class="sticky-col" style="background:#f1f5f9; color:var(--text-muted); font-size:12px; text-align:center;" colspan="64">-- TERMELÉS DOLGOZÓI --</td></tr>`;
         usersExtra.forEach(u => {
             html += `<tr><td class="sticky-col" style="color:var(--text-muted);">${u}</td>`;
             dates.forEach(d => {
