@@ -128,7 +128,7 @@
                 canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]); 
+                resolve(canvas.toDataURL('image/jpeg', 0.9).split(',')[1]); 
             };
             img.onerror = () => reject(new Error("Hiba a kép beolvasásakor"));
             img.src = URL.createObjectURL(file); 
@@ -244,7 +244,7 @@
         document.getElementById("loader").innerText = "⏳ Fénykép tömörítése és feltöltése...";
         document.getElementById("loader").style.display = "block";
         try {
-            const base64Image = await compressImage(file, 600);
+            const base64Image = await compressImage(file, 1024);
             const data = await doFetch({ action: 'upload_item_image', erp_id: erpid, image_data: base64Image });
             document.getElementById("loader").style.display = "none";
             if (data.status === 'ok') {
@@ -323,7 +323,7 @@
         try {
             let base64Image = "";
             if (useImage && fileInput.files[0]) {
-                base64Image = await compressImage(fileInput.files[0], 600); 
+                base64Image = await compressImage(fileInput.files[0], 1024); 
             }
 
             const payload = { 
