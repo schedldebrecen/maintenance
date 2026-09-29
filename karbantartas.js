@@ -968,4 +968,10 @@ window.viewTaskDetails = function(taskId) {
     
     let modal = document.getElementById('statDetailsModal');
     if (modal) modal.style.display = 'flex';
+}
+function closeStatModal(force = false) { 
+    if(force === true || (event && event.target.id === 'statDetailsModal')) {
+        let modal = document.getElementById('statDetailsModal');
+        if (modal) modal.style.display = "none";
+    }
 };
