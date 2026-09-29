@@ -16,10 +16,24 @@ const gepAdatbazis = { "Production - Line 1": [ "Conv - Szállítástechnika", "
 const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"]; const huWorkWeekends = ["2026-08-08", "2026-12-12"];
 
 async function secureFetch(payload) {
-    if (payload.action !== "login" && payload.action !== "getUsers") { payload.token = localStorage.getItem("sessionToken"); }
+    if (payload.action !== "login" && payload.action !== "getUsers") { 
+        payload.token = localStorage.getItem("sessionToken"); 
+    }
     const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
     const data = await res.json();
-    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { alert("Biztonsági hiba: Lejárt a munkamenet vagy érvénytelen kulcs!"); logout(); throw new Error("ACCESS_DENIED"); }
+    
+    // HA LEJÁRT A KULCS:
+    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) {
+        window.isSessionExpired = true; // Jelezzük a rendszernek, hogy lejárt a kulcs
+        alert("⏳ A biztonsági munkamenet lejárt!\n\nKérlek, jelentkezz be újra a folytatáshoz. Ne aggódj, az eddig beírt adataid nem vesztek el!");
+        
+        // Csak elrejtjük az appot és mutatjuk a belépést (NINCS location.reload, így megmarad az adat!)
+        document.getElementById('appView').style.display = 'none';
+        if(document.getElementById('lockdownScreen')) document.getElementById('lockdownScreen').style.display = 'none';
+        document.getElementById('loginView').style.display = 'block';
+        
+        throw new Error("ACCESS_DENIED");
+    }
     return { json: () => Promise.resolve(data) };
 }
 
