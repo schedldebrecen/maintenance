@@ -214,15 +214,34 @@ async function login() {
     let n = document.getElementById('loginNevSelect').value !== "custom" && document.getElementById('loginNevSelect').value !== "" ? document.getElementById('loginNevSelect').value : document.getElementById('loginNev').value; 
     const j = document.getElementById('loginJelszo').value; 
     if(!n || !j) return alert("Add meg az adatokat!"); 
+    
     document.getElementById('loginStatus').innerText = "Ellenőrzés..."; 
     try { 
         const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
         const r = await res.json(); 
+        
         if(r.status === "success") { 
-            localStorage.setItem("activeUser", n); localStorage.setItem("activeRole", r.role || "maintenance"); localStorage.setItem("sessionToken", r.token); 
-            location.reload(); 
-        } else { document.getElementById('loginStatus').innerText = r.message; } 
-    } catch(e) { document.getElementById('loginStatus').innerText = "Hiba!"; } 
+            localStorage.setItem("activeUser", n); 
+            localStorage.setItem("activeRole", r.role || (typeof RESZLEG !== 'undefined' ? RESZLEG : "production")); 
+            localStorage.setItem("sessionToken", r.token); 
+            
+            // HA EZ EGY MUNKAMENET VISSZAÁLLÍTÁS (és már be volt töltve az app korábban)
+            if (window.isSessionExpired && globalShiftLogs.length > 0) {
+                window.isSessionExpired = false;
+                document.getElementById('loginView').style.display = 'none';
+                document.getElementById('appView').style.display = 'block';
+                document.getElementById('loginJelszo').value = '';
+                document.getElementById('loginStatus').innerText = '';
+                showToast("✅ Sikeres visszajelentkezés! Most már rányomhatsz a Mentés gombra.");
+            } else {
+                location.reload(); // Normál, első belépésnél újratöltjük az oldalt
+            }
+        } else { 
+            document.getElementById('loginStatus').innerText = r.message; 
+        } 
+    } catch(e) { 
+        document.getElementById('loginStatus').innerText = "Hiba!"; 
+    } 
 }
 
 function logout() { localStorage.removeItem("activeUser"); localStorage.removeItem("activeRole"); localStorage.removeItem("sessionToken"); sessionStorage.clear(); window.location.href = window.location.pathname; }
