@@ -13,6 +13,7 @@ let currentActiveTasks = [];
 let globalClosedTasks = [];
 let muszakValaszthatoFeladatok = [];
 let selectedShiftTasks = []; 
+let lockdownSelectedTasks = {}; // Új: a hiányzó naplókhoz
 
 // --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
@@ -124,7 +125,6 @@ async function checkLockdownAndInit() {
             
             let allTasks = rAll.data.tasks || [];
             processAppTasks(allTasks);
-
             processLockdownDisplay();
         } catch(e) {}
     }
@@ -141,7 +141,6 @@ async function checkLockdownAndInit() {
             
             let allTasks = rAll.data.tasks || [];
             processAppTasks(allTasks);
-
             processLockdownDisplay();
         }
     } catch(e) { 
@@ -154,15 +153,12 @@ function processAppTasks(allTasks) {
     muszakValaszthatoFeladatok = [];
     
     allTasks.forEach(t => { 
-        // 1. Kiszűrjük az Ismétlődő feladatokat
         let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
         if (isPrev) return;
 
-        // 2. Kiszűrjük az Informatív jegyeket
         let pLower = String(t.prioritas).toLowerCase();
         if (pLower.includes("informatív")) return;
 
-        // A többit (Hibák, leállások, megfigyelések) beengedjük
         muszakValaszthatoFeladatok.push(t);
     });
 
@@ -174,12 +170,11 @@ function frissitMuszakFeladatok() {
     const container = document.getElementById('muszakTaskContainer');
     if (!container) return;
 
-    selectedShiftTasks = []; // Újraszámolásnál nullázzuk a kijelölést
+    selectedShiftTasks = []; 
 
     let osszes = muszakValaszthatoFeladatok.filter(t => {
         if (t.statusz !== "Lezárt") return true; 
 
-        // Golyóálló dátum kinyerés
         let dStr = String(t.idopont);
         let taskDate = "";
         let parts = dStr.split(/\D+/); 
@@ -195,7 +190,6 @@ function frissitMuszakFeladatok() {
         return;
     }
 
-    // Sorrend: Nyitottak előre, Lezártak hátra, azon belül időrendben
     osszes.sort((a,b) => {
         if(a.statusz !== "Lezárt" && b.statusz === "Lezárt") return -1;
         if(a.statusz === "Lezárt" && b.statusz !== "Lezárt") return 1;
@@ -288,8 +282,10 @@ function toggleMuszakTask(taskId, gepNeve, statusz) {
         card.style.transform = "scale(1.03)";
     }
 }
-// ----------------------------------------------------
 
+// ----------------------------------------------------
+// --- ZÁROLÁS (LOCKDOWN) FELÜLET MEGJELENÍTÉSE ---
+// ----------------------------------------------------
 function processLockdownDisplay() {
     const isLocked = evaluateLockdown();
     if (isLocked) { 
@@ -299,6 +295,69 @@ function processLockdownDisplay() {
         const lastTabId = sessionStorage.getItem("activeAppTab");
         if(lastTabId) { const btn = document.querySelector(`button[onclick*="'${lastTabId}'"]`); if(btn) btn.click(); else loadShiftLogs(); } 
         else { switchTab('muszakatadasView', document.querySelector(`button[onclick*="'muszakatadasView'"]`)); loadShiftLogs(); }
+    }
+}
+
+// Generálja a hiányzó naplóhoz tartozó feladat kártyákat
+function generateLockdownTaskHtml(datum, logKey) {
+    let osszes = muszakValaszthatoFeladatok.filter(t => {
+        if (t.statusz !== "Lezárt") return true; 
+        let dStr = String(t.idopont);
+        let taskDate = "";
+        let parts = dStr.split(/\D+/); 
+        if (parts.length >= 3) {
+            taskDate = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        }
+        return taskDate === datum;
+    });
+
+    if (osszes.length === 0) return "<div style='color:var(--text-muted); font-size:12px; padding:5px;'>Nincs elérhető hiba/leállás erre a napra.</div>";
+
+    osszes.sort((a,b) => {
+        if(a.statusz !== "Lezárt" && b.statusz === "Lezárt") return -1;
+        if(a.statusz === "Lezárt" && b.statusz !== "Lezárt") return 1;
+        return new Date(b.idopont) - new Date(a.idopont);
+    });
+
+    let html = "";
+    osszes.forEach(t => {
+        let parts = String(t.idopont).split(/\D+/);
+        let timeStr = parts.length >= 5 ? `${parts[3].padStart(2,'0')}:${parts[4].padStart(2,'0')}` : "00:00";
+        
+        let eC = t.statusz === "Lezárt" ? "closed" : (String(t.prioritas).toLowerCase().includes("leállás") ? "Termelésleállás" : "Folyamatban");
+        let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
+        let cardId = `lockdownCard_${logKey}_${t.id}`;
+        let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
+        let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
+        html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s; padding:8px;" onclick="toggleLockdownTask('${t.id}', '${safeGep}', '${t.statusz}', '${logKey}')">
+            <div class="card-header" style="margin-bottom:4px;">
+                ${statusBadge}
+                <span style="color: var(--text-muted); font-size: 11px; font-weight:bold;">${timeStr}</span>
+            </div>
+            <div class="machine-name" style="font-size:12px; margin-bottom:2px;">${ikon} ${t.gep}</div>
+            <div class="issue-desc" style="white-space:pre-wrap; font-size:11px;">${t.hiba}</div>
+        </div>`;
+    });
+    return html;
+}
+
+function toggleLockdownTask(taskId, gepNeve, statusz, logKey) {
+    let card = document.getElementById(`lockdownCard_${logKey}_${taskId}`);
+    if(!lockdownSelectedTasks[logKey]) lockdownSelectedTasks[logKey] = [];
+    
+    let index = lockdownSelectedTasks[logKey].findIndex(x => x.id === taskId);
+
+    if (index > -1) {
+        lockdownSelectedTasks[logKey].splice(index, 1);
+        card.style.borderColor = "transparent";
+        card.style.boxShadow = "none";
+        card.style.transform = "scale(1)";
+    } else {
+        lockdownSelectedTasks[logKey].push({ id: taskId, gep: gepNeve, statusz: statusz });
+        card.style.borderColor = "var(--pri-normal)";
+        card.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.4)";
+        card.style.transform = "scale(1.02)";
     }
 }
 
@@ -346,12 +405,31 @@ function evaluateLockdown() {
 
     if (myUnapprovedCount > 0) {
         let listHtml = myUnapprovedLogs.map(l => {
-            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+            let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); 
+            const displayDate = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
+            
             if (l.hianyzo) {
+                // ÚJ: ÁLLÁSIDŐ ÉS FELADATVÁLASZTÓ A LOCKDOWN KÉPERNYŐN
+                let logKey = `${l.datum}_${l.muszak}`;
+                lockdownSelectedTasks[logKey] = []; // Kijelölés nullázása erre a naplóra
+                let taskHtml = generateLockdownTaskHtml(l.datum, logKey);
+
                 return `<div style="background:#fee2e2; padding:15px; border-radius:6px; margin-bottom:10px; border: 1px solid #f87171;">
                     <strong style="font-size:16px; color:var(--pri-crit);">⚠️ HIÁNYZÓ NAPLÓ: ${displayDate} - ${l.muszak}</strong><br>
                     <span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">A beosztás alapján dolgoztál, de nem rögzítettek naplót. Pótold most!</span>
-                    <textarea id="hianyzoSzoveg_${l.datum}_${l.muszak}" rows="2" placeholder="Írd meg a műszaknaplót..." style="margin-bottom:8px; background:white;"></textarea>
+                    
+                    <div style="background:white; padding:10px; border-radius:4px; margin-bottom:10px; border:1px solid #cbd5e1;">
+                        <div style="display:flex; align-items:center; margin-bottom:10px;">
+                            <label style="font-weight:bold; color:var(--primary); font-size:13px; margin-right:10px;">⏳ Állásidő (perc):</label>
+                            <input type="number" id="hianyzoDowntime_${logKey}" class="dash-input" placeholder="Pl. 45" style="width:80px; margin:0; font-size:13px; padding:4px;">
+                        </div>
+                        <label style="font-weight:bold; color:var(--pri-crit); font-size:12px; display:block; border-top:1px dashed #cbd5e1; padding-top:5px; margin-bottom:5px;">🔗 Mely feladatok okozták a leállást?</label>
+                        <div class="grid-cards" style="max-height: 200px; overflow-y: auto; padding: 5px; gap:8px;">
+                            ${taskHtml}
+                        </div>
+                    </div>
+
+                    <textarea id="hianyzoSzoveg_${logKey}" rows="2" placeholder="Írd meg a műszaknaplót..." style="margin-bottom:8px; background:white; font-size:14px;"></textarea>
                     <button onclick="submitHianyzoNaplo('${l.datum}', '${l.muszak}')" style="background:var(--pri-normal); border:none; color:white; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto;">📝 Hiányzó Napló Beküldése</button>
                 </div>`;
             } else {
@@ -362,9 +440,30 @@ function evaluateLockdown() {
     } return false;
 }
 
+// --- ÚJ: BŐVÍTETT MENTÉS A LOCKDOWN KÉPERNYŐRŐL ---
 async function submitHianyzoNaplo(datum, muszak) {
-    let szoveg = document.getElementById(`hianyzoSzoveg_${datum}_${muszak}`).value.trim();
+    let logKey = `${datum}_${muszak}`;
+    let szoveg = document.getElementById(`hianyzoSzoveg_${logKey}`).value.trim();
+    let downtimeEl = document.getElementById(`hianyzoDowntime_${logKey}`);
+    let downtime = downtimeEl ? downtimeEl.value : null;
+
     if(!szoveg) return alert("A napló szövege nem lehet üres!");
+
+    let extraHeader = "";
+    if (downtime && downtime > 0) {
+        extraHeader += `⏳ Teljes állásidő a műszakban: ${downtime} perc\n`;
+    }
+    if (lockdownSelectedTasks[logKey] && lockdownSelectedTasks[logKey].length > 0) {
+        extraHeader += `🔗 Műszakhoz kapcsolódó leállások / hibák:\n`;
+        lockdownSelectedTasks[logKey].forEach(task => {
+            extraHeader += `   - ${task.gep} (${task.statusz})\n`;
+        });
+    }
+
+    if (extraHeader !== "") {
+        szoveg = extraHeader + "\n" + szoveg;
+    }
+
     try {
         const res = await secureFetch({ action: "addShiftLog", reszleg: RESZLEG, datum: datum, muszak: muszak, szoveg: szoveg, felhasznalo: localStorage.getItem("activeUser") });
         const r = await res.json();
