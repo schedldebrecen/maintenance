@@ -435,7 +435,7 @@ function evaluateLockdown() {
             } else {
                 let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 // BOMBABIZTOS REGEX: Bármilyen azonosítót megtalál a zárójelek között
-                safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
+                safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span style="color:#0284c7; cursor:pointer; text-decoration:underline; font-weight:bold; padding:0 3px;" onclick="window.viewTaskDetails('$1')">🔍 $1</span>`);
 
                 return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);"><div style="flex:1; padding-right:15px;"><strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br><span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span><div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:150px; overflow-y:auto; padding:5px; background:var(--bg-color); border:1px solid #cbd5e1; border-radius:4px;">${safeSzoveg}</div></div><button id="lockdownApprBtn_${l.id}" onclick="approveShiftLogLockdown('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:25px;">✅ Jóváhagyom</button></div>`;
             }
@@ -598,17 +598,17 @@ function renderShiftLogs() {
         
         // --- BOMBABIZTOS REGEX: Felismeri az azonosítót és gombbá alakítja ---
         let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
+        safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span style="color:#0284c7; cursor:pointer; text-decoration:underline; font-weight:bold; padding:0 3px;" onclick="window.viewTaskDetails('$1')">🔍 $1</span>`);
 
         h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${safeSzoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
     }); c.innerHTML = h;
 }
 
 // --- FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
-function viewTaskDetails(taskId) {
+window.viewTaskDetails = function(taskId) {
     let task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId);
     if(!task) {
-        alert("A feladat részletei nem találhatóak a memóriában (lehet, hogy 30 napnál régebbi, vagy nem a te részlegedhez tartozik).");
+        alert("⚠️ A feladat (" + taskId + ") már nem található az aktív memóriában, mert lezárták és régebbi 30 napnál (Archivált).");
         return;
     }
     
