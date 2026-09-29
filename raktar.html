@@ -128,7 +128,7 @@
                 canvas.width = width; canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.9).split(',')[1]); 
+                resolve(canvas.toDataURL('image/jpeg', 1.0).split(',')[1]); 
             };
             img.onerror = () => reject(new Error("Hiba a kép beolvasásakor"));
             img.src = URL.createObjectURL(file); 
