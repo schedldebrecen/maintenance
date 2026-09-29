@@ -166,7 +166,6 @@ function processAppTasks(allTasks) {
         muszakValaszthatoFeladatok.push(t);
     });
 
-    // Frissítjük a csempéket
     frissitMuszakFeladatok();
 }
 
@@ -207,14 +206,23 @@ function frissitMuszakFeladatok() {
     osszes.forEach(t => {
         let parts = String(t.idopont).split(/\D+/);
         let timeStr = parts.length >= 5 ? `${parts[3].padStart(2,'0')}:${parts[4].padStart(2,'0')}` : "00:00";
+        let dateStr = new Date(t.idopont).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
         
-        let eC = t.statusz === "Lezárt" ? "closed" : (String(t.prioritas).toLowerCase().includes("leállás") ? "Termelésleállás" : "Folyamatban");
-        let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
+        let pLower = String(t.prioritas).toLowerCase();
+        let eC = t.statusz === "Lezárt" ? "closed" : (pLower.includes("leállás") ? "Termelésleállás" : (t.statusz === "Folyamatban" ? "Folyamatban" : (pLower.includes("magas") ? "Magas" : "")));
+        
+        const pr = String(t.prioritas).replace(" prioritás", "").replace("ással járó", "");
+        let pB = "badge-normal";
+        if(pLower.includes("leállás")) pB = "badge-crit"; 
+        else if(pLower.includes("magas")) pB = "badge-high"; 
+        else if(pLower.includes("megfigyelés")) pB = "badge-obs"; 
+        
         let cardId = `shiftTaskCard_${t.id}`;
         let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
         let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-        // --- ÚJ: BŐVÍTETT ADATOK (KÉP ÉS MEGOLDÁS) ---
+        let inProgressHtml = t.statusz === "Folyamatban" ? `<div class="in-progress-bar" style="font-size:11px; padding:4px; margin-bottom:5px;"><span>⚙️</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
+
         let kepekHtml = ""; 
         if (t.kepek) { 
             kepekHtml += `<div style="display:flex; gap:5px; margin-top:8px; margin-bottom:5px; overflow-x:auto;">`; 
@@ -229,22 +237,35 @@ function frissitMuszakFeladatok() {
         }
 
         let megoldasHtml = "";
-        if (t.statusz === "Lezárt" && t.megoldas) {
+        if (t.statusz === "Lezárt") {
+            let dtTxt = t.downtime ? ` | Kiesés: ${t.downtime} perc` : "";
+            let idoTxt = t.ido ? `${t.ido} perc` : "0 perc";
             megoldasHtml = `<div style="margin-top:8px; font-size:11px; color:var(--pri-normal); background:#f0fdf4; padding:6px; border-radius:4px; border:1px solid #bbf7d0;">
                 <b style="display:block; margin-bottom:2px;">Megoldás:</b>
-                ${String(t.megoldas).replace(/\n/g, '<br>')}
+                ${String(t.megoldas || "").replace(/\n/g, '<br>')}
+                <div style="margin-top:4px; color:var(--text-muted); font-weight:bold;">Javítás: ${idoTxt}${dtTxt}</div>
             </div>`;
         }
 
+        let metaFooter = `<div style="margin-top:8px; font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:5px;">
+            <div>Beküldte: <b>${t.felhasznalo}</b></div>
+            ${t.statusz === "Lezárt" ? `<div>Lezárta: <b>${t.lezarta || "-"}</b></div>` : ''}
+        </div>`;
+
         html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
             <div class="card-header">
-                ${statusBadge}
+                <div style="display:flex; gap:5px; align-items:center;">
+                    ${t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : ''}
+                    <span class="badge ${pB}">${pr}</span>
+                </div>
                 <span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${timeStr}</span>
             </div>
             <div class="machine-name" style="font-size:14px; margin-bottom:5px;">${ikon} ${t.gep}</div>
+            ${inProgressHtml}
             <div class="issue-desc" style="white-space:pre-wrap; font-size:12px;">${t.hiba}</div>
             ${kepekHtml}
             ${megoldasHtml}
+            ${metaFooter}
         </div>`;
     });
 
