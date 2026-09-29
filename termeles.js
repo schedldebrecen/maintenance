@@ -17,14 +17,22 @@ let lockdownSelectedTasks = {};
 
 // --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
-    if (payload.action !== "login" && payload.action !== "getUsers") {
-        payload.token = localStorage.getItem("sessionToken");
+    if (payload.action !== "login" && payload.action !== "getUsers") { 
+        payload.token = localStorage.getItem("sessionToken"); 
     }
     const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
     const data = await res.json();
+    
+    // HA LEJÁRT A KULCS:
     if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) {
-        alert("Biztonsági hiba: Lejárt a munkamenet vagy érvénytelen kulcs! Kérlek, jelentkezz be újra.");
-        logout();
+        window.isSessionExpired = true; // Jelezzük a rendszernek, hogy lejárt a kulcs
+        alert("⏳ A biztonsági munkamenet lejárt!\n\nKérlek, jelentkezz be újra a folytatáshoz. Ne aggódj, az eddig beírt adataid nem vesztek el!");
+        
+        // Csak elrejtjük az appot és mutatjuk a belépést (NINCS location.reload, így megmarad az adat!)
+        document.getElementById('appView').style.display = 'none';
+        if(document.getElementById('lockdownScreen')) document.getElementById('lockdownScreen').style.display = 'none';
+        document.getElementById('loginView').style.display = 'block';
+        
         throw new Error("ACCESS_DENIED");
     }
     return { json: () => Promise.resolve(data) };
