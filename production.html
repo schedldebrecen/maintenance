@@ -64,6 +64,20 @@
                     <div><input type="date" id="muszakDatum"></div>
                     <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
                 </div>
+
+
+				<!-- ÚJ: ÁLLÁSIDŐ ÉS FELADATVÁLASZTÓ BLOKK -->
+<div class="form-full" style="background:#f8fafc; padding:15px; border:1px solid #cbd5e1; border-radius:6px; margin-top:15px; margin-bottom:15px;">
+    <div style="display:flex; align-items:center; margin-bottom:15px;">
+        <label style="font-weight:bold; color:var(--primary); font-size:15px; margin-right:10px;">⏳ Állásidő a műszakban (perc):</label>
+        <input type="number" id="muszakDowntime" class="dash-input" placeholder="Pl. 45" style="width:100px; margin:0;">
+    </div>
+    
+    <label style="font-weight:bold; color:var(--pri-crit); display:block; border-top:1px dashed #cbd5e1; padding-top:10px;">🔗 Mely feladatok okozták a leállást? (Kattints a kártyákra a kijelöléshez)</label>
+    <div id="muszakTaskContainer" class="grid-cards" style="margin-top: 10px; max-height: 350px; overflow-y: auto; padding: 5px; gap:10px;">
+        <div style="color:var(--text-muted);">Feladatok betöltése...</div>
+    </div>
+</div>
                 <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
             </div>
             <div class="filter-panel" style="margin-top:25px;">
