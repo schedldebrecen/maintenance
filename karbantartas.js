@@ -10,6 +10,7 @@ let editIsmId = null; let globalPartsList = []; let targetPartInputId = null;
 let muszakValaszthatoFeladatok = [];
 let selectedShiftTasks = []; 
 let lockdownSelectedTasks = {};
+let currentActiveTasks = [];
 
 const gepAdatbazis = { "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ], "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ], "Production - Egyedi gépek": [ "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop", "HP1 - Hydraulic Press - Strautmann" ], "Magasraktár - High Bay System": [ "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas" ], "Palettázó B&O": [ "Szekventáló robot - B&O" ], "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ], "Facility": [ "Épülettel kapcsolatos dolgok" ], "IT": [ "Szerverek", "Hálózati eszközök (Switch/AP)", "Kliens gépek (PC/Laptop)", "Nyomtatók és szkennerek", "Szoftver és rendszerek", "Egyéb IT eszköz" ], "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ], "Aggregátor": [] };
 const huHolidays = ["2026-01-01", "2026-03-15", "2026-04-03", "2026-04-06", "2026-05-01", "2026-05-25", "2026-08-20", "2026-10-23", "2026-11-01", "2026-12-24", "2026-12-25", "2026-12-26"]; const huWorkWeekends = ["2026-08-08", "2026-12-12"];
@@ -82,14 +83,23 @@ async function checkLockdownAndInit() {
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
             
-            // Feladatok kinyerése a műszaknapló kártyáihoz és a listához
+            // Feladatok kinyerése
             let allTasks = rAll.data.tasks || [];
-            globalOpenTasks = []; globalClosedTasks = [];
+            globalOpenTasks = []; globalClosedTasks = []; muszakValaszthatoFeladatok = []; currentActiveTasks = [];
+            
             allTasks.forEach(t => { 
                 if(t.prioritas==="Igen") t.prioritas="Magas prioritás"; if(t.prioritas==="Nem") t.prioritas="Normál"; 
-                if(t.statusz!=="Lezárt") globalOpenTasks.push(t); else globalClosedTasks.push(t); 
+                
+                if(t.statusz!=="Lezárt") { globalOpenTasks.push(t); currentActiveTasks.push(t); } 
+                else { globalClosedTasks.push(t); } 
+
+                let pLower = String(t.prioritas).toLowerCase();
+                // ITT A VÁLTOZÁS: Az ismétlődőeket BENT HAGYJUK, csak az informatívat szűrjük!
+                if (!pLower.includes("informatív")) {
+                    muszakValaszthatoFeladatok.push(t);
+                }
             });
-            frissitMuszakFeladatok(); // UI csempék frissítése
+            frissitMuszakFeladatok();
 
             const isLocked = evaluateLockdown(); 
             if (isLocked) { 
@@ -220,12 +230,15 @@ async function loadTasks() {
     try {
         const res = await secureFetch({ action: "getTasks", reszleg: RESZLEG }); const r = await res.json();
         if(r.status === "success") {
-            globalOpenTasks = []; globalClosedTasks = [];
+            globalOpenTasks = []; globalClosedTasks = []; muszakValaszthatoFeladatok = []; currentActiveTasks = [];
             r.data.forEach(t => { 
                 let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
                 if (isPrev && String(t.id).toUpperCase().includes("PROD")) return;
                 if(t.prioritas==="Igen") t.prioritas="Magas prioritás"; if(t.prioritas==="Nem") t.prioritas="Normál"; 
-                if(t.statusz!=="Lezárt") globalOpenTasks.push(t); else globalClosedTasks.push(t); 
+                if(t.statusz!=="Lezárt") { globalOpenTasks.push(t); currentActiveTasks.push(t); } else { globalClosedTasks.push(t); } 
+                
+                let pLower = String(t.prioritas).toLowerCase();
+                if (!pLower.includes("informatív")) { muszakValaszthatoFeladatok.push(t); }
             });
             const w = {"Termelésleállás":4, "Magas prioritás":3, "Normál":2, "Megfigyelés alatt":1.5, "Informatív":1}; 
             globalOpenTasks.sort((a,b)=> (w[String(b.prioritas)]||0)-(w[String(a.prioritas)]||0));
@@ -243,7 +256,6 @@ function addAlkatreszRowIndex(taskId) {
     row.innerHTML = `<div style="flex:3; display:flex; margin:0; border: 1px solid var(--border); border-radius:3px; overflow:hidden;"><input type="text" id="alk_cikk_${taskId}_${rId}" class="alk-cikkszam-${taskId}" placeholder="Cikkszám" style="flex:1; font-size:13px; padding:6px; margin:0; border:none; outline:none; min-width:80px;"><button type="button" onclick="openPartsModal('alk_cikk_${taskId}_${rId}')" style="background:var(--pri-obs); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">🔍</button></div><input type="number" class="alk-db-${taskId}" placeholder="Db" style="flex:1; font-size:12px; padding:6px; margin:0; min-width:40px;"><button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; width:32px; height:32px; border-radius:3px; cursor:pointer; font-weight:bold; padding:0; display:flex; justify-content:center; align-items:center;">✕</button>`; container.appendChild(row);
 }
 
-// --- ÚJ: OKOS CHECKLIST LEZÁRÁSA ---
 async function closeTask(id) { 
     let m = document.getElementById(`megoldas_${id}`).value.trim();
     const i = document.getElementById(`ido_${id}`).value;
@@ -537,7 +549,7 @@ async function loadRecurringTasks() {
                         <small style="color:var(--text-muted)">Létrehozta: ${t.letrehozo}</small>
                         <div style="display:flex; gap:5px;">
                             <button onclick="editRecurringTaskUI('${t.id}', '${safeGep}', '${safeHiba}', '${t.prioritas}', '${t.ismTipus}', '${safeChecklist}', '${safeUt}', '${safeKep}', '${safeFajl}', '${safeFnev}')" style="background:var(--pri-info); width:auto; padding:5px 10px; font-size:12px; margin:0;">✏️ Szerkesztés</button>
-                            <button onclick="deleteRecurringTask('${t.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">🗑️ Törlés</button>
+                            <button onclick="deleteRecurringTask('${t.id}')" style="background:#ef4444; width:auto; padding:5px 10px; font-size:12px; margin:0;">🗑️️ Törlés</button>
                         </div>
                     </div>
                 </div>`;
@@ -636,8 +648,8 @@ function populateNavDropdown() {
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
     nav.add(new Option("📱 Termelés App", "production.html"));
     nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    nav.add(new Option("🔧 Karbantartás App", "index.html"));
-    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
+    nav.add(new Option("🔧 Karbantart App", "index.html"));
+    nav.add(new Option("📺 Karbantart Faliújság", "dashboard.html"));
 }
 
 function toggleNotifications() { const c = document.getElementById('notifToggle').checked; localStorage.setItem("notificationsEnabled", c ? "true" : "false"); }
@@ -691,7 +703,7 @@ async function exportClosedTasksPDF() {
     html += `</body></html>`; win.document.write(html); win.document.close(); setTimeout(() => { win.print(); }, 800);
 }
 
-// --- ÚJ MOTOROK A KÁRTYÁKHOZ ÉS A FELUGRÓ ABLAKHOZ ---
+// --- BŐVÍTETT KÁRTYÁK MOTORJA ---
 async function frissitMuszakFeladatok() {
     const datum = document.getElementById('muszakDatum').value;
     const container = document.getElementById('muszakTaskContainer');
@@ -709,8 +721,10 @@ async function frissitMuszakFeladatok() {
                     let pLower = String(t.prioritas).toLowerCase();
                     return !pLower.includes("informatív");
                 });
+                frissitMuszakFeladatok(); 
             }
         } catch(e) {}
+        return;
     }
 
     selectedShiftTasks = []; 
@@ -725,7 +739,7 @@ async function frissitMuszakFeladatok() {
     });
 
     if (osszes.length === 0) {
-        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs ehhez a naphoz kapcsolódó hiba.</div>";
+        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs ehhez a naphoz kapcsolódó hiba vagy ismétlődő feladat.</div>";
         return;
     }
 
@@ -741,19 +755,63 @@ async function frissitMuszakFeladatok() {
         let timeStr = parts.length >= 5 ? `${parts[3].padStart(2,'0')}:${parts[4].padStart(2,'0')}` : "00:00";
         
         let pLower = String(t.prioritas).toLowerCase();
-        let eC = t.statusz === "Lezárt" ? "closed" : (pLower.includes("leállás") ? "Termelésleállás" : "Folyamatban");
-        let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
+        let eC = t.statusz === "Lezárt" ? "closed" : (pLower.includes("leállás") ? "Termelésleállás" : (t.statusz === "Folyamatban" ? "Folyamatban" : (pLower.includes("magas") ? "Magas" : "")));
+        
+        const pr = String(t.prioritas).replace(" prioritás", "").replace("ással járó", "");
+        let pB = "badge-normal";
+        if(pLower.includes("leállás")) pB = "badge-crit"; 
+        else if(pLower.includes("magas")) pB = "badge-high"; 
+        else if(pLower.includes("megfigyelés")) pB = "badge-obs"; 
+        
         let cardId = `shiftTaskCard_${t.id}`;
-        let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
+        let ikon = String(t.id).includes("PROD-") ? "🏭" : (String(t.id).startsWith("PREV-") ? "🔁" : "🔧");
         let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        let inProgressHtml = t.statusz === "Folyamatban" ? `<div class="in-progress-bar" style="font-size:11px; padding:4px; margin-bottom:5px;"><span>⚙️</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
+
+        let kepekHtml = ""; 
+        if (t.kepek) { 
+            kepekHtml += `<div style="display:flex; gap:5px; margin-top:8px; margin-bottom:5px; overflow-x:auto;">`; 
+            String(t.kepek).split(",").forEach(u => { 
+                if(u.trim()) { 
+                    const m = u.match(/id=([^&]+)/) || u.match(/d\/([a-zA-Z0-9_-]+)/); 
+                    const imgSrc = m ? `https://lh3.googleusercontent.com/d/${m[1]}` : u.trim(); 
+                    kepekHtml += `<img src="${imgSrc}" loading="lazy" style="max-height:60px; border-radius:3px; border:1px solid #cbd5e1;">`; 
+                } 
+            }); 
+            kepekHtml += `</div>`; 
+        }
+
+        let megoldasHtml = "";
+        if (t.statusz === "Lezárt") {
+            let dtTxt = t.downtime ? ` | Kiesés: ${t.downtime} perc` : "";
+            let idoTxt = t.ido ? `${t.ido} perc` : "0 perc";
+            megoldasHtml = `<div style="margin-top:8px; font-size:11px; color:var(--pri-normal); background:#f0fdf4; padding:6px; border-radius:4px; border:1px solid #bbf7d0;">
+                <b style="display:block; margin-bottom:2px;">Megoldás:</b>
+                ${String(t.megoldas || "").replace(/\n/g, '<br>')}
+                <div style="margin-top:4px; color:var(--text-muted); font-weight:bold;">Javítás: ${idoTxt}${dtTxt}</div>
+            </div>`;
+        }
+
+        let metaFooter = `<div style="margin-top:8px; font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:5px;">
+            <div>Beküldte: <b>${t.felhasznalo}</b></div>
+            ${t.statusz === "Lezárt" ? `<div>Lezárta: <b>${t.lezarta || "-"}</b></div>` : ''}
+        </div>`;
 
         html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 2px solid #cbd5e1; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
             <div class="card-header">
-                ${statusBadge}
+                <div style="display:flex; gap:5px; align-items:center;">
+                    ${t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : ''}
+                    <span class="badge ${pB}">${pr}</span>
+                </div>
                 <span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${timeStr}</span>
             </div>
             <div class="machine-name" style="font-size:14px; margin-bottom:5px;">${ikon} ${t.gep}</div>
+            ${inProgressHtml}
             <div class="issue-desc" style="white-space:pre-wrap; font-size:12px;">${t.hiba}</div>
+            ${kepekHtml}
+            ${megoldasHtml}
+            ${metaFooter}
         </div>`;
     });
     container.innerHTML = html;
@@ -793,16 +851,59 @@ function generateLockdownTaskHtml(datum, logKey) {
     osszes.forEach(t => {
         let parts = String(t.idopont).split(/\D+/);
         let timeStr = parts.length >= 5 ? `${parts[3].padStart(2,'0')}:${parts[4].padStart(2,'0')}` : "00:00";
-        let eC = t.statusz === "Lezárt" ? "closed" : "Folyamatban";
-        let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
-        let cardId = `lockdownCard_${logKey}_${t.id}`;
-        let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
-        let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
+        let pLower = String(t.prioritas).toLowerCase();
+        let eC = t.statusz === "Lezárt" ? "closed" : (pLower.includes("leállás") ? "Termelésleállás" : (t.statusz === "Folyamatban" ? "Folyamatban" : (pLower.includes("magas") ? "Magas" : "")));
+        
+        const pr = String(t.prioritas).replace(" prioritás", "").replace("ással járó", "");
+        let pB = "badge-normal";
+        if(pLower.includes("leállás")) pB = "badge-crit"; 
+        else if(pLower.includes("magas")) pB = "badge-high"; 
+        else if(pLower.includes("megfigyelés")) pB = "badge-obs"; 
+        
+        let cardId = `lockdownCard_${logKey}_${t.id}`;
+        let ikon = String(t.id).includes("PROD-") ? "🏭" : (String(t.id).startsWith("PREV-") ? "🔁" : "🔧");
+        let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        let inProgressHtml = t.statusz === "Folyamatban" ? `<div class="in-progress-bar" style="font-size:11px; padding:4px; margin-bottom:5px;"><span>⚙️</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
+
+        let kepekHtml = ""; 
+        if (t.kepek) { 
+            kepekHtml += `<div style="display:flex; gap:5px; margin-top:8px; margin-bottom:5px; overflow-x:auto;">`; 
+            String(t.kepek).split(",").forEach(u => { 
+                if(u.trim()) { 
+                    const m = u.match(/id=([^&]+)/) || u.match(/d\/([a-zA-Z0-9_-]+)/); 
+                    const imgSrc = m ? `https://lh3.googleusercontent.com/d/${m[1]}` : u.trim(); 
+                    kepekHtml += `<img src="${imgSrc}" loading="lazy" style="max-height:60px; border-radius:3px; border:1px solid #cbd5e1;">`; 
+                } 
+            }); 
+            kepekHtml += `</div>`; 
+        }
+
+        let megoldasHtml = "";
+        if (t.statusz === "Lezárt") {
+            let dtTxt = t.downtime ? ` | Kiesés: ${t.downtime} perc` : "";
+            let idoTxt = t.ido ? `${t.ido} perc` : "0 perc";
+            megoldasHtml = `<div style="margin-top:8px; font-size:11px; color:var(--pri-normal); background:#f0fdf4; padding:6px; border-radius:4px; border:1px solid #bbf7d0;">
+                <b style="display:block; margin-bottom:2px;">Megoldás:</b>
+                ${String(t.megoldas || "").replace(/\n/g, '<br>')}
+                <div style="margin-top:4px; color:var(--text-muted); font-weight:bold;">Javítás: ${idoTxt}${dtTxt}</div>
+            </div>`;
+        }
+
         html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 2px solid #cbd5e1; transition: 0.2s; padding:8px;" onclick="toggleLockdownTask('${t.id}', '${safeGep}', '${t.statusz}', '${logKey}')">
-            <div class="card-header" style="margin-bottom:4px;">${statusBadge}<span style="color: var(--text-muted); font-size: 11px; font-weight:bold;">${timeStr}</span></div>
+            <div class="card-header" style="margin-bottom:4px;">
+                <div style="display:flex; gap:5px; align-items:center;">
+                    ${t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : ''}
+                    <span class="badge ${pB}">${pr}</span>
+                </div>
+                <span style="color: var(--text-muted); font-size: 11px; font-weight:bold;">${timeStr}</span>
+            </div>
             <div class="machine-name" style="font-size:12px; margin-bottom:2px;">${ikon} ${t.gep}</div>
+            ${inProgressHtml}
             <div class="issue-desc" style="white-space:pre-wrap; font-size:11px;">${t.hiba}</div>
+            ${kepekHtml}
+            ${megoldasHtml}
         </div>`;
     });
     return html;
