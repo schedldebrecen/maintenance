@@ -1,7 +1,6 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 const RESZLEG = "production";
 
-// GÉPADATBÁZIS
 const gepAdatbazis = { "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ], "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ], "Production - Egyedi gépek": [ "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop", "HP1 - Hydraulic Press - Strautmann" ], "Magasraktár - High Bay System": [ "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas" ], "Palettázó B&O": [ "Szekventáló robot - B&O" ], "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ], "Facility": [ "Épülettel kapcsolatos dolgok" ], "IT": [ "Szerverek", "Hálózati eszközök (Switch/AP)", "Kliens gépek (PC/Laptop)", "Nyomtatók és szkennerek", "Szoftver és rendszerek", "Egyéb IT eszköz" ], "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ], "Aggregátor": [] };
 
 let globalShiftLogs = []; 
@@ -10,9 +9,10 @@ let expectedApprovers = [];
 let globalChecklistSablon = []; 
 let editClSablonId = null;
 
-// -- VÁLTOZÓK A MŰSZAKNAPLÓ FELADATKIVÁLASZTÁSHOZ --
+// -- VÁLTOZÓK A MŰSZAKNAPLÓ FELADATKIVÁLASZTÁSHOZ (Csak egyszer definiálva!) --
 let currentActiveTasks = [];
 let globalClosedTasks = [];
+let muszakValaszthatoFeladatok = [];
 let selectedShiftTasks = []; 
 
 // --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
@@ -46,7 +46,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const md = document.getElementById('muszakDatum');
     if(md) {
         md.value = toLocalISOString(new Date()); 
-        // Ha változik a dátum a műszaknaplóban, frissítjük az alatta lévő csempéket
         md.addEventListener('change', frissitMuszakFeladatok);
     }
     
@@ -151,16 +150,12 @@ async function checkLockdownAndInit() {
     }
 }
 
-// -- ÚJ VÁLTOZÓK A MŰSZAKNAPLÓ FELADATKIVÁLASZTÁSHOZ --
-let muszakValaszthatoFeladatok = [];
-let selectedShiftTasks = []; 
-
 // --- FELADATOK SZÉTVÁLOGATÁSA ÉS CSEMPÉK MEGJELENÍTÉSE ---
 function processAppTasks(allTasks) {
     muszakValaszthatoFeladatok = [];
     
     allTasks.forEach(t => { 
-        // MOST MÁR MINDENT BEENGEDÜNK (Termelés, Karbantartás, IT, Épület)
+        // MOST MÁR MINDENT BEENGEDÜNK (Termelés, Karbantartás, IT, Épület, Ismétlődő)
         muszakValaszthatoFeladatok.push(t);
     });
 
@@ -386,7 +381,6 @@ async function loadShiftLogs() {
     } catch(e) {}
 }
 
-// --- ÚJ: BŐVÍTETT MŰSZAKNAPLÓ BEKÜLDÉS ---
 async function submitShiftLog() {
     const d = document.getElementById('muszakDatum').value;
     const m = document.getElementById('muszakTipus').value;
@@ -396,7 +390,6 @@ async function submitShiftLog() {
     if (!d || !s) { alert("Dátum és a szöveg kitöltése kötelező!"); return; } 
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
 
-    // Összefűzzük az állásidőt és a feladatokat a szöveggel
     let extraHeader = "";
     if (downtime && downtime > 0) {
         extraHeader += `⏳ Teljes állásidő a műszakban: ${downtime} perc\n`;
@@ -731,7 +724,6 @@ function populateNavDropdown() {
 
 async function saveSettings() { showToast("Mentve!"); }
 
-// --- ENTER GOMB FIGYELÉSE A BEJELENTKEZÉSHEZ ---
 document.addEventListener('DOMContentLoaded', () => {
     const jelszoMezo = document.getElementById('loginJelszo');
     if (jelszoMezo) {
