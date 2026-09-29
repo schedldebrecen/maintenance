@@ -175,7 +175,14 @@
         </div>
     </div>
 </div>
-
+<!-- FELUGRÓ ABLAK A RÉSZLETEKHEZ -->
+<div class="modal-overlay" id="statDetailsModal" onclick="closeStatModal(event)" style="display:none;">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 id="statModalTitle" style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;">Részletek</h2>
+        <div id="statModalBody" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;"></div>
+        <button class="btn-close-modal" onclick="closeStatModal(true)">Bezárás</button>
+    </div>
+</div>
 <script src="termeles.js?v=7"></script>
 </body>
 </html>
