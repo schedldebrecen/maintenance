@@ -33,13 +33,13 @@
     </div>
 </div>
 
-<div id="appView">
+<div id="appView" style="display:none;">
     <div class="topbar">
         <h2 style="margin: 0; display:flex; align-items:center;"><img src="Logo-Schedl (1).png" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;"></h2>
         <div class="user-info">
                 <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
-    			<option value="" disabled selected>☰ Navigáció</option>
-		</select>
+                <option value="" disabled selected>☰ Navigáció</option>
+        </select>
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
@@ -106,7 +106,7 @@
             <div id="scheduleContainer" style="margin-top:10px;">Betöltés...</div>
         </div>
 
-<div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
+        <div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
             <h3 style="color: var(--pri-crit);">🔁 Ismétlődő Feladatok (Tervezett Karbantartás)</h3>
             <div class="filter-panel">
                 <div class="form-grid">
@@ -154,11 +154,6 @@
             </div>
             <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
         </div>
-				
-                <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit);">Beállítás mentése</button>
-            </div>
-            <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
-        </div>
 
         <div id="muszakatadasView" class="view box">
             <div id="shiftLogInputSection">
@@ -200,12 +195,12 @@
         <div id="lezartFeladatok" class="view box">
             <div class="filter-panel">
                 <div class="filter-header">
-    				<h4>Lezárt Feladatok Szűrése</h4>
-    				<div style="display:flex; gap:10px;">
-        				<button class="btn-export" style="background:var(--pri-crit);" onclick="exportClosedTasksPDF()">📄 PDF Feladatlapok</button>
-        				<button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 CSV Export</button>
-    				</div>
-				</div>
+                    <h4>Lezárt Feladatok Szűrése</h4>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-export" style="background:var(--pri-crit);" onclick="exportClosedTasksPDF()">📄 PDF Feladatlapok</button>
+                        <button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 CSV Export</button>
+                    </div>
+                </div>
                 <div class="form-grid">
                     <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="Keresés leírásában, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
                     <select id="szuroLezartReszleg" onchange="renderClosedTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
