@@ -605,8 +605,12 @@ function renderShiftLogs() {
 }
 
 // --- FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
+// --- ÚJ: FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
 window.viewTaskDetails = function(taskId) {
+    console.log("Kattintás történt erre az ID-ra: " + taskId);
+
     let task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId);
+    
     if(!task) {
         alert("⚠️ A feladat (" + taskId + ") már nem található az aktív memóriában, mert lezárták és régebbi 30 napnál (Archivált).");
         return;
@@ -650,7 +654,7 @@ window.viewTaskDetails = function(taskId) {
     
     document.getElementById('statModalBody').innerHTML = html;
     document.getElementById('statDetailsModal').style.display = 'flex';
-}
+};
 
 function closeStatModal(force = false) { 
     if(force === true || (event && event.target.id === 'statDetailsModal')) {
@@ -658,6 +662,7 @@ function closeStatModal(force = false) {
         if (modal) modal.style.display = "none";
     }
 }
+// -----------------------------------------------------------------
 // -----------------------------------------------------------------
 
 function exportShiftLogs() {
