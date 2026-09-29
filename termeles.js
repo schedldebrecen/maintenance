@@ -155,16 +155,13 @@ function processAppTasks(allTasks) {
     globalClosedTasks = [];
     
     allTasks.forEach(t => { 
-        // 1. Kiszűrjük az Ismétlődő feladatokat a műszaknapló csempéiből
         let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
-        // 2. Kiszűrjük az Informatív jegyeket a műszaknapló csempéiből
         let pLower = String(t.prioritas).toLowerCase();
         
         if (!isPrev && !pLower.includes("informatív")) {
             muszakValaszthatoFeladatok.push(t);
         }
 
-        // Fő listák feltöltése (a részletek megjelenítéséhez kell!)
         if(t.statusz !== "Lezárt") {
             currentActiveTasks.push(t);
         } else {
@@ -291,9 +288,6 @@ function toggleMuszakTask(taskId, gepNeve, statusz) {
     }
 }
 
-// ----------------------------------------------------
-// --- ZÁROLÁS (LOCKDOWN) FELÜLET MEGJELENÍTÉSE ---
-// ----------------------------------------------------
 function processLockdownDisplay() {
     const isLocked = evaluateLockdown();
     if (isLocked) { 
@@ -440,7 +434,8 @@ function evaluateLockdown() {
                 </div>`;
             } else {
                 let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                safeSzoveg = safeSzoveg.replace(/\[(PROD-KB-\d+\vert{}KB-\d+\vert{}PREV-[^\]]+|ISM-\d+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
+                // BOMBABIZTOS REGEX: Bármilyen azonosítót megtalál a zárójelek között
+                safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
 
                 return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);"><div style="flex:1; padding-right:15px;"><strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br><span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span><div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:150px; overflow-y:auto; padding:5px; background:var(--bg-color); border:1px solid #cbd5e1; border-radius:4px;">${safeSzoveg}</div></div><button id="lockdownApprBtn_${l.id}" onclick="approveShiftLogLockdown('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:25px;">✅ Jóváhagyom</button></div>`;
             }
@@ -546,7 +541,6 @@ async function submitShiftLog() {
     if (!d || !s) { alert("Dátum és a szöveg kitöltése kötelező!"); return; } 
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
 
-    // Összefűzzük az extra adatokat (ID, Gép, Szöveg, Perc)
     let extraHeader = "";
     if (downtime && downtime > 0) {
         extraHeader += `⏳ Teljes állásidő a műszakban: ${downtime} perc\n`;
@@ -555,7 +549,7 @@ async function submitShiftLog() {
         extraHeader += `🔗 Műszakhoz kapcsolódó leállások / hibák:\n`;
         selectedShiftTasks.forEach(task => {
             let fullTask = muszakValaszthatoFeladatok.find(t => t.id === task.id);
-            let tHiba = fullTask ? fullTask.hiba.replace(/\n/g, ' | ') : ""; // Sortörés kivétele, hogy szépen egy sorban maradjon
+            let tHiba = fullTask ? fullTask.hiba.replace(/\n/g, ' | ') : ""; 
             let tDowntime = fullTask && fullTask.downtime ? fullTask.downtime : 0;
             extraHeader += `   - [${task.id}] ${task.gep} - ${tHiba} (Állás: ${tDowntime} perc)\n`;
         });
@@ -597,20 +591,19 @@ function renderShiftLogs() {
         let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : []; let statusHtml = "";
         if (approvers.length > 0) statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-normal);"><b style="color:var(--text-muted);">Látta:</b> ${approvers.join(', ')}</div>`; else statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-crit);">Még senki nem látta!</div>`;
         
-        // --- ÚJ: FELISMERI AZ AZONOSÍTÓT ÉS GOMBBÁ ALAKÍTJA A NAPLÓ SZÖVEGÉBEN ---
+        // --- BOMBABIZTOS REGEX: Felismeri az azonosítót és gombbá alakítja ---
         let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        safeSzoveg = safeSzoveg.replace(/\[(PROD-KB-\d+\vert{}KB-\d+\vert{}PREV-[^\]]+|ISM-\d+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
+        safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span class="badge badge-crit" style="cursor:pointer; font-size:11px; padding:3px 6px; margin:0 3px;" onclick="viewTaskDetails('$1')">🔍 $1</span>`);
 
         h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${safeSzoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
     }); c.innerHTML = h;
 }
 
-// --- ÚJ: FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
+// --- FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
 function viewTaskDetails(taskId) {
-    // Megkeressük a feladatot az aktív és a lezárt listában is
     let task = currentActiveTasks.find(t => t.id === taskId) || globalClosedTasks.find(t => t.id === taskId);
     if(!task) {
-        alert("A feladat részletei nem találhatóak a memóriában (lehet, hogy 30 napnál régebbi, vagy másik részleghez tartozik).");
+        alert("A feladat részletei nem találhatóak a memóriában (lehet, hogy 30 napnál régebbi, vagy nem a te részlegedhez tartozik).");
         return;
     }
     
