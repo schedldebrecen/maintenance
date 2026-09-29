@@ -1,7 +1,6 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziABd0I2cSep7TveoNoaQZkI5FzxYl4suqSfCR2rD8MXJQNMHPiygbTD8MK0T3Qz40/exec";
 const RESZLEG = "production";
 
-// GÉPADATBÁZIS
 const gepAdatbazis = { "Production - Line 1": [ "Conv - Szállítástechnika", "Schenck - Szelepszerelő robot", "TPMS1 - Screwing Station Manual - Atlas Copco", "RMS1 - Tire assembly - Hofmann", "RMM1 - Matching machine - Hofmann", "RFG1 - Tire Inflation - Hofmann", "RSO1 - Bead Seat Optimizer - Hofmann", "RGM1 - Tire Uniformity - Hofmann", "AWS1 - Balancing - Hofmann", "WC1 - Weight cutter - Rameckers", "AGS1 - Weight applicator - KUKA" ], "Production - Line 2": [ "Conv - Szállítástechnika", "WGS2 - Wheel gauging - IEF Werner", "RMS2 - Tire assembly - Hofmann", "RFG2 - Tire Inflation - Hofmann", "AWS2 - Balancing - Hofmann", "WC2 - Weight cutter - Rameckers", "AGS2 - Weight applicator - KUKA", "AWSK1 - Control Balancing - Hofmann", "TPMS writing /reading - ATEQ", "EOL1 - End of Line control - Mabri Vision" ], "Production - Egyedi gépek": [ "MTAM1 - Manual tyre assembly machine - Hofmann", "CUT1 - Bandage Cutting Machine - Cyklop", "HP1 - Hydraulic Press - Strautmann" ], "Magasraktár - High Bay System": [ "RBG 1 - Beewen", "RBG 2 - Beewen", "RBG 3 - Beewen", "Conveyors - Blume/Thepas" ], "Palettázó B&O": [ "Szekventáló robot - B&O" ], "Q-Area": [ "TLIT - Tire leak inspection tank - Corghi", "MTAM2 - Manual tyre assembly machine - Aikido" ], "Facility": [ "Épülettel kapcsolatos dolgok" ], "IT": [ "Szerverek", "Hálózati eszközök (Switch/AP)", "Kliens gépek (PC/Laptop)", "Nyomtatók és szkennerek", "Szoftver és rendszerek", "Egyéb IT eszköz" ], "Compressors": [ "DRAIN - Drain Water Separator - Boge", "COMP1 - Compressor 1 - Boge", "DRY1 - Air Dryer 1 - Beko", "COMP2 - Compressor 2 - Boge", "DRY2 - Air Dryer 2 - Beko", "COMP3 - Compressor 3 - Boge" ], "Aggregátor": [] };
 
 let globalShiftLogs = []; 
@@ -10,7 +9,12 @@ let expectedApprovers = [];
 let globalChecklistSablon = []; 
 let editClSablonId = null;
 
-// --- ÚJ: BIZTONSÁGI HÁLÓZATI HÍVÓ ---
+// -- ÚJ VÁLTOZÓK A MŰSZAKNAPLÓ FELADATKIVÁLASZTÁSHOZ --
+let currentActiveTasks = [];
+let globalClosedTasks = [];
+let selectedShiftTasks = []; 
+
+// --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
     if (payload.action !== "login" && payload.action !== "getUsers") {
         payload.token = localStorage.getItem("sessionToken");
@@ -38,7 +42,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const teruletSel = document.getElementById('clSablonTerulet');
     if (teruletSel) { for (let kat in gepAdatbazis) { teruletSel.add(new Option(kat, kat)); } }
 
-    if(document.getElementById('muszakDatum')) document.getElementById('muszakDatum').value = toLocalISOString(new Date()); 
+    const md = document.getElementById('muszakDatum');
+    if(md) {
+        md.value = toLocalISOString(new Date()); 
+        // ÚJ: Ha változik a dátum, frissüljenek a csempék alul
+        md.addEventListener('change', frissitMuszakFeladatok);
+    }
+    
     if(document.getElementById('clExpTol')) document.getElementById('clExpTol').value = toLocalISOString(new Date());
     if(document.getElementById('clExpIg')) document.getElementById('clExpIg').value = toLocalISOString(new Date());
     loadUserList(); 
@@ -104,9 +114,7 @@ window.onload = async function() {
     }
 };
 
-// --- LOCKDOWN ÉS INICIALIZÁLÁS (GYORSÍTOTT CACHE LOGIKÁVAL) ---
 async function checkLockdownAndInit() {
-    // 1. Gyors betöltés a memóriából
     let cachedData = localStorage.getItem('appCache_Prod');
     if (cachedData) {
         try {
@@ -114,11 +122,15 @@ async function checkLockdownAndInit() {
             globalSchedule = rAll.data.schedule || []; 
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
+            
+            // Lementjük a feladatokat a csempékhez
+            let allTasks = rAll.data.tasks || [];
+            processAppTasks(allTasks);
+
             processLockdownDisplay();
         } catch(e) {}
     }
 
-    // 2. Háttérfrissítés a Google-ből
     try {
         const resAll = await secureFetch({ action: "getAllData", reszleg: RESZLEG }); 
         const rAll = await resAll.json();
@@ -128,12 +140,108 @@ async function checkLockdownAndInit() {
             globalSchedule = rAll.data.schedule || []; 
             globalShiftLogs = rAll.data.shiftLogs || []; 
             expectedApprovers = rAll.data.expectedApprovers || []; 
+            
+            // Frissítjük a feladatokat
+            let allTasks = rAll.data.tasks || [];
+            processAppTasks(allTasks);
+
             processLockdownDisplay();
         }
     } catch(e) { 
         document.getElementById('appView').style.display = 'block'; loadShiftLogs(); 
     }
 }
+
+// --- ÚJ: FELADATOK SZÉTVÁLOGATÁSA ÉS CSEMPÉK MEGJELENÍTÉSE ---
+function processAppTasks(allTasks) {
+    currentActiveTasks = [];
+    globalClosedTasks = [];
+    
+    allTasks.forEach(t => { 
+        if (!String(t.id).includes("PROD-")) return; // Csak termeléses feladatok kellenek ide
+        
+        let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
+        if (isPrev && !String(t.id).toUpperCase().includes("PROD")) return;
+        
+        if(t.statusz !== "Lezárt") {
+            currentActiveTasks.push(t);
+        } else {
+            globalClosedTasks.push(t);
+        }
+    });
+
+    // Miután megvannak a listák, azonnal frissítjük a Műszaknapló csempéit
+    frissitMuszakFeladatok();
+}
+
+function frissitMuszakFeladatok() {
+    const datum = document.getElementById('muszakDatum').value;
+    const container = document.getElementById('muszakTaskContainer');
+    if (!container) return;
+
+    selectedShiftTasks = []; // Újraszámolásnál nullázzuk a kijelölést
+
+    // Kikeressük az aktív (nyitott) feladatokat
+    let nyitott = currentActiveTasks;
+    
+    // Kikeressük az aznapi lezárt feladatokat
+    let lezart = globalClosedTasks.filter(t => String(t.idopont).substring(0, 10) === datum);
+
+    let osszes = [...nyitott, ...lezart];
+
+    if (osszes.length === 0) {
+        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs ehhez a naphoz kapcsolódó, vagy jelenleg nyitott termelési hiba.</div>";
+        return;
+    }
+
+    // Sorrend: Nyitottak előre, Lezártak hátra, időrendben
+    osszes.sort((a,b) => {
+        if(a.statusz !== "Lezárt" && b.statusz === "Lezárt") return -1;
+        if(a.statusz === "Lezárt" && b.statusz !== "Lezárt") return 1;
+        return new Date(b.idopont) - new Date(a.idopont);
+    });
+
+    let html = "";
+    osszes.forEach(t => {
+        const timeStr = new Date(t.idopont).toLocaleTimeString('hu-HU', {hour: '2-digit', minute:'2-digit'});
+        let eC = t.statusz === "Lezárt" ? "closed" : (String(t.prioritas).toLowerCase().includes("leállás") ? "Termelésleállás" : "Folyamatban");
+        let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
+        let cardId = `shiftTaskCard_${t.id}`;
+        
+        let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
+        html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
+            <div class="card-header">
+                ${statusBadge}
+                <span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${timeStr}</span>
+            </div>
+            <div class="machine-name" style="font-size:14px; margin-bottom:5px;">🏭 ${t.gep}</div>
+            <div class="issue-desc" style="white-space:pre-wrap; font-size:12px;">${t.hiba}</div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function toggleMuszakTask(taskId, gepNeve, statusz) {
+    let card = document.getElementById(`shiftTaskCard_${taskId}`);
+    let index = selectedShiftTasks.findIndex(x => x.id === taskId);
+
+    if (index > -1) {
+        // Levétel a listáról
+        selectedShiftTasks.splice(index, 1);
+        card.style.borderColor = "transparent";
+        card.style.boxShadow = "none";
+        card.style.transform = "scale(1)";
+    } else {
+        // Hozzáadás a listához
+        selectedShiftTasks.push({ id: taskId, gep: gepNeve, statusz: statusz });
+        card.style.borderColor = "var(--pri-normal)";
+        card.style.boxShadow = "0 0 15px rgba(16, 185, 129, 0.4)";
+        card.style.transform = "scale(1.03)";
+    }
+}
+// --- EDDIG TART AZ ÚJ RÉSZ ---
 
 function processLockdownDisplay() {
     const isLocked = evaluateLockdown();
@@ -242,7 +350,7 @@ async function login() {
         if(r.status === "success") { 
             localStorage.setItem("activeUser", n); 
             localStorage.setItem("activeRole", r.role || "production"); 
-            localStorage.setItem("sessionToken", r.token); // --- ÚJ: TOKEN MENTÉSE
+            localStorage.setItem("sessionToken", r.token);
             location.reload(); 
         } else { 
             document.getElementById('loginStatus').innerText = r.message; 
@@ -255,12 +363,11 @@ async function login() {
 function logout() { 
     localStorage.removeItem("activeUser"); 
     localStorage.removeItem("activeRole"); 
-    localStorage.removeItem("sessionToken"); // --- ÚJ: TOKEN TÖRLÉSE
+    localStorage.removeItem("sessionToken");
     sessionStorage.clear(); 
     window.location.href = window.location.pathname; 
 }
 
-// MŰSZAKNAPLÓ FUNKCIÓK
 async function loadShiftLogs() {
     const c = document.getElementById('shiftLogsContainer'); if(!c) return; c.innerHTML = "Betöltés...";
     try { 
@@ -273,16 +380,41 @@ async function loadShiftLogs() {
     } catch(e) {}
 }
 
+// --- ÚJ: BŐVÍTETT MŰSZAKNAPLÓ BEKÜLDÉS ---
 async function submitShiftLog() {
-    const d = document.getElementById('muszakDatum').value, m = document.getElementById('muszakTipus').value, s = document.getElementById('muszakSzoveg').value;
-    if (!d || !s) { alert("Dátum és szöveg kötelező!"); return; } 
+    const d = document.getElementById('muszakDatum').value;
+    const m = document.getElementById('muszakTipus').value;
+    let s = document.getElementById('muszakSzoveg').value.trim();
+    const downtime = document.getElementById('muszakDowntime') ? document.getElementById('muszakDowntime').value : null;
+
+    if (!d || !s) { alert("Dátum és a szöveg kitöltése kötelező!"); return; } 
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
+
+    // Összefűzzük az állásidőt és a feladatokat a szöveggel (Láthatatlan backend okosítás)
+    let extraHeader = "";
+    if (downtime && downtime > 0) {
+        extraHeader += `⏳ Teljes állásidő a műszakban: ${downtime} perc\n`;
+    }
+    if (selectedShiftTasks.length > 0) {
+        extraHeader += `🔗 Műszakhoz kapcsolódó leállások / hibák:\n`;
+        selectedShiftTasks.forEach(task => {
+            extraHeader += `   - ${task.gep} (${task.statusz})\n`;
+        });
+    }
+
+    if (extraHeader !== "") {
+        s = extraHeader + "\n" + s;
+    }
+
     try { 
         const res = await secureFetch({ action: "addShiftLog", reszleg: RESZLEG, datum: d, muszak: m, szoveg: s, felhasznalo: localStorage.getItem("activeUser") }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             showToast("Napló mentve!"); 
             document.getElementById('muszakSzoveg').value = ''; 
+            if(document.getElementById('muszakDowntime')) document.getElementById('muszakDowntime').value = ''; 
+            
+            // Lekérjük újra az adatokat, hogy frissüljön a csempe és a lista is
             checkLockdownAndInit(); 
         } else { 
             alert(r.message); 
@@ -315,7 +447,6 @@ function exportShiftLogs() {
     let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'})); a.download = "Muszaknaplo_Export.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ELKÉSZÜLT CHECKLISTÁK MEGJELENÍTÉSE ÉS PDF EXPORT
 async function getFilteredChecklistLogs() {
     const sTol = document.getElementById('clExpTol').value; 
     const sIg = document.getElementById('clExpIg').value; 
@@ -595,7 +726,6 @@ function populateNavDropdown() {
 
 async function saveSettings() { showToast("Mentve!"); }
 
-// --- ENTER GOMB FIGYELÉSE A BEJELENTKEZÉSHEZ ---
 document.addEventListener('DOMContentLoaded', () => {
     const jelszoMezo = document.getElementById('loginJelszo');
     if (jelszoMezo) {
