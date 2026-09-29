@@ -9,7 +9,6 @@ let expectedApprovers = [];
 let globalChecklistSablon = []; 
 let editClSablonId = null;
 
-// -- VÁLTOZÓK A MŰSZAKNAPLÓ FELADATKIVÁLASZTÁSHOZ (Csak egyszer definiálva!) --
 let currentActiveTasks = [];
 let globalClosedTasks = [];
 let muszakValaszthatoFeladatok = [];
@@ -155,11 +154,19 @@ function processAppTasks(allTasks) {
     muszakValaszthatoFeladatok = [];
     
     allTasks.forEach(t => { 
-        // MOST MÁR MINDENT BEENGEDÜNK (Termelés, Karbantartás, IT, Épület, Ismétlődő)
+        // 1. Kiszűrjük az Ismétlődő feladatokat
+        let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
+        if (isPrev) return;
+
+        // 2. Kiszűrjük az Informatív jegyeket
+        let pLower = String(t.prioritas).toLowerCase();
+        if (pLower.includes("informatív")) return;
+
+        // A többit (Hibák, leállások, megfigyelések) beengedjük
         muszakValaszthatoFeladatok.push(t);
     });
 
-    // Miután megvan a lista, azonnal frissítjük a Műszaknapló csempéit
+    // Frissítjük a csempéket
     frissitMuszakFeladatok();
 }
 
@@ -170,16 +177,13 @@ function frissitMuszakFeladatok() {
 
     selectedShiftTasks = []; // Újraszámolásnál nullázzuk a kijelölést
 
-    // Kikeressük a feladatokat:
-    // 1. Ami jelenleg nyitott (Folyamatban vagy Új) - Dátumtól függetlenül!
-    // 2. Ami lezárt, de PONT AZON A NAPON zárták le / rögzítették
     let osszes = muszakValaszthatoFeladatok.filter(t => {
         if (t.statusz !== "Lezárt") return true; 
 
-        // Golyóálló dátum kinyerés a Google adataiból (mindegy, hogy "2026-09-29" vagy "2026. 09. 29.")
+        // Golyóálló dátum kinyerés
         let dStr = String(t.idopont);
         let taskDate = "";
-        let parts = dStr.split(/\D+/); // Minden nem-szám karakternél darabol
+        let parts = dStr.split(/\D+/); 
         if (parts.length >= 3) {
             taskDate = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
         }
@@ -207,10 +211,31 @@ function frissitMuszakFeladatok() {
         let eC = t.statusz === "Lezárt" ? "closed" : (String(t.prioritas).toLowerCase().includes("leállás") ? "Termelésleállás" : "Folyamatban");
         let statusBadge = t.statusz === "Lezárt" ? `<span class="badge badge-closed">Lezárt</span>` : `<span class="badge badge-crit">Nyitott</span>`;
         let cardId = `shiftTaskCard_${t.id}`;
-        
         let ikon = String(t.id).includes("PROD-") ? "🏭" : "🔧";
         let safeGep = String(t.gep || "-").replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        
+
+        // --- ÚJ: BŐVÍTETT ADATOK (KÉP ÉS MEGOLDÁS) ---
+        let kepekHtml = ""; 
+        if (t.kepek) { 
+            kepekHtml += `<div style="display:flex; gap:5px; margin-top:8px; margin-bottom:5px; overflow-x:auto;">`; 
+            String(t.kepek).split(",").forEach(u => { 
+                if(u.trim()) { 
+                    const m = u.match(/id=([^&]+)/) || u.match(/d\/([a-zA-Z0-9_-]+)/); 
+                    const imgSrc = m ? `https://lh3.googleusercontent.com/d/${m[1]}` : u.trim(); 
+                    kepekHtml += `<img src="${imgSrc}" loading="lazy" style="max-height:60px; border-radius:3px; border:1px solid #cbd5e1;">`; 
+                } 
+            }); 
+            kepekHtml += `</div>`; 
+        }
+
+        let megoldasHtml = "";
+        if (t.statusz === "Lezárt" && t.megoldas) {
+            megoldasHtml = `<div style="margin-top:8px; font-size:11px; color:var(--pri-normal); background:#f0fdf4; padding:6px; border-radius:4px; border:1px solid #bbf7d0;">
+                <b style="display:block; margin-bottom:2px;">Megoldás:</b>
+                ${String(t.megoldas).replace(/\n/g, '<br>')}
+            </div>`;
+        }
+
         html += `<div id="${cardId}" class="card ${eC}" style="cursor:pointer; border: 3px solid transparent; transition: 0.2s;" onclick="toggleMuszakTask('${t.id}', '${safeGep}', '${t.statusz}')">
             <div class="card-header">
                 ${statusBadge}
@@ -218,6 +243,8 @@ function frissitMuszakFeladatok() {
             </div>
             <div class="machine-name" style="font-size:14px; margin-bottom:5px;">${ikon} ${t.gep}</div>
             <div class="issue-desc" style="white-space:pre-wrap; font-size:12px;">${t.hiba}</div>
+            ${kepekHtml}
+            ${megoldasHtml}
         </div>`;
     });
 
@@ -229,13 +256,11 @@ function toggleMuszakTask(taskId, gepNeve, statusz) {
     let index = selectedShiftTasks.findIndex(x => x.id === taskId);
 
     if (index > -1) {
-        // Levétel a listáról
         selectedShiftTasks.splice(index, 1);
         card.style.borderColor = "transparent";
         card.style.boxShadow = "none";
         card.style.transform = "scale(1)";
     } else {
-        // Hozzáadás a listához
         selectedShiftTasks.push({ id: taskId, gep: gepNeve, statusz: statusz });
         card.style.borderColor = "var(--pri-normal)";
         card.style.boxShadow = "0 0 15px rgba(16, 185, 129, 0.4)";
