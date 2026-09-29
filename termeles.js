@@ -450,7 +450,9 @@ async function submitHianyzoNaplo(datum, muszak) {
     let downtimeEl = document.getElementById(`hianyzoDowntime_${logKey}`);
     let downtime = downtimeEl ? downtimeEl.value : null;
 
-    if(!szoveg) return alert("A napló szövege nem lehet üres!");
+    if(!szoveg || downtime === null || downtime === "") { 
+    return alert("A napló szövege és az állásidő kitöltése kötelező! (Ha nem volt leállás, írj be 0-t!)"); 
+    }
 
     let extraHeader = "";
     if (downtime && downtime > 0) {
@@ -538,7 +540,10 @@ async function submitShiftLog() {
     let s = document.getElementById('muszakSzoveg').value.trim();
     const downtime = document.getElementById('muszakDowntime') ? document.getElementById('muszakDowntime').value : null;
 
-    if (!d || !s) { alert("Dátum és a szöveg kitöltése kötelező!"); return; } 
+    if (!d || !s || downtime === null || downtime === "") { 
+    alert("Dátum, szöveg ÉS az állásidő kitöltése kötelező! (Ha nem volt leállás, írj be 0-t!)"); 
+    return; 
+    } 
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
 
     let extraHeader = "";
