@@ -17,22 +17,17 @@ let lockdownSelectedTasks = {};
 
 // --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
-    if (payload.action !== "login" && payload.action !== "getUsers") { 
-        payload.token = localStorage.getItem("sessionToken"); 
+    if (payload.action !== "login" && payload.action !== "getUsers") {
+        payload.token = localStorage.getItem("sessionToken");
     }
     const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
     const data = await res.json();
-    
-    // HA LEJÁRT A KULCS:
     if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) {
-        window.isSessionExpired = true; // Jelezzük a rendszernek, hogy lejárt a kulcs
+        window.isSessionExpired = true; 
         alert("⏳ A biztonsági munkamenet lejárt!\n\nKérlek, jelentkezz be újra a folytatáshoz. Ne aggódj, az eddig beírt adataid nem vesztek el!");
-        
-        // Csak elrejtjük az appot és mutatjuk a belépést (NINCS location.reload, így megmarad az adat!)
         document.getElementById('appView').style.display = 'none';
         if(document.getElementById('lockdownScreen')) document.getElementById('lockdownScreen').style.display = 'none';
         document.getElementById('loginView').style.display = 'block';
-        
         throw new Error("ACCESS_DENIED");
     }
     return { json: () => Promise.resolve(data) };
@@ -55,6 +50,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if(md) {
         md.value = toLocalISOString(new Date()); 
         md.addEventListener('change', frissitMuszakFeladatok);
+    }
+    const mt = document.getElementById('muszakTipus');
+    if(mt) {
+        mt.addEventListener('change', frissitMuszakFeladatok);
     }
     
     if(document.getElementById('clExpTol')) document.getElementById('clExpTol').value = toLocalISOString(new Date());
@@ -156,7 +155,35 @@ async function checkLockdownAndInit() {
     }
 }
 
-// --- FELADATOK SZÉTVÁLOGATÁSA ÉS CSEMPÉK MEGJELENÍTÉSE ---
+// --- ÚJ: Műszak Időablak Számoló Algoritmus ---
+function isTaskInShift(t, shiftDateStr, shiftName) {
+    if (!shiftDateStr || !shiftName) return false;
+    let start = new Date(shiftDateStr + "T00:00:00");
+    let end = new Date(shiftDateStr + "T00:00:00");
+    
+    if (shiftName.includes("Délelőtt")) {
+        start.setHours(6, 0, 0, 0); end.setHours(14, 0, 0, 0);
+    } else if (shiftName.includes("Délután")) {
+        start.setHours(14, 0, 0, 0); end.setHours(22, 0, 0, 0);
+    } else if (shiftName.includes("Éjszaka")) {
+        start.setHours(22, 0, 0, 0);
+        end.setDate(end.getDate() + 1);
+        end.setHours(6, 0, 0, 0);
+    } else {
+        start.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() + 1);
+        end.setHours(0, 0, 0, 0);
+    }
+
+    if (t.statusz === "Lezárt") {
+        let checkDate = new Date(t.startIdopont ? t.startIdopont : t.idopont);
+        return checkDate >= start && checkDate < end;
+    } else {
+        let createDate = new Date(t.idopont);
+        return createDate < end; 
+    }
+}
+
 function processAppTasks(allTasks) {
     muszakValaszthatoFeladatok = [];
     currentActiveTasks = [];
@@ -182,25 +209,17 @@ function processAppTasks(allTasks) {
 
 function frissitMuszakFeladatok() {
     const datum = document.getElementById('muszakDatum').value;
+    const muszakTipus = document.getElementById('muszakTipus').value;
     const container = document.getElementById('muszakTaskContainer');
-    if (!container) return;
+    if (!container || !datum || !muszakTipus) return;
 
     selectedShiftTasks = []; 
 
-    let osszes = muszakValaszthatoFeladatok.filter(t => {
-        if (t.statusz !== "Lezárt") return true; 
-
-        let dStr = String(t.idopont);
-        let taskDate = "";
-        let parts = dStr.split(/\D+/); 
-        if (parts.length >= 3) {
-            taskDate = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
-        }
-        return taskDate === datum;
-    });
+    // Időablak szerinti szűrés
+    let osszes = muszakValaszthatoFeladatok.filter(t => isTaskInShift(t, datum, muszakTipus));
 
     if (osszes.length === 0) {
-        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs ehhez a naphoz kapcsolódó lezárt, vagy jelenleg nyitott hiba.</div>";
+        container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs a " + muszakTipus + " műszak óráiban lezárt vagy nyitott hiba.</div>";
         return;
     }
 
@@ -308,19 +327,10 @@ function processLockdownDisplay() {
     }
 }
 
-function generateLockdownTaskHtml(datum, logKey) {
-    let osszes = muszakValaszthatoFeladatok.filter(t => {
-        if (t.statusz !== "Lezárt") return true; 
-        let dStr = String(t.idopont);
-        let taskDate = "";
-        let parts = dStr.split(/\D+/); 
-        if (parts.length >= 3) {
-            taskDate = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
-        }
-        return taskDate === datum;
-    });
+function generateLockdownTaskHtml(datum, muszak, logKey) {
+    let osszes = muszakValaszthatoFeladatok.filter(t => isTaskInShift(t, datum, muszak));
 
-    if (osszes.length === 0) return "<div style='color:var(--text-muted); font-size:12px; padding:5px;'>Nincs elérhető hiba/leállás erre a napra.</div>";
+    if (osszes.length === 0) return "<div style='color:var(--text-muted); font-size:12px; padding:5px;'>Nincs a " + muszak + " műszakhoz köthető hiba.</div>";
 
     osszes.sort((a,b) => {
         if(a.statusz !== "Lezárt" && b.statusz === "Lezárt") return -1;
@@ -420,7 +430,7 @@ function evaluateLockdown() {
             if (l.hianyzo) {
                 let logKey = `${l.datum}_${l.muszak}`;
                 lockdownSelectedTasks[logKey] = []; 
-                let taskHtml = generateLockdownTaskHtml(l.datum, logKey);
+                let taskHtml = generateLockdownTaskHtml(l.datum, l.muszak, logKey);
 
                 return `<div style="background:#fee2e2; padding:15px; border-radius:6px; margin-bottom:10px; border: 1px solid #f87171;">
                     <strong style="font-size:16px; color:var(--pri-crit);">⚠️ HIÁNYZÓ NAPLÓ: ${displayDate} - ${l.muszak}</strong><br>
@@ -442,7 +452,6 @@ function evaluateLockdown() {
                 </div>`;
             } else {
                 let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                // BOMBABIZTOS REGEX: Bármilyen azonosítót megtalál a zárójelek között
                 safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span style="color:#0284c7; cursor:pointer; text-decoration:underline; font-weight:bold; padding:0 3px;" onclick="window.viewTaskDetails('$1')">🔍 $1</span>`);
 
                 return `<div style="background:#f8fafc; padding:15px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:flex-start; border: 1px solid var(--border);"><div style="flex:1; padding-right:15px;"><strong style="font-size:16px;">${displayDate} - <span style="color:var(--pri-info);">${l.muszak}</span></strong><br><span style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:8px;">Írta: ${l.felhasznalo}</span><div style="font-size:14px; color:var(--text-main); white-space:pre-wrap; max-height:150px; overflow-y:auto; padding:5px; background:var(--bg-color); border:1px solid #cbd5e1; border-radius:4px;">${safeSzoveg}</div></div><button id="lockdownApprBtn_${l.id}" onclick="approveShiftLogLockdown('${l.id}')" style="background:var(--pri-normal); border:none; color:white; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:auto; margin-top:25px;">✅ Jóváhagyom</button></div>`;
@@ -459,7 +468,7 @@ async function submitHianyzoNaplo(datum, muszak) {
     let downtime = downtimeEl ? downtimeEl.value : null;
 
     if(!szoveg || downtime === null || downtime === "") { 
-    return alert("A napló szövege és az állásidő kitöltése kötelező! (Ha nem volt leállás, írj be 0-t!)"); 
+        return alert("A napló szövege és az állásidő kitöltése kötelező! (Ha nem volt leállás, írj be 0-t!)"); 
     }
 
     let extraHeader = "";
@@ -516,7 +525,6 @@ async function login() {
             localStorage.setItem("activeRole", r.role || (typeof RESZLEG !== 'undefined' ? RESZLEG : "production")); 
             localStorage.setItem("sessionToken", r.token); 
             
-            // HA EZ EGY MUNKAMENET VISSZAÁLLÍTÁS (és már be volt töltve az app korábban)
             if (window.isSessionExpired && globalShiftLogs.length > 0) {
                 window.isSessionExpired = false;
                 document.getElementById('loginView').style.display = 'none';
@@ -525,7 +533,7 @@ async function login() {
                 document.getElementById('loginStatus').innerText = '';
                 showToast("✅ Sikeres visszajelentkezés! Most már rányomhatsz a Mentés gombra.");
             } else {
-                location.reload(); // Normál, első belépésnél újratöltjük az oldalt
+                location.reload(); 
             }
         } else { 
             document.getElementById('loginStatus').innerText = r.message; 
@@ -562,9 +570,9 @@ async function submitShiftLog() {
     const downtime = document.getElementById('muszakDowntime') ? document.getElementById('muszakDowntime').value : null;
 
     if (!d || !s || downtime === null || downtime === "") { 
-    alert("Dátum, szöveg ÉS az állásidő kitöltése kötelező! (Ha nem volt leállás, írj be 0-t!)"); 
-    return; 
-    } 
+        alert("Dátum, szöveg ÉS az állásidő kitöltése kötelező! (Ha nem volt leállás, írj be 0-t!)"); 
+        return; 
+    }
     const btn = document.getElementById('btnShiftLog'); btn.disabled = true;
 
     let extraHeader = "";
@@ -617,7 +625,6 @@ function renderShiftLogs() {
         let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : []; let statusHtml = "";
         if (approvers.length > 0) statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-normal);"><b style="color:var(--text-muted);">Látta:</b> ${approvers.join(', ')}</div>`; else statusHtml = `<div style="margin-top:10px; font-size:11px; color:var(--pri-crit);">Még senki nem látta!</div>`;
         
-        // --- BOMBABIZTOS REGEX: Felismeri az azonosítót és gombbá alakítja ---
         let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
         safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span style="color:#0284c7; cursor:pointer; text-decoration:underline; font-weight:bold; padding:0 3px;" onclick="window.viewTaskDetails('$1')">🔍 $1</span>`);
 
@@ -625,8 +632,6 @@ function renderShiftLogs() {
     }); c.innerHTML = h;
 }
 
-// --- FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
-// --- ÚJ: FELADAT RÉSZLETEINEK MEGJELENÍTÉSE FELUGRÓ ABLAKBAN ---
 window.viewTaskDetails = function(taskId) {
     console.log("Kattintás történt erre az ID-ra: " + taskId);
 
@@ -683,8 +688,6 @@ function closeStatModal(force = false) {
         if (modal) modal.style.display = "none";
     }
 }
-// -----------------------------------------------------------------
-// -----------------------------------------------------------------
 
 function exportShiftLogs() {
     let csv = "Dátum;Műszak;Írta;Szöveg;Jóváhagyók\n"; globalShiftLogs.forEach(l => { let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); csv += `"${logD}";"${l.muszak}";"${l.felhasznalo}";"${String(l.szoveg).replace(/"/g,'""')}";"${l.jovahagyok||""}"\n`; });
