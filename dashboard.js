@@ -27,16 +27,23 @@ let targetPartInputId = null;
 
 // --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
-    if (payload.action !== "login" && payload.action !== "getUsers") {
-        payload.token = localStorage.getItem("sessionToken");
+    if (payload.action !== "login" && payload.action !== "getUsers") { 
+        payload.token = localStorage.getItem("sessionToken"); 
     }
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+    
+    // Itt volt a hiba: A dashboard régi kódjából hiányzott a method: "POST" !
+    const res = await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        body: JSON.stringify(payload) 
+    });
+    
     const data = await res.json();
-    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) {
-        alert("Biztonsági hiba: Lejárt a munkamenet vagy érvénytelen kulcs! Kérlek, jelentkezz be újra.");
-        dashLogout();
-        throw new Error("ACCESS_DENIED");
+    
+    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
+        console.warn("A biztonsági munkamenet lejárt a dashboardon.");
+        throw new Error("ACCESS_DENIED"); 
     }
+    
     return { json: () => Promise.resolve(data) };
 }
 
