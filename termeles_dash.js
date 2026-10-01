@@ -15,33 +15,92 @@ let optSound = false; let optFlash = false; let audioCtx = null; let isAlarming 
 
 let globalPartsList = []; let targetPartInputId = null;
 
+// --- ÚJ: Felhasználóbarát, elegáns Session Pop-up (nincs több böngészős alert vagy újratöltés!) ---
+function showSessionPopup() {
+    let popup = document.getElementById('sessionExpiredPopup');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'sessionExpiredPopup';
+        popup.innerHTML = `
+            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.85); display:flex; justify-content:center; align-items:center; z-index:9999; backdrop-filter:blur(4px);">
+                <div style="background:var(--surface); padding:30px; border-radius:10px; width:90%; max-width:400px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.5); border:2px solid var(--pri-normal);">
+                    <div style="font-size:45px; margin-bottom:10px;">⏳</div>
+                    <h2 style="color:var(--text-main); margin-top:0; font-size:22px;">Biztonsági időkorlát</h2>
+                    <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px; line-height:1.5;">Túl sokáig volt inaktív az oldal, ezért a biztonsági kulcs lejárt. <b>Ne aggódj, az adataid nem vesztek el!</b> Add meg a PIN kódod a folyamat zökkenőmentes folytatásához.</p>
+                    <select id="sessionPopupUser" class="dash-input" style="width:100%; margin-bottom:10px; font-size:14px;"></select>
+                    <input type="password" id="sessionPopupPin" class="dash-input" placeholder="PIN kód" style="width:100%; margin-bottom:15px; font-size:14px;">
+                    <button onclick="resumeSession()" style="background:var(--pri-normal); color:white; border:none; padding:10px 20px; width:100%; border-radius:6px; font-weight:bold; font-size:16px; cursor:pointer;">Folytatás</button>
+                    <div id="sessionPopupStatus" style="color:var(--pri-crit); font-weight:bold; margin-top:10px; font-size:13px;"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(popup);
+
+        const mainSelect = document.getElementById('clLoginNevSelect');
+        const popupSelect = document.getElementById('sessionPopupUser');
+        if(mainSelect && popupSelect) {
+            popupSelect.innerHTML = mainSelect.innerHTML;
+            if(localStorage.getItem("activeUser")) popupSelect.value = localStorage.getItem("activeUser");
+        }
+
+        document.getElementById('sessionPopupPin').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); resumeSession(); }
+        });
+    }
+    popup.style.display = 'flex';
+}
+
+async function resumeSession() {
+    const u = document.getElementById('sessionPopupUser').value;
+    const p = document.getElementById('sessionPopupPin').value;
+    const stat = document.getElementById('sessionPopupStatus');
+    
+    if(!u || !p) { stat.innerText = "A PIN kód megadása kötelező!"; return; }
+    stat.innerText = "Ellenőrzés folyamatban...";
+    
+    try {
+        const res = await fetch(SCRIPT_URL, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({ action: "login", nev: u, jelszo: await hashPassword(p) }) });
+        const r = await res.json();
+        if(r.status === "success") {
+            localStorage.setItem("activeUser", u);
+            localStorage.setItem("activeRole", r.role || "production");
+            localStorage.setItem("sessionToken", r.token);
+            sessionUser = u;
+            window.isSessionExpired = false;
+            document.getElementById('sessionExpiredPopup').style.display = 'none';
+            document.getElementById('sessionPopupPin').value = '';
+            stat.innerText = "";
+            showToast("Sikeres folytatás! Most már elmentheted.");
+            if(activeTaskId) refreshModalActionPanel();
+        } else {
+            stat.innerText = "Hibás PIN kód!";
+        }
+    } catch(e) { stat.innerText = "Hálózati hiba!"; }
+}
+
 async function secureFetch(payload) {
     if (payload.action !== "login" && payload.action !== "getUsers") { 
         payload.token = localStorage.getItem("sessionToken"); 
     }
     
-    // A CORS probléma és az opciók elkerülése végett kikényszerítjük a text/plain módot
     const res = await fetch(SCRIPT_URL, { 
         method: "POST", 
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload) 
     });
     
-    // Nyers szövegként olvassuk fel először, hogy kivédjük a <!DOCTYPE HTML> hibát
     const rawText = await res.text();
     let data;
     try {
         data = JSON.parse(rawText);
     } catch (e) {
-        console.error("HIBA: A Google Script nem JSON-t, hanem HTML oldalt adott vissza! Valószínűleg elállítódott a jogosultság az Apps Scriptben. (Állítsd be: 'Ki férhet hozzá: Bárki').", rawText.substring(0, 100));
+        console.error("HIBA: Szerver HTML válasz.", rawText.substring(0, 100));
         throw new Error("Szerver hiba (HTML válasz). Ellenőrizd az Apps Script jogosultságokat!");
     }
 
     if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
         window.isSessionExpired = true; 
-        alert("⏳ A biztonsági munkamenet lejárt a faliújságon is!\n\nKérlek, jelentkezz be újra a folytatáshoz. Az eddig beírt adataid nem vesztek el!");
-        if(document.getElementById('dashLoginFormModal')) document.getElementById('dashLoginFormModal').style.display = 'block';
-        if(document.getElementById('dashTaskActions')) document.getElementById('dashTaskActions').style.display = 'none';
+        showSessionPopup(); // Új, elegáns pop-up hívása az idegesítő alert() helyett
         throw new Error("ACCESS_DENIED"); 
     }
     return { json: () => Promise.resolve(data) };
@@ -322,7 +381,6 @@ function renderChecklistTab() {
         } catch(e) {}
     }
 
-    // --- BIZTONSÁGI ZÁROLÁS ÉS GOMB LOGIKA ---
     let isLocked = existingLog ? true : false;
     let disabledAttr = isLocked ? "disabled" : "";
     let statusContainer = document.getElementById('checklistStatusContainer');
@@ -363,7 +421,6 @@ function renderChecklistTab() {
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
     let groupedTasks = {};
-
     clSablon.forEach(item => {
         if (!item.szuloId) {
             let hasActiveChildren = validSubtasks.some(child => child.szuloId === item.id);
@@ -377,9 +434,7 @@ function renderChecklistTab() {
     });
 
     let orphans = validSubtasks.filter(q => !q.szuloId && !clSablon.some(parent => parent.id === q.id));
-    if (orphans.length > 0) {
-        groupedTasks["Egyéb / Önálló feladatok"] = orphans;
-    }
+    if (orphans.length > 0) { groupedTasks["Egyéb / Önálló feladatok"] = orphans; }
 
     let html = `
     <div class="cl-table-container">
@@ -455,7 +510,7 @@ function renderChecklistTab() {
     document.getElementById('clQuestionsList').innerHTML = html;
 }
 
-// --- ÚJ FÜGGVÉNY: ZÁROLÁS FELOLDÁSA A GOMBRA KATTINTVA ---
+// ZÁROLÁS FELOLDÁSA EGY GOMBNYOMÁSRA
 window.unlockChecklist = function() {
     document.querySelectorAll('.cl-question-block input[type="radio"]').forEach(el => el.disabled = false);
     document.querySelectorAll('.cl-question-block input[type="text"]').forEach(el => el.disabled = false);
@@ -476,7 +531,7 @@ window.unlockChecklist = function() {
         banner.style.background = "rgba(245, 158, 11, 0.15)";
         banner.style.borderColor = "#f59e0b";
         banner.style.color = "#d97706";
-        banner.innerHTML = "<span>✏️️ <b>Módosítás Mód Aktív!</b> Most már átkattinthatod a válaszokat, és újra mentheted a listát.</span>";
+        banner.innerHTML = "<span>✏ <b>Módosítás Mód Aktív!</b> Most már átkattinthatod a válaszokat, és újra mentheted a listát.</span>";
     }
 };
 
@@ -505,9 +560,16 @@ async function verifyAndSubmitChecklist() {
 
     stat.innerText = "Hitelesítés és mentés...";
     try {
-        const resLogin = await secureFetch({ action: "login", nev: nev, jelszo: await hashPassword(pin) }); 
-        const rLogin = await resLogin.json(); if(rLogin.status !== "success") { stat.innerText = "Hibás PIN kód!"; return; }
+        // Közvetlen login hívás a token frissítéshez
+        const resLogin = await fetch(SCRIPT_URL, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({ action: "login", nev: nev, jelszo: await hashPassword(pin) }) }); 
+        const rLogin = await resLogin.json(); 
+        if(rLogin.status !== "success") { stat.innerText = "Hibás PIN kód!"; return; }
         
+        // A LEGFONTOSABB JAVÍTÁS: Mentsük is el a friss tokent a böngészőbe a mentés előtt!
+        localStorage.setItem("sessionToken", rLogin.token);
+        localStorage.setItem("activeUser", nev);
+        sessionUser = nev;
+
         let hibak = eredmenyek.filter(e => e.valasz === 'NOK');
         if(hibak.length > 0) { if(!confirm(`⚠️ FIGYELEM!\n\n${hibak.length} db NOK választ adtál meg. A rendszer ezekből automatikusan hibajegyeket fog nyitni a Karbantartás felé.\n\nBiztosan elküldöd?`)) { stat.innerText=""; return; } }
 
