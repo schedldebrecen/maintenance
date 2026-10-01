@@ -15,7 +15,7 @@ let optSound = false; let optFlash = false; let audioCtx = null; let isAlarming 
 
 let globalPartsList = []; let targetPartInputId = null;
 
-// --- ÚJ: Felhasználóbarát, elegáns Session Pop-up ---
+// --- ÚJ: Felhasználóbarát Session Pop-up ---
 function showSessionPopup() {
     let popup = document.getElementById('sessionExpiredPopup');
     if (!popup) {
@@ -60,7 +60,8 @@ async function resumeSession() {
     
     try {
         const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: u, jelszo: await hashPassword(p) }) });
-        const r = await res.json();
+        const rawText = await res.text();
+        const r = JSON.parse(rawText);
         if(r.status === "success") {
             localStorage.setItem("activeUser", u);
             localStorage.setItem("activeRole", r.role || "production");
@@ -70,7 +71,7 @@ async function resumeSession() {
             document.getElementById('sessionExpiredPopup').style.display = 'none';
             document.getElementById('sessionPopupPin').value = '';
             stat.innerText = "";
-            showToast("Sikeres folytatás! Most már elmentheted.");
+            showToast("Sikeres folytatás! Kérjük nyomj újra a Mentés/Beküldés gombra.");
             if(activeTaskId) refreshModalActionPanel();
         } else {
             stat.innerText = "Hibás PIN kód!";
@@ -89,7 +90,19 @@ async function secureFetch(payload) {
             body: JSON.stringify(payload) 
         });
         
-        const data = await res.json();
+        const rawText = await res.text();
+        
+        // HIBATŰRÉS: Ha a Google HTML-t vagy sima szöveget ad JSON helyett
+        if (rawText.trim().startsWith("<!DOCTYPE") || rawText.trim().startsWith("<html")) {
+            console.error("Jogosultság hiba (HTML)!", rawText.substring(0,50));
+            throw new Error("HTML_ERROR");
+        }
+        if (rawText.includes("CMMS API Fut!")) {
+            console.error("Szerver hiba (GET válasz)!");
+            throw new Error("GET_ERROR");
+        }
+
+        const data = JSON.parse(rawText);
 
         if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
             window.isSessionExpired = true; 
@@ -98,7 +111,9 @@ async function secureFetch(payload) {
         }
         return { json: () => Promise.resolve(data) };
     } catch (e) {
-        console.error("Fetch hiba:", e);
+        if(e.message === "HTML_ERROR" || e.message === "GET_ERROR") {
+            alert("Szerver jogosultsági hiba!\nKérlek, az Apps Scriptben frissítsd a Telepítést úgy, hogy a 'Futtatás mint' -> 'ÉN', és 'Ki férhet hozzá' -> 'BÁRKI' legyen beállítva!");
+        }
         throw e;
     }
 }
@@ -217,6 +232,25 @@ setInterval(() => {
     document.getElementById('progressBar').style.width = (((REFRESH_INTERVAL_SEC - timer) / REFRESH_INTERVAL_SEC) * 100) + "%"; 
 }, 1000);
 
+function isTaskInShift(t, shiftDateStr, shiftName) {
+    if (!shiftDateStr || !shiftName) return false;
+    let start = new Date(shiftDateStr + "T00:00:00"); let end = new Date(shiftDateStr + "T00:00:00");
+    if (shiftName.includes("Délelőtt")) { start.setHours(6, 0, 0, 0); end.setHours(14, 0, 0, 0); } else if (shiftName.includes("Délután")) { start.setHours(14, 0, 0, 0); end.setHours(22, 0, 0, 0); } else if (shiftName.includes("Éjszaka")) { start.setHours(22, 0, 0, 0); end.setDate(end.getDate() + 1); end.setHours(6, 0, 0, 0); } else { start.setHours(0, 0, 0, 0); end.setDate(end.getDate() + 1); end.setHours(0, 0, 0, 0); }
+    if (t.statusz === "Lezárt") {
+        let closeDate = new Date(t.startIdopont);
+        if (!t.startIdopont || isNaN(closeDate.getTime())) {
+            let found = false;
+            if (t.megoldas && t.megoldas.includes("✅ [")) {
+                let parts = t.megoldas.split("✅ ["); let dStr = parts[parts.length - 1].split("-")[0].trim();
+                let m = dStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+                if (m) { closeDate = new Date(m[1], m[2]-1, m[3], m[4], m[5], m[6]); found = true; }
+            }
+            if (!found) closeDate = new Date(t.idopont);
+        }
+        return closeDate >= start && closeDate < end;
+    } else { return new Date(t.idopont) < end; }
+}
+
 async function fetchDashboardData() {
     let cachedData = localStorage.getItem('dashCache_Prod');
     if (cachedData) {
@@ -250,7 +284,7 @@ async function fetchDashboardData() {
             checkMidShiftChecklist();
             if(document.getElementById('view-checklist').classList.contains('active')) renderChecklistTab();
         } 
-    } catch (e) { console.error("Háttér hiba, cacheből megyünk tovább: ", e); }
+    } catch (e) { console.error("Háttér hiba:", e); }
 }
 
 function checkMissingShiftLogsAndApprovals() {
@@ -557,7 +591,7 @@ async function verifyAndSubmitChecklist() {
 
     stat.innerText = "Hitelesítés és mentés...";
     try {
-        const resLogin = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: nev, jelszo: await hashPassword(pin) }) }); 
+        const resLogin = await secureFetch({ action: "login", nev: nev, jelszo: await hashPassword(pin) }); 
         const rLogin = await resLogin.json(); 
         if(rLogin.status !== "success") { stat.innerText = "Hibás PIN kód!"; return; }
         
@@ -681,7 +715,8 @@ async function dashLoginModal() {
     stat.innerText = "Ellenőrzés..."; 
     try { 
         const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
-        const r = await res.json(); 
+        const rawText = await res.text();
+        const r = JSON.parse(rawText);
         if(r.status === "success") { 
             sessionUser = n; 
             sessionRole = r.role || "production"; 
