@@ -19,12 +19,27 @@ async function secureFetch(payload) {
     if (payload.action !== "login" && payload.action !== "getUsers") { 
         payload.token = localStorage.getItem("sessionToken"); 
     }
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-    const data = await res.json();
+    
+    // A CORS probléma és az opciók elkerülése végett kikényszerítjük a text/plain módot
+    const res = await fetch(SCRIPT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload) 
+    });
+    
+    // Nyers szövegként olvassuk fel először, hogy kivédjük a <!DOCTYPE HTML> hibát
+    const rawText = await res.text();
+    let data;
+    try {
+        data = JSON.parse(rawText);
+    } catch (e) {
+        console.error("HIBA: A Google Script nem JSON-t, hanem HTML oldalt adott vissza! Valószínűleg elállítódott a jogosultság az Apps Scriptben. (Állítsd be: 'Ki férhet hozzá: Bárki').", rawText.substring(0, 100));
+        throw new Error("Szerver hiba (HTML válasz). Ellenőrizd az Apps Script jogosultságokat!");
+    }
+
     if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
         window.isSessionExpired = true; 
         alert("⏳ A biztonsági munkamenet lejárt a faliújságon is!\n\nKérlek, jelentkezz be újra a folytatáshoz. Az eddig beírt adataid nem vesztek el!");
-        // A Faliújság (dashboard) UI logikája
         if(document.getElementById('dashLoginFormModal')) document.getElementById('dashLoginFormModal').style.display = 'block';
         if(document.getElementById('dashTaskActions')) document.getElementById('dashTaskActions').style.display = 'none';
         throw new Error("ACCESS_DENIED"); 
@@ -145,25 +160,6 @@ setInterval(() => {
     document.getElementById('countdownDisplay').innerText = timer; 
     document.getElementById('progressBar').style.width = (((REFRESH_INTERVAL_SEC - timer) / REFRESH_INTERVAL_SEC) * 100) + "%"; 
 }, 1000);
-
-function isTaskInShift(t, shiftDateStr, shiftName) {
-    if (!shiftDateStr || !shiftName) return false;
-    let start = new Date(shiftDateStr + "T00:00:00"); let end = new Date(shiftDateStr + "T00:00:00");
-    if (shiftName.includes("Délelőtt")) { start.setHours(6, 0, 0, 0); end.setHours(14, 0, 0, 0); } else if (shiftName.includes("Délután")) { start.setHours(14, 0, 0, 0); end.setHours(22, 0, 0, 0); } else if (shiftName.includes("Éjszaka")) { start.setHours(22, 0, 0, 0); end.setDate(end.getDate() + 1); end.setHours(6, 0, 0, 0); } else { start.setHours(0, 0, 0, 0); end.setDate(end.getDate() + 1); end.setHours(0, 0, 0, 0); }
-    if (t.statusz === "Lezárt") {
-        let closeDate = new Date(t.startIdopont);
-        if (!t.startIdopont || isNaN(closeDate.getTime())) {
-            let found = false;
-            if (t.megoldas && t.megoldas.includes("✅ [")) {
-                let parts = t.megoldas.split("✅ ["); let dStr = parts[parts.length - 1].split("-")[0].trim();
-                let m = dStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-                if (m) { closeDate = new Date(m[1], m[2]-1, m[3], m[4], m[5], m[6]); found = true; }
-            }
-            if (!found) closeDate = new Date(t.idopont);
-        }
-        return closeDate >= start && closeDate < end;
-    } else { return new Date(t.idopont) < end; }
-}
 
 async function fetchDashboardData() {
     let cachedData = localStorage.getItem('dashCache_Prod');
@@ -326,18 +322,29 @@ function renderChecklistTab() {
         } catch(e) {}
     }
 
+    // --- BIZTONSÁGI ZÁROLÁS ÉS GOMB LOGIKA ---
+    let isLocked = existingLog ? true : false;
+    let disabledAttr = isLocked ? "disabled" : "";
     let statusContainer = document.getElementById('checklistStatusContainer');
+    
     if (existingLog) {
-        statusContainer.innerHTML = `<div style="background:rgba(16, 185, 129, 0.2); color:#34d399; padding:12px 15px; border-radius:6px; margin-bottom:20px; font-weight:bold; border:1px solid var(--pri-normal); display:flex; justify-content:space-between; align-items:center;">
-            <span>✅ <b>${existingLog.kitolto}</b> már kitöltötte ezt a műszaki checklistát! Alább módosíthatod a válaszokat.</span>
-            <span style="background:var(--pri-normal); color:white; padding:4px 8px; border-radius:4px; font-size:12px;">Módosítás Mód</span>
+        statusContainer.innerHTML = `<div id="clStatusBanner" style="background:rgba(16, 185, 129, 0.15); color:#059669; padding:12px 15px; border-radius:6px; margin-bottom:20px; font-weight:bold; border:1px solid var(--pri-normal); display:flex; justify-content:space-between; align-items:center;">
+            <span>✅ <b>${existingLog.kitolto}</b> már beküldte ezt a listát. Biztonsági okokból zárolva.</span>
+            <button onclick="unlockChecklist()" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:13px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2);">✏️ Módosítás Mód</button>
         </div>`;
-        document.getElementById('btnSubmitChecklist').innerText = "Változtatások Hitelesítése & Mentés";
-        document.getElementById('clSubmitTitle').innerText = "Módosítás Beküldése";
+        
+        if(document.getElementById('clLoginNevSelect')) document.getElementById('clLoginNevSelect').disabled = true;
+        if(document.getElementById('clLoginPin')) document.getElementById('clLoginPin').disabled = true;
+        if(document.getElementById('btnSubmitChecklist')) document.getElementById('btnSubmitChecklist').style.display = 'none';
     } else {
         statusContainer.innerHTML = "";
-        document.getElementById('btnSubmitChecklist').innerText = "Kitöltés Hitelesítése & Mentés";
-        document.getElementById('clSubmitTitle').innerText = "Hitelesítés és Beküldés";
+        if(document.getElementById('clLoginNevSelect')) document.getElementById('clLoginNevSelect').disabled = false;
+        if(document.getElementById('clLoginPin')) document.getElementById('clLoginPin').disabled = false;
+        if(document.getElementById('btnSubmitChecklist')) {
+            document.getElementById('btnSubmitChecklist').style.display = 'block';
+            document.getElementById('btnSubmitChecklist').innerText = "Kitöltés Hitelesítése & Mentés";
+        }
+        if(document.getElementById('clSubmitTitle')) document.getElementById('clSubmitTitle').innerText = "Hitelesítés és Beküldés";
     }
 
     let validSubtasks = clSablon.filter(q => {
@@ -432,11 +439,11 @@ function renderChecklistTab() {
                 <td style="text-align:center; vertical-align:middle;">${mediaHtml}</td>
                 <td>
                     <div class="cl-radio-group">
-                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK}><span class="rb-box"></span> OK ✔️</label>
-                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK}><span class="rb-box"></span> NOK ❌</label>
-                        <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA}><span class="rb-box"></span> N.A. ➖</label>
+                        <label class="cl-radio-lbl ok"><input type="radio" name="clRad_${q.id}" value="OK" ${checkedOK} ${disabledAttr}><span class="rb-box"></span> OK ✔️</label>
+                        <label class="cl-radio-lbl nok"><input type="radio" name="clRad_${q.id}" value="NOK" ${checkedNOK} ${disabledAttr}><span class="rb-box"></span> NOK ❌</label>
+                        <label class="cl-radio-lbl na"><input type="radio" name="clRad_${q.id}" value="N.A." ${checkedNA} ${disabledAttr}><span class="rb-box"></span> N.A. ➖</label>
                     </div>
-                    <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés...">
+                    <input type="text" class="cl-comment-input cl-comment" value="${prevAns.megjegyzes}" placeholder="Megjegyzés..." ${disabledAttr}>
                 </td>
             </tr>`;
         });
@@ -447,6 +454,31 @@ function renderChecklistTab() {
     html += `</tbody></table></div>`;
     document.getElementById('clQuestionsList').innerHTML = html;
 }
+
+// --- ÚJ FÜGGVÉNY: ZÁROLÁS FELOLDÁSA A GOMBRA KATTINTVA ---
+window.unlockChecklist = function() {
+    document.querySelectorAll('.cl-question-block input[type="radio"]').forEach(el => el.disabled = false);
+    document.querySelectorAll('.cl-question-block input[type="text"]').forEach(el => el.disabled = false);
+    
+    if(document.getElementById('clLoginNevSelect')) document.getElementById('clLoginNevSelect').disabled = false;
+    if(document.getElementById('clLoginPin')) document.getElementById('clLoginPin').disabled = false;
+    
+    let btn = document.getElementById('btnSubmitChecklist');
+    if(btn) {
+        btn.style.display = 'block';
+        btn.innerText = "Változtatások Hitelesítése & Mentés";
+    }
+    
+    if(document.getElementById('clSubmitTitle')) document.getElementById('clSubmitTitle').innerText = "Módosítás Beküldése";
+
+    let banner = document.getElementById('clStatusBanner');
+    if(banner) {
+        banner.style.background = "rgba(245, 158, 11, 0.15)";
+        banner.style.borderColor = "#f59e0b";
+        banner.style.color = "#d97706";
+        banner.innerHTML = "<span>✏️️ <b>Módosítás Mód Aktív!</b> Most már átkattinthatod a válaszokat, és újra mentheted a listát.</span>";
+    }
+};
 
 async function verifyAndSubmitChecklist() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
@@ -563,7 +595,7 @@ function generateCardHtml(t) {
     const pr = String(t.prioritas).replace(" prioritás", "").replace("ással járó", "");
     
     if(t.statusz==="Lezárt") { eC="closed"; bC="badge-closed"; } else { if(pLower.includes("leállás")) {eC="Termelésleállás"; bC="badge-crit";} else if(pLower.includes("magas")) {eC="Magas"; bC="badge-high";} else if(pLower.includes("megfigyelés")) {eC="Megfigyelés"; bC="badge-obs";} else if(pLower.includes("informatív")) {eC="Informatív"; bC="badge-info";} if(t.statusz==="Folyamatban") eC="Folyamatban"; }
-    let inP = t.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️️</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
+    let inP = t.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
     let prevIcon = (String(t.id).startsWith("PREV-") || String(t.id).includes("REC-")) ? "🔁 " : ""; let reszlegIcon = String(t.id).includes("PROD-") ? "🏭 " : "🔧 ";
     
     return `<div class="card ${eC}" onclick="openModal('${t.id}')"><div class="card-header"><span class="badge ${bC}">${pr}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div><div class="machine-name">${reszlegIcon}${prevIcon}${t.gep}</div>${inP}<div class="issue-desc" style="white-space:pre-wrap;">${t.hiba}</div><div class="meta-footer"><div>Beküldte: <b>${t.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek / Kezelés 👆</div></div></div>`;
@@ -591,15 +623,13 @@ async function dashLoginModal() {
     if(!n || !j) { stat.innerText = "Add meg a PIN-t!"; return; } 
     stat.innerText = "Ellenőrzés..."; 
     try { 
-        // Frissítve POST hívásra a biztonsági ellenőrzésnél is!
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
+        const res = await fetch(SCRIPT_URL, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             sessionUser = n; 
             sessionRole = r.role || "production"; 
             localStorage.setItem("sessionToken", r.token); 
             
-            // Ha ez egy lejárt token visszaállítása volt a módosítás közben:
             if(window.isSessionExpired) {
                 window.isSessionExpired = false;
                 document.getElementById('dashLoginFormModal').style.display = 'none';
@@ -696,13 +726,9 @@ function openModal(taskId) {
     
     document.getElementById('modalDetails').innerHTML = details; 
 
-    // MEZŐK KIÜRÍTÉSE MINDEN MEGNYITÁSKOR
     if (document.getElementById('dashMegoldas')) document.getElementById('dashMegoldas').value = "";
     if (document.getElementById('dashIdo')) document.getElementById('dashIdo').value = "";
     if (document.getElementById('dashDowntime')) document.getElementById('dashDowntime').value = "";
-    if (document.getElementById('megoldas')) document.getElementById('megoldas').value = "";
-    if (document.getElementById('ido')) document.getElementById('ido').value = "";
-    if (document.getElementById('downtime')) document.getElementById('downtime').value = "";
 
     const alkContainer = document.getElementById('alkatreszekContainer');
     if(alkContainer) {
