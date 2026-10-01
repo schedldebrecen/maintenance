@@ -15,7 +15,7 @@ let optSound = false; let optFlash = false; let audioCtx = null; let isAlarming 
 
 let globalPartsList = []; let targetPartInputId = null;
 
-// --- ÚJ: Felhasználóbarát, elegáns Session Pop-up (nincs több böngészős alert vagy újratöltés!) ---
+// --- ÚJ: Felhasználóbarát, elegáns Session Pop-up ---
 function showSessionPopup() {
     let popup = document.getElementById('sessionExpiredPopup');
     if (!popup) {
@@ -59,7 +59,7 @@ async function resumeSession() {
     stat.innerText = "Ellenőrzés folyamatban...";
     
     try {
-        const res = await fetch(SCRIPT_URL, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({ action: "login", nev: u, jelszo: await hashPassword(p) }) });
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: u, jelszo: await hashPassword(p) }) });
         const r = await res.json();
         if(r.status === "success") {
             localStorage.setItem("activeUser", u);
@@ -83,27 +83,24 @@ async function secureFetch(payload) {
         payload.token = localStorage.getItem("sessionToken"); 
     }
     
-    const res = await fetch(SCRIPT_URL, { 
-        method: "POST", 
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload) 
-    });
-    
-    const rawText = await res.text();
-    let data;
     try {
-        data = JSON.parse(rawText);
-    } catch (e) {
-        console.error("HIBA: Szerver HTML válasz.", rawText.substring(0, 100));
-        throw new Error("Szerver hiba (HTML válasz). Ellenőrizd az Apps Script jogosultságokat!");
-    }
+        const res = await fetch(SCRIPT_URL, { 
+            method: "POST", 
+            body: JSON.stringify(payload) 
+        });
+        
+        const data = await res.json();
 
-    if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
-        window.isSessionExpired = true; 
-        showSessionPopup(); // Új, elegáns pop-up hívása az idegesítő alert() helyett
-        throw new Error("ACCESS_DENIED"); 
+        if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
+            window.isSessionExpired = true; 
+            showSessionPopup();
+            throw new Error("ACCESS_DENIED"); 
+        }
+        return { json: () => Promise.resolve(data) };
+    } catch (e) {
+        console.error("Fetch hiba:", e);
+        throw e;
     }
-    return { json: () => Promise.resolve(data) };
 }
 
 window.onload = function() {
@@ -560,12 +557,10 @@ async function verifyAndSubmitChecklist() {
 
     stat.innerText = "Hitelesítés és mentés...";
     try {
-        // Közvetlen login hívás a token frissítéshez
-        const resLogin = await fetch(SCRIPT_URL, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({ action: "login", nev: nev, jelszo: await hashPassword(pin) }) }); 
+        const resLogin = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: nev, jelszo: await hashPassword(pin) }) }); 
         const rLogin = await resLogin.json(); 
         if(rLogin.status !== "success") { stat.innerText = "Hibás PIN kód!"; return; }
         
-        // A LEGFONTOSABB JAVÍTÁS: Mentsük is el a friss tokent a böngészőbe a mentés előtt!
         localStorage.setItem("sessionToken", rLogin.token);
         localStorage.setItem("activeUser", nev);
         sessionUser = nev;
@@ -685,7 +680,7 @@ async function dashLoginModal() {
     if(!n || !j) { stat.innerText = "Add meg a PIN-t!"; return; } 
     stat.innerText = "Ellenőrzés..."; 
     try { 
-        const res = await fetch(SCRIPT_URL, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             sessionUser = n; 
