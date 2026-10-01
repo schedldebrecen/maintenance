@@ -15,25 +15,20 @@ let optSound = false; let optFlash = false; let audioCtx = null; let isAlarming 
 
 let globalPartsList = []; let targetPartInputId = null;
 
-// --- BIZTONSÁGI HÁLÓZATI HÍVÓ ---
 async function secureFetch(payload) {
     if (payload.action !== "login" && payload.action !== "getUsers") { 
         payload.token = localStorage.getItem("sessionToken"); 
     }
-    
-    // Itt volt a hiba: A dashboard régi kódjából hiányzott a method: "POST" !
-    const res = await fetch(SCRIPT_URL, { 
-        method: "POST", 
-        body: JSON.stringify(payload) 
-    });
-    
+    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
     const data = await res.json();
-    
     if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
-        console.warn("A biztonsági munkamenet lejárt a dashboardon.");
+        window.isSessionExpired = true; 
+        alert("⏳ A biztonsági munkamenet lejárt a faliújságon is!\n\nKérlek, jelentkezz be újra a folytatáshoz. Az eddig beírt adataid nem vesztek el!");
+        // A Faliújság (dashboard) UI logikája
+        if(document.getElementById('dashLoginFormModal')) document.getElementById('dashLoginFormModal').style.display = 'block';
+        if(document.getElementById('dashTaskActions')) document.getElementById('dashTaskActions').style.display = 'none';
         throw new Error("ACCESS_DENIED"); 
     }
-    
     return { json: () => Promise.resolve(data) };
 }
 
@@ -151,7 +146,25 @@ setInterval(() => {
     document.getElementById('progressBar').style.width = (((REFRESH_INTERVAL_SEC - timer) / REFRESH_INTERVAL_SEC) * 100) + "%"; 
 }, 1000);
 
-// --- ADATLEKÉRÉS GYORSÍTÓTÁRRAL (CACHE) ---
+function isTaskInShift(t, shiftDateStr, shiftName) {
+    if (!shiftDateStr || !shiftName) return false;
+    let start = new Date(shiftDateStr + "T00:00:00"); let end = new Date(shiftDateStr + "T00:00:00");
+    if (shiftName.includes("Délelőtt")) { start.setHours(6, 0, 0, 0); end.setHours(14, 0, 0, 0); } else if (shiftName.includes("Délután")) { start.setHours(14, 0, 0, 0); end.setHours(22, 0, 0, 0); } else if (shiftName.includes("Éjszaka")) { start.setHours(22, 0, 0, 0); end.setDate(end.getDate() + 1); end.setHours(6, 0, 0, 0); } else { start.setHours(0, 0, 0, 0); end.setDate(end.getDate() + 1); end.setHours(0, 0, 0, 0); }
+    if (t.statusz === "Lezárt") {
+        let closeDate = new Date(t.startIdopont);
+        if (!t.startIdopont || isNaN(closeDate.getTime())) {
+            let found = false;
+            if (t.megoldas && t.megoldas.includes("✅ [")) {
+                let parts = t.megoldas.split("✅ ["); let dStr = parts[parts.length - 1].split("-")[0].trim();
+                let m = dStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+                if (m) { closeDate = new Date(m[1], m[2]-1, m[3], m[4], m[5], m[6]); found = true; }
+            }
+            if (!found) closeDate = new Date(t.idopont);
+        }
+        return closeDate >= start && closeDate < end;
+    } else { return new Date(t.idopont) < end; }
+}
+
 async function fetchDashboardData() {
     let cachedData = localStorage.getItem('dashCache_Prod');
     if (cachedData) {
@@ -286,7 +299,6 @@ function checkMidShiftChecklist() {
     }
 }
 
-// --- CHECKLIST MEGJELENÍTÉSE FIZIKAI SORRENDBEN, ZEBRA CSÍKOZÁSSAL ---
 function renderChecklistTab() {
     let now = new Date(); let h = now.getHours(); let timeFloat = h + (now.getMinutes()/60);
     let currentShift = ""; let todayStr = toLocalISOString(now);
@@ -343,7 +355,6 @@ function renderChecklistTab() {
 
     document.getElementById('checklistQuestionsContainer').style.display = 'block';
 
-    // CSOPORTOSÍTÁS A GOOGLE SHEET FIZIKAI SORRENDJE ALAPJÁN
     let groupedTasks = {};
 
     clSablon.forEach(item => {
@@ -464,11 +475,13 @@ async function verifyAndSubmitChecklist() {
     try {
         const resLogin = await secureFetch({ action: "login", nev: nev, jelszo: await hashPassword(pin) }); 
         const rLogin = await resLogin.json(); if(rLogin.status !== "success") { stat.innerText = "Hibás PIN kód!"; return; }
+        
         let hibak = eredmenyek.filter(e => e.valasz === 'NOK');
         if(hibak.length > 0) { if(!confirm(`⚠️ FIGYELEM!\n\n${hibak.length} db NOK választ adtál meg. A rendszer ezekből automatikusan hibajegyeket fog nyitni a Karbantartás felé.\n\nBiztosan elküldöd?`)) { stat.innerText=""; return; } }
 
         const payload = { action: "saveShiftChecklist", datum: todayStr, muszak: currentShift, felhasznalo: nev, eredmenyek: eredmenyek, hibak: hibak };
         const resSave = await secureFetch(payload); const rSave = await resSave.json();
+        
         if(rSave.status === "success") {
             stat.style.color = "var(--pri-normal)"; stat.innerText = "Sikeres mentés / felülírás!"; document.getElementById('clLoginPin').value = "";
             fetchDashboardData(); 
@@ -550,7 +563,7 @@ function generateCardHtml(t) {
     const pr = String(t.prioritas).replace(" prioritás", "").replace("ással járó", "");
     
     if(t.statusz==="Lezárt") { eC="closed"; bC="badge-closed"; } else { if(pLower.includes("leállás")) {eC="Termelésleállás"; bC="badge-crit";} else if(pLower.includes("magas")) {eC="Magas"; bC="badge-high";} else if(pLower.includes("megfigyelés")) {eC="Megfigyelés"; bC="badge-obs";} else if(pLower.includes("informatív")) {eC="Informatív"; bC="badge-info";} if(t.statusz==="Folyamatban") eC="Folyamatban"; }
-    let inP = t.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
+    let inP = t.statusz === "Folyamatban" ? `<div class="in-progress-bar"><span>⚙️️</span> <b>${t.felelos}</b> éppen dolgozik rajta</div>` : "";
     let prevIcon = (String(t.id).startsWith("PREV-") || String(t.id).includes("REC-")) ? "🔁 " : ""; let reszlegIcon = String(t.id).includes("PROD-") ? "🏭 " : "🔧 ";
     
     return `<div class="card ${eC}" onclick="openModal('${t.id}')"><div class="card-header"><span class="badge ${bC}">${pr}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div><div class="machine-name">${reszlegIcon}${prevIcon}${t.gep}</div>${inP}<div class="issue-desc" style="white-space:pre-wrap;">${t.hiba}</div><div class="meta-footer"><div>Beküldte: <b>${t.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek / Kezelés 👆</div></div></div>`;
@@ -563,7 +576,13 @@ function toggleSound() { optSound = !optSound; const btn = document.getElementBy
 function toggleFlash() { optFlash = !optFlash; const btn = document.getElementById('btnToggleFlash'); if(optFlash) { btn.innerText = "🔴"; btn.classList.add('active-flash'); } else { btn.innerText = "⚪"; btn.classList.remove('active-flash'); document.body.classList.remove('flash-red'); } }
 
 let activeTaskId = null;
-function extendSession() { if(sessionUser) { document.getElementById('activeUserBadge').style.display = 'flex'; document.getElementById('dashUserName').innerText = sessionUser; refreshModalActionPanel(); } }
+function extendSession() { 
+    if(sessionUser) { 
+        document.getElementById('activeUserBadge').style.display = 'flex'; 
+        document.getElementById('dashUserName').innerText = sessionUser; 
+        refreshModalActionPanel(); 
+    } 
+}
 
 async function dashLoginModal() { 
     const n = document.getElementById('dashLoginNevSelectModal').value !== "" ? document.getElementById('dashLoginNevSelectModal').value : document.getElementById('dashLoginNevModal').value; 
@@ -572,12 +591,21 @@ async function dashLoginModal() {
     if(!n || !j) { stat.innerText = "Add meg a PIN-t!"; return; } 
     stat.innerText = "Ellenőrzés..."; 
     try { 
-        const res = await secureFetch({ action: "login", nev: n, jelszo: await hashPassword(j) }); 
+        // Frissítve POST hívásra a biztonsági ellenőrzésnél is!
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "login", nev: n, jelszo: await hashPassword(j) }) }); 
         const r = await res.json(); 
         if(r.status === "success") { 
             sessionUser = n; 
             sessionRole = r.role || "production"; 
             localStorage.setItem("sessionToken", r.token); 
+            
+            // Ha ez egy lejárt token visszaállítása volt a módosítás közben:
+            if(window.isSessionExpired) {
+                window.isSessionExpired = false;
+                document.getElementById('dashLoginFormModal').style.display = 'none';
+                if(activeTaskId) refreshModalActionPanel();
+            }
+
             extendSession(); 
             document.getElementById('dashLoginPinModal').value = ""; 
             stat.innerText = ""; 
@@ -668,7 +696,7 @@ function openModal(taskId) {
     
     document.getElementById('modalDetails').innerHTML = details; 
 
-    // --- ÚJ RÉSZ: MEZŐK KIÜRÍTÉSE MINDEN MEGNYITÁSKOR ---
+    // MEZŐK KIÜRÍTÉSE MINDEN MEGNYITÁSKOR
     if (document.getElementById('dashMegoldas')) document.getElementById('dashMegoldas').value = "";
     if (document.getElementById('dashIdo')) document.getElementById('dashIdo').value = "";
     if (document.getElementById('dashDowntime')) document.getElementById('dashDowntime').value = "";
@@ -735,13 +763,11 @@ function populateNavDropdown() {
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
     nav.add(new Option("📱 Termelés App", "production.html"));
     nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    nav.add(new Option("🔧 KarbantartApp", "index.html"));
+    nav.add(new Option("🔧 Karbantartás App", "index.html"));
     nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }
 
-// --- ENTER GOMB FIGYELÉSE A BEJELENTKEZÉSHEZ ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Alap bejelentkező mező
     const dashPin = document.getElementById('dashLoginPin');
     if (dashPin) {
         dashPin.addEventListener('keypress', function(e) {
@@ -752,7 +778,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Felugró (Modal) bejelentkező mező, ha létezik
     const dashPinModal = document.getElementById('dashLoginPinModal');
     if (dashPinModal) {
         dashPinModal.addEventListener('keypress', function(e) {
