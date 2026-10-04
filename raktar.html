@@ -214,45 +214,41 @@
         renderList(filtered);
     }
 
-    function startScanner() {
+        function startScanner() {
         document.getElementById("reader").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
         
-        // 1. A 'qrbox' beállítása egy szép nagy NÉGYZETRE a lapos csík helyett.
-        // 2. Az FPS felemelése a gyorsabb érzékelésért.
-        const config = { 
-            fps: 15, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0 // Ez arra kényszeríti a kamerát, hogy jobban kitöltse a képernyőt
-        };
+        // A qrbox egyetlen számként megadva kényszeríti ki a tökéletes négyzetet!
+        const config = { fps: 15, qrbox: 250, aspectRatio: 1.0 };
         
-        // 3. Megpróbáljuk elkérni a böngészőtől a 2x-es nagyítást (zoom), ha a telefon támogatja
-        const cameraConfig = { 
-            facingMode: "environment",
-            advanced: [{ zoom: 2.0 }] 
-        };
-        
-        // Első próbálkozás: Kamera indítása zoom bekapcsolásával
-        html5QrCode.start(cameraConfig, config, (decodedText) => {
-            document.getElementById("erp_id").value = decodedText;
-            if (navigator.vibrate) navigator.vibrate(200);
-            stopScanner();
-            keresCikk(); 
-        }).catch(err => {
-            // Második próbálkozás: Ha az adott telefon/böngésző (pl. régebbi iPhone) 
-            // nem támogatja a zoom parancsot, csendben visszaváltunk az alap kamerára,
-            // de a szép nagy négyzetes doboz (250x250) itt is megmarad!
-            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        // 1. Próbálkozás: Kamera indítása 2x-es zoommal
+        html5QrCode.start(
+            { facingMode: "environment", advanced: [{ zoom: 2.0 }] }, 
+            config, 
+            (decodedText) => {
                 document.getElementById("erp_id").value = decodedText;
                 if (navigator.vibrate) navigator.vibrate(200);
                 stopScanner();
-                keresCikk();
-            }).catch(fallbackErr => {
+                keresCikk(); 
+            }
+        ).catch(err => {
+            // 2. Próbálkozás: Ha a telefon nem ismeri a zoomot, indítás zoom nélkül
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                (decodedText) => {
+                    document.getElementById("erp_id").value = decodedText;
+                    if (navigator.vibrate) navigator.vibrate(200);
+                    stopScanner();
+                    keresCikk();
+                }
+            ).catch(fallbackErr => {
                 alert("Kamera hiba: Engedélyezd a böngészőnek a kamera használatát!");
                 stopScanner();
             });
         });
     }
+
 
 
     function stopScanner() {
