@@ -214,16 +214,23 @@
         renderList(filtered);
     }
 
-        function startScanner() {
+          function startScanner() {
         document.getElementById("reader").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
         
-        // A qrbox egyetlen számként megadva kényszeríti ki a tökéletes négyzetet!
-        const config = { fps: 15, qrbox: 250, aspectRatio: 1.0 };
+        // Dinamikus, tökéletes négyzet a képernyő méretéhez igazítva!
+        const config = { 
+            fps: 15, 
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                // A képernyő rövidebb oldalának 75%-át veszi alapul, így szép nagy lesz
+                let size = Math.min(viewfinderWidth, viewfinderHeight) * 0.75;
+                return { width: size, height: size };
+            }
+        };
         
-        // 1. Próbálkozás: Kamera indítása 2x-es zoommal
+        // Egyetlen, tiszta és stabil kamera indítás
         html5QrCode.start(
-            { facingMode: "environment", advanced: [{ zoom: 2.0 }] }, 
+            { facingMode: "environment" }, 
             config, 
             (decodedText) => {
                 document.getElementById("erp_id").value = decodedText;
@@ -232,30 +239,17 @@
                 keresCikk(); 
             }
         ).catch(err => {
-            // 2. Próbálkozás: Ha a telefon nem ismeri a zoomot, indítás zoom nélkül
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
-                (decodedText) => {
-                    document.getElementById("erp_id").value = decodedText;
-                    if (navigator.vibrate) navigator.vibrate(200);
-                    stopScanner();
-                    keresCikk();
-                }
-            ).catch(fallbackErr => {
-                alert("Kamera hiba: Engedélyezd a böngészőnek a kamera használatát!");
-                stopScanner();
-            });
+            alert("Nem sikerült elindítani a kamerát!\nOka: " + err);
+            stopScanner();
         });
     }
-
-
 
     function stopScanner() {
         try { html5QrCode.stop(); } catch(e) {}
         document.getElementById("reader").style.display = "none";
         document.getElementById("camBtn").style.display = "inline-block";
     }
+
 
     async function uploadItemImage(event) {
         const file = event.target.files[0];
