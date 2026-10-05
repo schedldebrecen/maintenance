@@ -31,7 +31,6 @@ async function secureFetch(payload) {
         payload.token = localStorage.getItem("sessionToken"); 
     }
     
-    // Itt volt a hiba: A dashboard régi kódjából hiányzott a method: "POST" !
     const res = await fetch(SCRIPT_URL, { 
         method: "POST", 
         body: JSON.stringify(payload) 
@@ -254,7 +253,15 @@ function checkMissingShiftLogsAndApprovals() {
                     let approversLower = approvers.map(x=>x.toLowerCase());
                     
                     let expectedForThisLog = expectedApproversClean.filter(a => {
-                        let sched = globalSchedule.find(s => s.datum === logD && String(s.user).toLowerCase().trim() === a && !String(s.tipus).includes("Szabadság"));
+                        let sched = globalSchedule.find(s => {
+                            if(s.datum !== logD || String(s.user).toLowerCase().trim() !== a) return false;
+                            
+                            // JAVÍTÁS: Intelligens "Szabadság" szűrő
+                            let tipusLower = String(s.tipus).toLowerCase();
+                            let isHoliday = (tipusLower.includes("szabad") || tipusLower.includes("szabi") || tipusLower.includes("beteg") || tipusLower === "b" || tipusLower.includes("pihen"));
+                            
+                            return !isHoliday;
+                        });
                         return sched !== undefined;
                     });
                     
@@ -707,7 +714,7 @@ function populateNavDropdown() {
     nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
     nav.add(new Option("📱 Termelés App", "production.html"));
     nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
-    nav.add(new Option("🔧 Karbantartás App", "index.html"));
+    nav.add(new Option("🔧 KarbantartApp", "index.html"));
     nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
 }
 
