@@ -120,7 +120,10 @@ function evaluateLockdown() {
             let vegeIdopont = new Date(logDateObj); if (muszakVegeH === 6) vegeIdopont.setDate(vegeIdopont.getDate() + 1); vegeIdopont.setHours(muszakVegeH, 0, 0, 0); 
             if (now >= vegeIdopont) { szamonKerheto = true; } 
             if (szamonKerheto) { 
-                let amIScheduled = globalSchedule.some(s => s.datum === logD && String(s.user).toLowerCase() === currentUser && !String(s.tipus).includes("Szabadság")); 
+                let amIScheduled = globalSchedule.some(s => {
+                    let isHoliday = String(s.tipus).toLowerCase().includes("szabad") || String(s.tipus).toLowerCase().includes("szabi") || String(s.tipus).toLowerCase().includes("beteg") || String(s.tipus).toLowerCase() === "b" || String(s.tipus).toLowerCase().includes("pihen");
+                    return s.datum === logD && String(s.user).toLowerCase() === currentUser && !isHoliday;
+                }); 
                 if (amIScheduled) { if (l.hianyzo) { myUnapprovedCount++; myUnapprovedLogs.push(l); } else { let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim().toLowerCase()).filter(x=>x) : []; let creatorLower = String(l.felhasznalo).trim().toLowerCase(); if (!approvers.includes(creatorLower)) approvers.push(creatorLower); if (!approvers.includes(currentUser)) { myUnapprovedCount++; myUnapprovedLogs.push(l); } } } 
             } 
         } 
@@ -502,6 +505,10 @@ function renderShiftLogs() {
                (sTol ? d >= sTol : true) && (sIg ? d <= sIg : true); 
     });
     if(f.length === 0) { c.innerHTML = "Nincs találat."; return; } let h = "";
+    
+    // --- SUPERUSER GOMB RENDERELÉS ---
+    let isSuperuser = String(localStorage.getItem("activeRole")).toLowerCase() === "superuser";
+
     f.forEach(l => {
         let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); const dateStr = new Date(logD).toLocaleDateString('hu-HU', {month:'short', day:'numeric'});
         let approvers = l.jovahagyok ? String(l.jovahagyok).split(',').map(x=>x.trim()).filter(x=>x) : []; let statusHtml = "";
@@ -510,9 +517,71 @@ function renderShiftLogs() {
         let safeSzoveg = String(l.szoveg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
         safeSzoveg = safeSzoveg.replace(/\[([A-Z0-9-]+)\]/g, `<span style="color:#0284c7; cursor:pointer; text-decoration:underline; font-weight:bold; padding:0 3px;" onclick="window.viewTaskDetails('$1')">🔍 $1</span>`);
 
-        h += `<div class="task-card" style="border-left-color: var(--pri-info);"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${safeSzoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}</div>`;
+        let editBtn = "";
+        if (isSuperuser) {
+            let encodedText = encodeURIComponent(String(l.szoveg));
+            editBtn = `<button onclick="editShiftLogPrompt('${l.id}', '${l.idopont}', '${l.felhasznalo}', '${encodedText}')" style="position:absolute; bottom:15px; right:15px; background:var(--bg-dark); color:var(--text-muted); border:1px solid #cbd5e1; padding:4px 8px; font-size:11px; border-radius:4px; cursor:pointer;">✏️ Szerkesztés</button>`;
+        }
+
+        h += `<div class="task-card" style="border-left-color: var(--pri-info); position:relative; padding-bottom:30px;"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${safeSzoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}${editBtn}</div>`;
     }); c.innerHTML = h;
 }
+
+// --- ÚJ SZERKESZTŐ FUNKCIÓ ---
+window.editShiftLogPrompt = async function(id, oldTimestamp, oldFelhasznalo, encodedText) {
+    let oldText = decodeURIComponent(encodedText);
+    
+    let modalHtml = `
+    <div id="editLogOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px;">
+        <div style="background:var(--surface); width:100%; max-width:600px; padding:25px; border-radius:8px; border:2px solid var(--pri-info); box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <h3 style="margin-top:0; color:var(--pri-info);">✏️ Műszaknapló Szerkesztése (Superuser)</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Figyelem: A módosítás rögzítésre kerül a naplóban a neveddel együtt.</p>
+            <textarea id="editLogTextArea" style="width:100%; height:200px; padding:10px; font-size:14px; border:1px solid var(--border); border-radius:4px; resize:vertical; margin-bottom:15px; font-family:inherit;"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button onclick="document.getElementById('editLogOverlay').remove()" style="background:transparent; color:var(--text-main); border:1px solid var(--border); padding:8px 15px; border-radius:4px; cursor:pointer;">Mégsem</button>
+                <button onclick="saveEditedShiftLog('${id}', '${oldTimestamp}', '${oldFelhasznalo}')" id="btnSaveEditedLog" style="background:var(--pri-normal); color:white; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">💾 Módosítás Mentése</button>
+            </div>
+        </div>
+    </div>`;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('editLogTextArea').value = oldText;
+};
+
+window.saveEditedShiftLog = async function(id, oldTimestamp, oldFelhasznalo) {
+    let ujSzoveg = document.getElementById('editLogTextArea').value.trim();
+    if (!ujSzoveg) return alert("A szöveg nem lehet üres!");
+    
+    document.getElementById('btnSaveEditedLog').innerText = "⏳ Mentés...";
+    document.getElementById('btnSaveEditedLog').disabled = true;
+
+    try {
+        const res = await secureFetch({
+            action: "editShiftLog",
+            reszleg: RESZLEG,
+            id: id,
+            oldTimestamp: oldTimestamp,
+            oldFelhasznalo: oldFelhasznalo,
+            szerkeszto: localStorage.getItem("activeUser"),
+            ujSzoveg: ujSzoveg
+        });
+        const r = await res.json();
+        
+        if (r.status === "success") {
+            document.getElementById('editLogOverlay').remove();
+            showToast("Műszaknapló sikeresen frissítve!");
+            loadShiftLogs();
+        } else {
+            alert("Hiba: " + r.message);
+            document.getElementById('btnSaveEditedLog').innerText = "💾 Módosítás Mentése";
+            document.getElementById('btnSaveEditedLog').disabled = false;
+        }
+    } catch(e) {
+        alert("Hálózati hiba!");
+        document.getElementById('btnSaveEditedLog').innerText = "💾 Módosítás Mentése";
+        document.getElementById('btnSaveEditedLog').disabled = false;
+    }
+};
 
 function exportShiftLogs() {
     let csv = "Dátum;Műszak;Írta;Szöveg;Jóváhagyók\n"; globalShiftLogs.forEach(l => { let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10); csv += `"${logD}";"${l.muszak}";"${l.felhasznalo}";"${String(l.szoveg).replace(/"/g,'""')}";"${l.jovahagyok||""}"\n`; });
