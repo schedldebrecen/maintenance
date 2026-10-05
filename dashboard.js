@@ -353,13 +353,41 @@ function setDashboardFilter(prio) {
 function renderGrid(renderTasks) {
     const grid = document.getElementById('taskGrid'); if(!grid) return;
     if (renderTasks.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px;"><div style="font-size: 60px; margin-bottom: 20px;">🎉</div><h2 style="color: var(--pri-normal);">Nincs aktív feladat ebben a nézetben.</h2></div>`; return; }
-    let normalTasks = renderTasks.filter(t => !String(t.id).startsWith("PREV-") && !String(t.id).includes("REC-")); let prevTasks = renderTasks.filter(t => String(t.id).startsWith("PREV-") || String(t.id).includes("REC-"));
+    
+    let normalTasks = [];
+    let prevTasks = [];
+    let itTasks = [];
+    
+    renderTasks.forEach(t => {
+        let isPrev = String(t.id).startsWith("PREV-") || String(t.id).includes("REC-");
+        let gepStr = String(t.gep).toLowerCase();
+        
+        // IT feladatok felismerése (Ugyanaz a logika, mint a Teams riasztásnál)
+        let isIT = gepStr.includes("szerver") || gepStr.includes("hálózat") || gepStr.includes("kliens") || gepStr.includes("nyomtató") || gepStr.includes("szoftver") || gepStr.includes("it eszköz");
+        
+        if (isIT) {
+            itTasks.push(t);
+        } else if (isPrev) {
+            prevTasks.push(t);
+        } else {
+            normalTasks.push(t);
+        }
+    });
+
     const w = { "Termelésleállás": 4, "Magas prioritás": 3, "Normál": 2, "Megfigyelés alatt": 1.5, "Informatív": 1 };
     const sorter = (a, b) => { if (a.statusz === "Folyamatban" && b.statusz !== "Folyamatban") return -1; if (a.statusz !== "Folyamatban" && b.statusz === "Folyamatban") return 1; let pD = (w[String(b.prioritas)] || 0) - (w[String(a.prioritas)] || 0); if (pD !== 0) return pD; return new Date(a.idopont) - new Date(b.idopont); };
-    normalTasks.sort(sorter); prevTasks.sort(sorter);
+    
+    normalTasks.sort(sorter); 
+    prevTasks.sort(sorter);
+    itTasks.sort(sorter);
+
     let html = "";
     if (normalTasks.length > 0) { html += `<div class="section-title">🚨 Aktuális Hibák és Feladatok</div>`; normalTasks.forEach(task => { html += generateCardHtml(task); }); }
     if (prevTasks.length > 0) { html += `<div class="section-title" style="margin-top:40px; color: var(--pri-info); border-color: var(--pri-info);">🔁 Tervezett Karbantartások (Ismétlődő)</div>`; prevTasks.forEach(task => { html += generateCardHtml(task); }); }
+    
+    // IT Feladatok külön szekciója, szürke színnel, legalul
+    if (itTasks.length > 0) { html += `<div class="section-title" style="margin-top:40px; color: #64748b; border-color: #64748b;">💻 IT Részleg Feladatai (Várakozó)</div>`; itTasks.forEach(task => { html += generateCardHtml(task); }); }
+    
     grid.innerHTML = html;
 }
 
