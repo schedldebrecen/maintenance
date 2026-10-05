@@ -19,6 +19,10 @@
         #item_info { margin: 15px 0; font-size: 15px; min-height: 50px; text-align: left; background: #f1f3f5; padding: 10px; border-radius: 8px;}
         #loader { display: none; color: #FFC107; font-weight: bold; margin-bottom: 10px; }
         
+        /* ÚJ ZOOM CSÚSZKA STÍLUSA */
+        #zoom_container { display: none; margin: 10px auto; width: 90%; text-align: left; background: #e9ecef; padding: 10px; border-radius: 8px; box-sizing: border-box; }
+        #zoom_slider { width: 100%; margin-top: 5px; }
+        
         .tabs { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #0D6EFD; }
         .tab { flex: 1; padding: 10px; background: white; color: #0D6EFD; font-weight: bold; cursor: pointer; border: none; font-size: 14px; }
         .tab.active { background: #0D6EFD; color: white; }
@@ -53,7 +57,14 @@
 
     <div id="scan_view">
         <button class="btn-cam" onclick="startScanner()" id="camBtn">📷 Vonalkód Olvasása</button>
+        
         <div id="reader"></div>
+        
+        <!-- ÚJ ZOOM CSÚSZKA CSAK A VONALKÓD OLVASÓ ALÁ -->
+        <div id="zoom_container">
+            <label style="font-size: 14px; font-weight: bold; color: #0D6EFD;">🔍 Nagyítás (Zoom):</label>
+            <input type="range" id="zoom_slider" min="1" max="3" step="0.1" value="1">
+        </div>
         
         <input type="text" id="erp_id" placeholder="Cikkszám (Kézzel is beírható)" onchange="keresCikk()" style="font-weight: bold;">
         
@@ -69,7 +80,6 @@
                 Fénykép csatolása
             </label>
             <div id="image_container" style="display: none;">
-                <!-- KÖNYVELÉSNÉL NINCS CAPTURE, ÍGY LEHET GALÉRIÁBÓL TALLÓZNI -->
                 <input type="file" id="camera_input" accept="image/*" onchange="previewImage(event)">
                 <img id="image_preview" style="max-width: 100%; max-height: 200px; margin-top: 10px; display: none; border-radius: 5px; border: 1px solid #ccc;">
             </div>
@@ -93,6 +103,7 @@
     const html5QrCode = new Html5Qrcode("reader");
     let currentUser = "";
     let allItems = []; 
+    let currentStreamTrack = null; 
 
     function toggleImageInput() {
         const isChecked = document.getElementById('use_image').checked;
@@ -214,21 +225,18 @@
         renderList(filtered);
     }
 
-          function startScanner() {
+    function startScanner() {
         document.getElementById("reader").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
         
-        // Dinamikus, tökéletes négyzet a képernyő méretéhez igazítva!
         const config = { 
             fps: 15, 
             qrbox: function(viewfinderWidth, viewfinderHeight) {
-                // A képernyő rövidebb oldalának 75%-át veszi alapul, így szép nagy lesz
                 let size = Math.min(viewfinderWidth, viewfinderHeight) * 0.75;
                 return { width: size, height: size };
             }
         };
         
-        // Egyetlen, tiszta és stabil kamera indítás
         html5QrCode.start(
             { facingMode: "environment" }, 
             config, 
@@ -238,7 +246,32 @@
                 stopScanner();
                 keresCikk(); 
             }
-        ).catch(err => {
+        ).then(() => {
+            // A kamera indulása után megjelenítjük a zoom csúszkát, ha a telefon támogatja
+            setTimeout(() => {
+                try {
+                    const videoElement = document.querySelector("#reader video");
+                    if (videoElement && videoElement.srcObject) {
+                        const track = videoElement.srcObject.getVideoTracks()[0];
+                        currentStreamTrack = track;
+                        const capabilities = track.getCapabilities();
+                        
+                        if (capabilities.zoom) {
+                            const slider = document.getElementById("zoom_slider");
+                            slider.min = capabilities.zoom.min;
+                            slider.max = capabilities.zoom.max;
+                            slider.step = capabilities.zoom.step || 0.1;
+                            slider.value = track.getSettings().zoom || capabilities.zoom.min;
+                            document.getElementById("zoom_container").style.display = "block";
+                            
+                            slider.oninput = function() {
+                                track.applyConstraints({advanced: [ {zoom: parseFloat(slider.value)} ]});
+                            };
+                        }
+                    }
+                } catch(e) { console.log("Zoom not supported", e); }
+            }, 500);
+        }).catch(err => {
             alert("Nem sikerült elindítani a kamerát!\nOka: " + err);
             stopScanner();
         });
@@ -248,8 +281,9 @@
         try { html5QrCode.stop(); } catch(e) {}
         document.getElementById("reader").style.display = "none";
         document.getElementById("camBtn").style.display = "inline-block";
+        document.getElementById("zoom_container").style.display = "none";
+        currentStreamTrack = null;
     }
-
 
     async function uploadItemImage(event) {
         const file = event.target.files[0];
@@ -302,7 +336,6 @@
                     <div style="margin-top:15px; text-align:center;">
                         <label class="btn-cam" style="display:inline-block; width:90%; padding:10px; cursor:pointer; font-size:14px; border-radius:8px; color:white; font-weight:bold;">
                             📷 Új fotó a cikkhez (Kamera)
-                            <!-- BEKERÜLT A CAPTURE="ENVIRONMENT", ÍGY AZONNAL A KAMERA NYÍLIK -->
                             <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadItemImage(event)">
                         </label>
                     </div>
