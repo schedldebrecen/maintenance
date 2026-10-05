@@ -520,7 +520,7 @@ function renderShiftLogs() {
         let editBtn = "";
         if (isSuperuser) {
             let encodedText = encodeURIComponent(String(l.szoveg));
-            editBtn = `<button onclick="editShiftLogPrompt('${l.id}', '${l.idopont}', '${l.felhasznalo}', '${encodedText}')" style="position:absolute; bottom:15px; right:15px; background:var(--bg-dark); color:var(--text-muted); border:1px solid #cbd5e1; padding:4px 8px; font-size:11px; border-radius:4px; cursor:pointer;">✏️ Szerkesztés</button>`;
+            editBtn = `<button onclick="editShiftLogPrompt('${l.id}', '${l.idopont}', '${l.felhasznalo}', '${encodedText}')" style="position:absolute; bottom:15px; right:15px; background:var(--bg-dark); color:var(--text-muted); border:1px solid #cbd5e1; padding:4px 10px; font-size:11px; border-radius:4px; cursor:pointer; width:max-content; min-width:unset; margin:0; display:inline-block;">✏️ Szerkesztés</button>`;
         }
 
         h += `<div class="task-card" style="border-left-color: var(--pri-info); position:relative; padding-bottom:30px;"><div class="task-header"><span class="badge badge-info">${l.muszak}</span><span style="font-weight:bold; color:var(--text-muted);">${dateStr}</span></div><div style="white-space:pre-wrap; font-size:14px; margin-bottom:10px;">${safeSzoveg}</div><div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">Írta: <b>${l.felhasznalo}</b></div>${statusHtml}${editBtn}</div>`;
