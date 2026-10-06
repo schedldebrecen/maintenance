@@ -7,26 +7,26 @@
     <link rel="stylesheet" href="style.css?v=3">
 	<style>
   :root {
-    /* Fő színek felülírása modern, elegáns rózsaszín/magenta árnyalatokra */
-    --primary: #db2777 !important;      /* Fő pink szín */
-    --pri-normal: #be185d !important;   /* Sötétebb pink (pl. gombok alapértelmezetten) */
-    --pri-info: #ec4899 !important;     /* Világosabb pink (Infó gombok, ikonok) */
-    --pri-obs: #9d174d !important;      /* Mély magenta (Sötét gombok / Hover) */
+    /* Fő színek felülírása modern, ipari fekete-szürke árnyalatokra */
+    --primary: #1f2937 !important;      /* Sötétszürke (fő szín) */
+    --pri-normal: #4b5563 !important;   /* Középszürke (pl. gombok alapértelmezetten) */
+    --pri-info: #6b7280 !important;     /* Világosabb szürke (Infó gombok, ikonok) */
+    --pri-obs: #111827 !important;      /* Majdnem fekete (Sötét gombok / Hover) */
     
     /* Panelek és kártyák finomhangolása */
-    --border: #fbcfe8 !important;       /* Halvány rózsaszín szegélyek */
+    --border: #d1d5db !important;       /* Szürke szegélyek */
   }
 
-  /* A felső fejléc (Header) átszínezése pinkre */
+  /* A felső fejléc (Header) átszínezése fekete-szürke átmenetre */
   .header, header, .navbar, .top-bar {
-    background-color: #be185d !important;
-    background: linear-gradient(to right, #9d174d, #db2777) !important;
+    background-color: #1f2937 !important;
+    background: linear-gradient(to right, #111827, #4b5563) !important;
   }
 
-  /* A gombok hover (ráhúzás) effektusának igazítása */
+  /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
   button:hover {
-    background-color: #9d174d !important;
-    border-color: #9d174d !important;
+    background-color: #111827 !important;
+    border-color: #111827 !important;
   }
 
   /* A "Napló mentése" és a "Belépés" gombok erőszakos átszínezése */
@@ -36,14 +36,14 @@
     color: white !important;
   }
 
-  /* Kék/szürke információs dobozok hátterének enyhe rózsaszínesítése */
+  /* Információs dobozok hátterének és szegélyének igazítása */
   .checklist-box, .task-card {
-    border-color: #fbcfe8 !important;
+    border-color: #d1d5db !important;
   }
   
   #appF_*, .extra-info-box {
-    background-color: #fdf2f8 !important; /* Nagyon-nagyon halvány pink háttér */
-    border-color: #fbcfe8 !important;
+    background-color: #f3f4f6 !important; /* Nagyon halvány szürke háttér a komment doboznak */
+    border-color: #d1d5db !important;
   }
 </style>
 </head>
