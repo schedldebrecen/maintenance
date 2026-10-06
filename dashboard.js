@@ -363,7 +363,7 @@ function renderGrid(renderTasks) {
         let gepStr = String(t.gep).toLowerCase();
         
         // IT feladatok felismerése (Ugyanaz a logika, mint a Teams riasztásnál)
-        let isIT = gepStr.includes("szerver") || gepStr.includes("hálózat") || gepStr.includes("kliens") || gepStr.includes("nyomtató") || gepStr.includes("szoftver") || gepStr.includes("it eszköz");
+        let isIT = gepStr === "it" || gepStr.startsWith("it -") || gepStr.includes("szerver") || gepStr.includes("hálózat") || gepStr.includes("kliens") || gepStr.includes("nyomtató") || gepStr.includes("szoftver") || gepStr.includes("it eszköz");
         
         if (isIT) {
             itTasks.push(t);
