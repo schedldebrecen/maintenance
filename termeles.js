@@ -364,7 +364,7 @@ function toggleMuszakTask(taskId, gepNeve, statusz) {
 }
 
 function generateLockdownTaskHtml(datum, muszak, logKey) {
-    let osszes = muszakValaszthatoFeladatok.filter(t => isTaskInShift(t, datum, muszak));
+    let osszes = muszakValaszthatoFeladatok.filter(t => isTaskInShift(t, datum, muszak) && !String(t.id).startsWith("PREV-"));
     if (osszes.length === 0) return "<div style='color:var(--text-muted); font-size:12px; padding:5px;'>Nincs elérhető hiba/leállás erre a műszakra.</div>";
     osszes.sort((a,b) => { return new Date(b.idopont) - new Date(a.idopont); });
 
