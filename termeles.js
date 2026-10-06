@@ -283,7 +283,7 @@ async function frissitMuszakFeladatok() {
     }
 
     selectedShiftTasks = []; 
-    let osszes = muszakValaszthatoFeladatok.filter(t => isTaskInShift(t, datum, muszakTipus));
+    let osszes = muszakValaszthatoFeladatok.filter(t => isTaskInShift(t, datum, muszakTipus) && !String(t.id).startsWith("PREV-"));
 
     if (osszes.length === 0) {
         container.innerHTML = "<div style='color:var(--text-muted); padding:10px;'>Nincs a kiválasztott műszakhoz köthető hiba.</div>";
