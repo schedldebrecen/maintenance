@@ -6,6 +6,48 @@
     <title>Ipari CMMS - Karbantartás</title>
     <link rel="stylesheet" href="style.css">
 </head>
+<style>
+  :root {
+    /* Fő színek felülírása tiszta, ipari kék árnyalatokra a Karbantartás apphoz */
+    --primary: #1d4ed8 !important;      /* Sötétebb kék (fő szín) */
+    --pri-normal: #2563eb !important;   /* Alap kék (pl. gombok alapértelmezetten) */
+    --pri-info: #3b82f6 !important;     /* Világosabb kék (Infó gombok, ikonok) */
+    --pri-obs: #1e40af !important;      /* Nagyon sötét kék (Sötét gombok / Hover) */
+    
+    /* Panelek és kártyák finomhangolása */
+    --border: #bfdbfe !important;       /* Halványkék szegélyek */
+  }
+
+  /* A felső fejléc (Header) átszínezése kék átmenetre */
+  .header, header, .navbar, .top-bar {
+    background-color: #1d4ed8 !important;
+    background: linear-gradient(to right, #1e40af, #2563eb) !important;
+  }
+
+  /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
+  button:hover {
+    background-color: #1e40af !important;
+    border-color: #1e40af !important;
+  }
+
+  /* Alap gombok (ha véletlenül más színűek maradnának) erőszakos átszínezése */
+  #btnShiftLog, #loginView button {
+    background-color: var(--pri-normal) !important;
+    border: 1px solid var(--pri-normal) !important;
+    color: white !important;
+  }
+
+  /* Információs dobozok hátterének és szegélyének igazítása */
+  .checklist-box, .task-card {
+    border-color: #bfdbfe !important;
+  }
+  
+  #appF_*, .extra-info-box {
+    background-color: #eff6ff !important; /* Nagyon halvány kék háttér a komment doboznak */
+    border-color: #bfdbfe !important;
+  }
+</style>
+    
 <body>
 
 <div id="toastMessage">✅ Mentve!</div>
