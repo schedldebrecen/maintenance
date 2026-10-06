@@ -5,6 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ipari CMMS - Termelés</title>
     <link rel="stylesheet" href="style.css?v=3">
+	<style>
+  :root {
+    /* Fő színek felülírása modern, elegáns rózsaszín/magenta árnyalatokra */
+    --primary: #db2777 !important;      /* Fő pink szín */
+    --pri-normal: #be185d !important;   /* Sötétebb pink (pl. gombok alapértelmezetten) */
+    --pri-info: #ec4899 !important;     /* Világosabb pink (Infó gombok, ikonok) */
+    --pri-obs: #9d174d !important;      /* Mély magenta (Sötét gombok / Hover) */
+    
+    /* Panelek és kártyák finomhangolása */
+    --border: #fbcfe8 !important;       /* Halvány rózsaszín szegélyek */
+  }
+
+  /* A felső fejléc (Header) átszínezése pinkre */
+  .header, header, .navbar, .top-bar {
+    background-color: #be185d !important;
+    background: linear-gradient(to right, #9d174d, #db2777) !important;
+  }
+
+  /* A gombok hover (ráhúzás) effektusának igazítása */
+  button:hover {
+    background-color: #9d174d !important;
+    border-color: #9d174d !important;
+  }
+
+  /* Kék/szürke információs dobozok hátterének enyhe rózsaszínesítése */
+  .checklist-box, .task-card {
+    border-color: #fbcfe8 !important;
+  }
+  
+  #appF_*, .extra-info-box {
+    background-color: #fdf2f8 !important; /* Nagyon-nagyon halvány pink háttér */
+    border-color: #fbcfe8 !important;
+  }
+</style>
 </head>
 <body>
 
