@@ -98,7 +98,6 @@
         </div>
     </div>
 
-    <!-- MODAL (Feladat kezelő) -->
     <div class="modal-overlay" id="taskModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -123,7 +122,6 @@
                     <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
                         <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
                         
-                        <!-- ALKATRÉSZEK DINAMIKUS LISTÁJA KERESŐ GOMBBAL -->
                         <div id="alkatreszekContainer" style="margin-bottom:10px;">
                             <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
                                 <div style="flex:3; display:flex; gap:0; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
@@ -148,7 +146,6 @@
         </div>
     </div>
 
-    <!-- ÚJ: ALKATRÉSZ KERESŐ MODAL (Raktár) -->
     <div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
