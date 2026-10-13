@@ -68,7 +68,6 @@
         <div id="scanner_wrapper">
             <div id="scan_feedback"></div>
             <div id="reader"></div>
-            <!-- ÚJ: LEÁLLÍTÓ GOMB (Csak kamerázás közben látszik) -->
             <button class="btn-remove" id="stopCamBtn" onclick="stopScanner()" style="display: none; width: 100%; margin-top: 10px;">🛑 Kamera Bezárása</button>
         </div>
         
@@ -115,6 +114,7 @@
     let currentUser = "";
     let allItems = []; 
     let currentStreamTrack = null; 
+    let isCameraRunning = false; // Új biztonsági változó a Zoom-hoz
     
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
@@ -279,17 +279,20 @@
     function startScanner(mode = 'normal') {
         initAudio(); 
         scanMode = mode;
+        isCameraRunning = true;
+        
         const erpInput = document.getElementById("erp_id");
         targetErpId = erpInput.value.trim().toLowerCase();
         
         if (scanMode === 'search' && !targetErpId) {
             alert("🎯 Kereső módhoz előbb írd be (vagy másold be) a keresett cikkszámot a szövegdobozba!");
             erpInput.focus();
+            isCameraRunning = false;
             return;
         }
 
         document.getElementById("scanner_wrapper").style.display = "block";
-        document.getElementById("stopCamBtn").style.display = "block"; // Leállító gomb megjelenítése
+        document.getElementById("stopCamBtn").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
         document.getElementById("camSearchBtn").style.display = "none";
         document.getElementById("scan_feedback").style.display = "none";
@@ -308,7 +311,7 @@
             (decodedText) => {
                 const now = Date.now();
                 
-                // --- KERESŐ MÓD LOGIKÁJA ---
+                // --- 1. KERESŐ MÓD LOGIKÁJA ---
                 if (scanMode === 'search') {
                     const fb = document.getElementById("scan_feedback");
                     
@@ -317,12 +320,10 @@
                         fb.innerText = "✅ MEGVAN: " + decodedText;
                         fb.style.display = "block";
                         
-                        // Csak akkor csipog újra, ha eltelt 2 mp, vagy egy másik vonalkódról tértünk vissza rá
                         if (now - lastScanTime > 2000 || lastScannedCode !== decodedText) {
                             playBeep('success');
                             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
                             
-                            // Háttérben letöltjük az adatait, de a kamera nyitva marad!
                             document.getElementById("erp_id").value = decodedText;
                             keresCikk(); 
                             
@@ -341,7 +342,6 @@
                         }
                     }
                     
-                    // Ha 1.5 másodpercig nem lát vonalkódot, elrejti a feliratot
                     clearTimeout(window.hideFb);
                     window.hideFb = setTimeout(() => { 
                         fb.style.display = "none"; 
@@ -349,16 +349,22 @@
                     }, 1500);
 
                 } 
-                // --- NORMÁL MÓD LOGIKÁJA (Azonnal leállít és bezár) ---
+                // --- 2. NORMÁL MÓD LOGIKÁJA ---
                 else {
                     document.getElementById("erp_id").value = decodedText;
                     if (navigator.vibrate) navigator.vibrate(200);
-                    stopScanner();
-                    keresCikk(); 
+                    
+                    // JAVÍTVA: Késleltetett leállítás, hogy a kamera hardveresen ki tudjon kapcsolni!
+                    setTimeout(() => {
+                        stopScanner();
+                        keresCikk(); 
+                    }, 150);
                 }
             }
         ).then(() => {
             setTimeout(() => {
+                // Csak akkor rakjuk ki a csúszkát, ha még mindig fut a kamera!
+                if (!isCameraRunning) return;
                 try {
                     const videoElement = document.querySelector("#reader video");
                     if (videoElement && videoElement.srcObject) {
@@ -379,7 +385,7 @@
                             };
                         }
                     }
-                } catch(e) { console.log("Zoom not supported", e); }
+                } catch(e) { console.log("Zoom not supported"); }
             }, 500);
         }).catch(err => {
             alert("Nem sikerült elindítani a kamerát!\nOka: " + err);
@@ -388,9 +394,15 @@
     }
 
     function stopScanner() {
-        try { html5QrCode.stop(); } catch(e) {}
+        isCameraRunning = false;
+        try { 
+            html5QrCode.stop().then(() => {
+                console.log("Kamera teljesen leállt.");
+            }).catch(e => console.log("Leállási hiba:", e));
+        } catch(e) {}
+        
         document.getElementById("scanner_wrapper").style.display = "none";
-        document.getElementById("stopCamBtn").style.display = "none"; // Leállító gomb elrejtése
+        document.getElementById("stopCamBtn").style.display = "none"; 
         document.getElementById("camBtn").style.display = "inline-block";
         document.getElementById("camSearchBtn").style.display = "inline-block";
         document.getElementById("zoom_container").style.display = "none";
