@@ -13,18 +13,21 @@
         button { width: 90%; padding: 14px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
         .btn-primary { background: #0D6EFD; }
         .btn-cam { background: #6C757D; }
-        .btn-search-mode { background: #FD7E14; margin-top: 0 !important; } /* Új narancssárga gomb */
+        .btn-search-mode { background: #FD7E14; margin-top: 0 !important; }
         .btn-remove { background: #DC3545; }
         .btn-add { background: #198754; }
-        #reader { width: 100%; max-width: 350px; margin: 10px auto; border-radius: 8px; overflow: hidden; display: none; position: relative; }
+        
+        /* JAVÍTVA: A reader most már a wrapperen belül van, nem őt rejtjük el */
+        #scanner_wrapper { position: relative; max-width: 350px; margin: 10px auto; display: none; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+        
         #item_info { margin: 15px 0; font-size: 15px; min-height: 50px; text-align: left; background: #f1f3f5; padding: 10px; border-radius: 8px;}
         #loader { display: none; color: #FFC107; font-weight: bold; margin-bottom: 10px; }
         
-        /* ZOOM CSÚSZKA STÍLUSA */
         #zoom_container { display: none; margin: 10px auto; width: 90%; text-align: left; background: #e9ecef; padding: 10px; border-radius: 8px; box-sizing: border-box; }
         #zoom_slider { width: 100%; margin-top: 5px; }
         
-        /* ÚJ: KAMERA VIZUÁLIS VISSZAJELZÉS (AR Overlay) */
+        /* VIZUÁLIS VISSZAJELZÉS */
         #scan_feedback { position: absolute; top: 10px; left: 10px; right: 10px; padding: 10px; border-radius: 8px; font-weight: bold; color: white; display: none; z-index: 100; text-align: center; text-shadow: 1px 1px 2px black; font-size: 16px; transition: 0.2s; }
 
         .tabs { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #0D6EFD; }
@@ -60,16 +63,15 @@
     </div>
 
     <div id="scan_view">
-        <!-- NORMÁL ÉS ÚJ KERESŐ GOMBOK -->
         <button class="btn-cam" onclick="startScanner('normal')" id="camBtn">📷 Vonalkód Olvasása</button>
         <button class="btn-search-mode" onclick="startScanner('search')" id="camSearchBtn">🎯 Keresés Kamerával</button>
         
-        <!-- KAMERA KÉPE ÉS A VIZUÁLIS VISSZAJELZÉS OVRERLAY -->
-        <div id="reader">
+        <!-- JAVÍTVA: Közös csomagoló (wrapper), ami védi a feliratot a törléstől -->
+        <div id="scanner_wrapper">
             <div id="scan_feedback"></div>
+            <div id="reader"></div>
         </div>
         
-        <!-- ZOOM CSÚSZKA -->
         <div id="zoom_container">
             <label style="font-size: 14px; font-weight: bold; color: #0D6EFD;">🔍 Nagyítás (Zoom):</label>
             <input type="range" id="zoom_slider" min="1" max="3" step="0.1" value="1">
@@ -114,7 +116,6 @@
     let allItems = []; 
     let currentStreamTrack = null; 
     
-    // --- ÚJ: HANGGENERÁTOR (Beeper) A SIKERES/SIKERTELEN KERESÉSHEZ ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
     
@@ -132,7 +133,6 @@
             gainNode.connect(audioCtx.destination);
             
             if (type === 'success') {
-                // Vidám, felfelé ívelő dupla csippanás (Megtalálta!)
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
                 oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
@@ -141,7 +141,6 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.3);
             } else {
-                // Rövid, tompa "nem jó" hang (szándékosan halkabb, hogy ne legyen zavaró)
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
                 gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
@@ -149,9 +148,8 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.1);
             }
-        } catch(e) { console.log("Audio not supported"); }
+        } catch(e) { console.log("Audio nem támogatott"); }
     }
-    // -------------------------------------------------------------------
 
     function toggleImageInput() {
         const isChecked = document.getElementById('use_image').checked;
@@ -273,14 +271,11 @@
         renderList(filtered);
     }
 
-
-    // --- ÚJ: KERESŐ ÉS NORMÁL KAMERA MÓD EGYESÍTÉSE ---
     let scanMode = 'normal';
     let targetErpId = "";
 
     function startScanner(mode = 'normal') {
-        initAudio(); // Inicializáljuk a hangot kattintáskor
-        
+        initAudio(); 
         scanMode = mode;
         const erpInput = document.getElementById("erp_id");
         targetErpId = erpInput.value.trim().toLowerCase();
@@ -291,10 +286,11 @@
             return;
         }
 
-        document.getElementById("reader").style.display = "block";
+        // JAVÍTVA: Most már a wrapper-t jelenítjük meg, nem közvetlenül a reader-t
+        document.getElementById("scanner_wrapper").style.display = "block";
         document.getElementById("camBtn").style.display = "none";
         document.getElementById("camSearchBtn").style.display = "none";
-        document.getElementById("scan_feedback").style.display = "none"; // Elrejtjük a visszajelzőt induláskor
+        document.getElementById("scan_feedback").style.display = "none";
         
         const config = { 
             fps: 15, 
@@ -308,21 +304,17 @@
             { facingMode: "environment" }, 
             config, 
             (decodedText) => {
-                
-                // --- KERESŐ MÓD LOGIKÁJA ---
                 if (scanMode === 'search') {
                     const fb = document.getElementById("scan_feedback");
                     
                     if (decodedText.toLowerCase() === targetErpId) {
-                        // TALÁLAT! Zöldre váltunk, hangjelzés, leállás
-                        fb.style.backgroundColor = "rgba(25, 135, 84, 0.95)"; // Zöld
+                        fb.style.backgroundColor = "rgba(25, 135, 84, 0.95)"; 
                         fb.innerText = "✅ MEGVAN: " + decodedText;
                         fb.style.display = "block";
                         
                         playBeep('success');
                         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
                         
-                        // 1 mp-ig megmutatjuk a zöld feliratot, utána leállítjuk
                         setTimeout(() => {
                             document.getElementById("erp_id").value = decodedText;
                             stopScanner();
@@ -330,14 +322,12 @@
                         }, 1000);
                         
                     } else {
-                        // NEM EGYEZIK! Pirosra váltunk, de a kamera pásztáz tovább
-                        fb.style.backgroundColor = "rgba(220, 53, 69, 0.9)"; // Piros
+                        fb.style.backgroundColor = "rgba(220, 53, 69, 0.9)"; 
                         fb.innerText = "❌ Másik tétel: " + decodedText;
                         fb.style.display = "block";
                         playBeep('error');
                     }
                 } 
-                // --- NORMÁL MÓD LOGIKÁJA (Azonnal megáll az elsőnél) ---
                 else {
                     document.getElementById("erp_id").value = decodedText;
                     if (navigator.vibrate) navigator.vibrate(200);
@@ -346,7 +336,6 @@
                 }
             }
         ).then(() => {
-            // Zoom csúszka aktiválása indulás után
             setTimeout(() => {
                 try {
                     const videoElement = document.querySelector("#reader video");
@@ -378,14 +367,13 @@
 
     function stopScanner() {
         try { html5QrCode.stop(); } catch(e) {}
-        document.getElementById("reader").style.display = "none";
+        document.getElementById("scanner_wrapper").style.display = "none";
         document.getElementById("camBtn").style.display = "inline-block";
         document.getElementById("camSearchBtn").style.display = "inline-block";
         document.getElementById("zoom_container").style.display = "none";
         document.getElementById("scan_feedback").style.display = "none";
         currentStreamTrack = null;
     }
-
 
     async function uploadItemImage(event) {
         const file = event.target.files[0];
