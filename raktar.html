@@ -255,7 +255,9 @@
         items.forEach(r => {
             const el = document.createElement('div');
             el.className = 'search-item';
-            el.innerHTML = `<span class="tag">${r.erpid}</span><br>${r.name} <br><small>Hely: ${r.location} | Készlet: <b style="color:#198754">${r.qty} db</b></small>`;
+            // Ha a Google Script küld gyártót (mfr), azt is kiírjuk a név elé/mellé
+            const mfrText = r.mfr ? ` <span style="color:#6C757D;">(${r.mfr})</span>` : "";
+            el.innerHTML = `<span class="tag">${r.erpid}</span>${mfrText}<br>${r.name} <br><small>Hely: ${r.location} | Készlet: <b style="color:#198754">${r.qty} db</b></small>`;
             el.onclick = () => {
                 document.getElementById("erp_id").value = r.erpid;
                 switchTab('scan');
@@ -266,8 +268,19 @@
     }
 
     function filterList() {
-        const q = document.getElementById("local_search").value.toLowerCase();
-        const filtered = allItems.filter(r => r.erpid.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+        const q = document.getElementById("local_search").value.toLowerCase().trim();
+        if (!q) {
+            renderList(allItems);
+            return;
+        }
+        
+        // Szavakra bontjuk a keresést, és a tétel ÖSSZES adatában (gyártó, cikkszám, hely, leírás) keresünk
+        const searchWords = q.split(/\s+/);
+        const filtered = allItems.filter(r => {
+            const fullRowText = Object.values(r).join(" ").toLowerCase();
+            return searchWords.every(word => fullRowText.includes(word));
+        });
+        
         renderList(filtered);
     }
 
