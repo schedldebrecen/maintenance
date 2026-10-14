@@ -799,3 +799,9 @@ function closeStatModal(force = false) {
         if (modal) modal.style.display = "none";
     }
 }
+function checkAllChecklists(taskId) {
+    const checkboxes = document.querySelectorAll(`.task-cl-chk-${taskId}`);
+    checkboxes.forEach(cb => cb.checked = true);
+    // Ha esetleg van egy "Mentve!" pukkanó ablakod (Toast), azt itt meghívhatod:
+    if(typeof showToast === "function") showToast("✅ Minden pont kijelölve!");
+}
