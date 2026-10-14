@@ -657,7 +657,7 @@ function openModal(taskId) {
                     }
                 });
             }
-            let checkBoxHtml = clHtml ? `<strong style="color:var(--pri-info); font-size:16px; display:block; margin-bottom:15px;">📋 Kötelező Checklist Kitöltése:</strong><div id="activeChecklistContainer_${task.id}">${clHtml}</div>` : "";
+            let checkBoxHtml = clHtml ? `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><strong style="color:var(--pri-info); font-size:16px;">📋 Kötelező Checklist:</strong> <button type="button" onclick="checkAllChecklists()" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; font-size:13px; font-weight:bold; border-radius:4px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.4);">✅ Minden bepipálása</button></div><div id="activeChecklistContainer_${task.id}">${clHtml}</div>` : "";
             details += `${utasitasHtml}`;
             if (checkBoxHtml) { details += `<div style="background:var(--bg-dark); border:2px solid var(--pri-info); padding:15px; border-radius:8px; margin-top:15px;">${checkBoxHtml}</div>`; }
         } else {
@@ -787,3 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+function checkAllChecklists() {
+    const checkboxes = document.querySelectorAll('.task-cl-chk');
+    checkboxes.forEach(cb => cb.checked = true);
+}
