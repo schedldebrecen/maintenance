@@ -194,7 +194,7 @@ function checkMissingShiftLogsAndApprovals() {
     
     globalShiftLogs.forEach(l => {
         if (l.hianyzo) { 
-            missingLogs.push(`${l.datum}${l.muszak}`); 
+            missingLogs.push(`${l.datum} ${l.muszak}`); 
         } else {
             let logD = l.datum ? String(l.datum).substring(0, 10) : String(l.idopont).substring(0, 10);
             if (logD >= "2026-09-01") { 
@@ -378,10 +378,10 @@ function generateCardHtml(t) {
     let extraInfoBadge = t.megjegyzes ? `<div style="margin-bottom:10px; font-size:12px; color:var(--pri-info); font-weight:bold;">💬 Komment csatolva</div>` : "";
 
     if (t.statusz !== "Lezárt") { 
-        return `<div class="card ${eC}" onclick="openModal('${t.id}')"><div class="card-header"><span class="badge ${bC}">${pr}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} -${timeStr}</span></div><div class="machine-name">${reszlegIcon}${prevIcon}${t.gep}</div>${inP}<div class="issue-desc" style="white-space:pre-wrap;">${t.hiba}</div>${extraInfoBadge}<div class="meta-footer"><div>Beküldte: <b>${t.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek / Kezelés 👆</div></div></div>`; 
+        return `<div class="card ${eC}" onclick="openModal('${t.id}')"><div class="card-header"><span class="badge ${bC}">${pr}</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div><div class="machine-name">${reszlegIcon}${prevIcon}${t.gep}</div>${inP}<div class="issue-desc" style="white-space:pre-wrap;">${t.hiba}</div>${extraInfoBadge}<div class="meta-footer"><div>Beküldte: <b>${t.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek / Kezelés 👆</div></div></div>`; 
     } else { 
         let dtTxt = t.downtime ? ` (Kiesés: ${t.downtime} perc)` : ""; 
-        return `<div class="card closed" onclick="openModal('${t.id}')"><div class="card-header"><span class="badge badge-closed">Lezárt</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} -${timeStr}</span></div><div class="machine-name">${reszlegIcon}${prevIcon}${t.gep}</div><div class="issue-desc" style="white-space:pre-wrap;">${t.hiba}</div><div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido\vert{}\vert{}0} perc${dtTxt})</span></div><div class="meta-footer"><div>Beküldte: <b>${t.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek 👆</div></div></div>`; 
+        return `<div class="card closed" onclick="openModal('${t.id}')"><div class="card-header"><span class="badge badge-closed">Lezárt</span><span style="color: var(--text-muted); font-size: 13px; font-weight:bold;">${dateStr} - ${timeStr}</span></div><div class="machine-name">${reszlegIcon}${prevIcon}${t.gep}</div><div class="issue-desc" style="white-space:pre-wrap;">${t.hiba}</div><div style="margin-bottom:10px; color:var(--pri-normal);"><b>Megoldás:</b><br>${String(t.megoldas||"").replace(/\n/g, '<br>')} <span style="color:var(--text-muted);">(${t.ido||0} perc${dtTxt})</span></div><div class="meta-footer"><div>Beküldte: <b>${t.felhasznalo}</b></div><div style="color: var(--text-muted); font-size:11px;">Részletek 👆</div></div></div>`; 
     }
 }
 
@@ -745,4 +745,133 @@ function openModal(taskId) {
                     <button type="button" onclick="openPartsModal('dashAlkCikk_0')" title="Raktár kereső" style="background:var(--pri-obs); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">🔍</button>
                     <button type="button" onclick="openQrScanner('dashAlkCikk_0')" title="QR / Vonalkód olvasás" style="background:var(--pri-info); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">📷</button>
                 </div>
-                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:
+                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
+            </div>`; 
+    }
+    
+    refreshModalActionPanel(); 
+    document.getElementById('taskModal').style.display = "flex"; 
+    if(sessionUser) extendSession(); 
+}
+
+function checkAllChecklists(taskId) { 
+    const checkboxes = document.querySelectorAll(`.task-cl-chk-${taskId}`); 
+    checkboxes.forEach(cb => cb.checked = true); 
+    if(typeof showToast === "function") showToast("Minden pont kijelölve!");
+}
+
+function closeModal(force = false) { 
+    if(force === true || event.target.id === 'taskModal') { 
+        document.getElementById('taskModal').style.display = "none"; 
+        activeTaskId = null; 
+    } 
+    if(sessionUser) extendSession(); 
+}
+
+async function dashStartTask() { 
+    if(!sessionUser || !activeTaskId) return; 
+    document.getElementById('btnDashStart').innerText = "Feldolgozás..."; 
+    await secureFetch({ action: "startTask", id: activeTaskId, felhasznalo: sessionUser }); 
+    fetchDashboardData(); 
+    closeModal(true); 
+}
+
+async function dashCloseTask() { 
+    if(!sessionUser || !activeTaskId) return; 
+    let m = document.getElementById(`dashMegoldas`).value.trim(); 
+    const i = document.getElementById(`dashIdo`).value; 
+    const dt = document.getElementById(`dashDowntime`).value; 
+    
+    let clResults = ""; 
+    document.querySelectorAll(`.task-cl-chk-${activeTaskId}`).forEach(chk => { clResults += (chk.checked ? "✅ " : "❌ (Kihagyva) ") + chk.dataset.label + "\n"; }); 
+    document.querySelectorAll(`.task-cl-input-${activeTaskId}`).forEach(inp => { clResults += "📊 " + inp.dataset.label + " " + (inp.value || "-") + "\n"; });
+    
+    if(m === "" && clResults === "") return alert("A Megoldás mező vagy a Checklist kitöltése kötelező!"); 
+    if (clResults !== "") m = m === "" ? "--- CHECKLIST EREDMÉNYEK ---\n" + clResults.trim() : m + "\n\n--- CHECKLIST EREDMÉNYEK ---\n" + clResults.trim();
+    
+    let alkatreszekTomb = []; 
+    document.querySelectorAll('.alkatresz-sor').forEach(sor => { 
+        let cz = sor.querySelector('.alk-cikkszam').value.trim(); 
+        let db = sor.querySelector('.alk-db').value.trim(); 
+        if(cz && db) { alkatreszekTomb.push({ cikkszam: cz, db: parseInt(db) || 1 }); } 
+    });
+    
+    await secureFetch({ action: "closeTask", id: activeTaskId, megoldas: m, ido: i, downtime: dt, lezarta: sessionUser, alkatreszek: alkatreszekTomb }); 
+    fetchDashboardData(); 
+    closeModal(true); 
+}
+
+function exportTasks(taskList, filename = "Feladatok_Export.csv") {
+    if (!taskList || taskList.length === 0) { alert("Nincs exportálható feladat!"); return; }
+    let csv = "ID;Státusz;Időpont;Rögzítette;Gép;Prioritás;Hiba leírása;Megoldás;Javítási idő (perc);Állásidő (perc);Lezárta\n";
+    taskList.forEach(t => {
+        let dStr = new Date(t.idopont).toLocaleString('hu-HU');
+        csv += `"${t.id}";"${t.statusz}";"${dStr}";"${t.felhasznalo||""}";"${t.gep||""}";"${t.prioritas||""}";"${String(t.hiba||"").replace(/"/g,'""')}";"${String(t.megoldas||"").replace(/"/g,'""')}";"${t.ido||0}";"${t.downtime||0}";"${t.lezarta||""}"\n`;
+    });
+    let a = document.createElement("a"); 
+    a.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'})); 
+    a.download = filename; 
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportClosedTasksPDF() {
+    let f = getFilteredClosedTasks();
+    if(f.length === 0) { alert("Nincs a szűrésnek megfelelő feladat a PDF-hez!"); return; }
+    let win = window.open('', '_blank');
+    let html = `<html><head><title>Karbantartási Feladatlapok</title><style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 0; color: #0f172a; }
+        @page { size: A4 portrait; margin: 15mm; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .task-sheet { page-break-after: always; } .task-sheet:last-child { page-break-after: auto; } }
+        .task-sheet { border: 2px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 15px; }
+        .title { font-size: 20px; font-weight: bold; color: #1e293b; text-transform: uppercase; }
+        .meta { font-size: 12px; color: #64748b; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
+        th { background: #f1f5f9; width: 25%; font-weight: bold; color: #334155; }
+        .solution-box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 4px; font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
+    </style></head><body>`;
+    f.forEach(t => {
+        const dateStr = new Date(t.idopont).toLocaleString('hu-HU');
+        let dtTxt = t.downtime ? `${t.downtime} perc` : "Nincs"; let idoTxt = t.ido ? `${t.ido} perc` : "-";
+        let tipusTxt = String(t.id).startsWith("PREV-") ? "Tervezett Karbantartás (Ismétlődő)" : "Eseti Hibajavítás";
+        html += `
+        <div class="task-sheet">
+            <div class="header"><div class="title">Karbantartási Feladatlap</div><div class="meta">Jegy azonosító: <b>${t.id}</b><br>Rögzítve: ${dateStr}</div></div>
+            <table>
+                <tr><th>Jelleg</th><td><b style="color:#0ea5e9;">${tipusTxt}</b></td></tr>
+                <tr><th>Gép / Terület</th><td><b style="font-size:15px;">${t.gep}</b></td></tr>
+                <tr><th>Prioritás</th><td>${t.prioritas}</td></tr>
+                <tr><th>Feladat leírása</th><td style="white-space:pre-wrap;">${String(t.hiba)}</td></tr>
+                <tr><th>Kiírta</th><td>${t.felhasznalo}</td></tr>
+            </table>
+            <h4 style="margin-bottom:8px; margin-top:20px; color:#1e293b; border-bottom:1px solid #cbd5e1; padding-bottom:5px;">Elvégzett munka és Checklist eredmények:</h4>
+            <div class="solution-box">${String(t.megoldas || "Nincs megadva megoldás.").replace(/\n/g, '<br>')}</div>
+            <table style="margin-top:20px; width:60%;">
+                <tr><th>Ráfordított munkaidő</th><td>${idoTxt}</td></tr>
+                <tr><th>Gépkiesés (Downtime)</th><td>${dtTxt}</td></tr>
+                <tr><th>Feladatot lezárta</th><td style="font-size:14px;"><b>${t.lezarta}</b></td></tr>
+            </table>
+        </div>`;
+    });
+    html += `</body></html>`; win.document.write(html); win.document.close(); setTimeout(() => { win.print(); }, 800);
+}
+
+function populateNavDropdown() {
+    const nav = document.getElementById('appNavDropdown');
+    if(!nav) return;
+    nav.innerHTML = '<option value="" disabled selected>☰ Navigáció</option>';
+    nav.add(new Option("📱 Termelés App", "production.html"));
+    nav.add(new Option("📺 Termelés Faliújság", "dashboard_prod.html"));
+    nav.add(new Option("🔧 Karbantartás App", "index.html"));
+    nav.add(new Option("📺 Karbantartás Faliújság", "dashboard.html"));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dashPin = document.getElementById('dashLoginPin'); 
+    if (dashPin) { 
+        dashPin.addEventListener('keypress', function(e) { 
+            if (e.key === 'Enter') { e.preventDefault(); dashLogin(); } 
+        }); 
+    }
+});
