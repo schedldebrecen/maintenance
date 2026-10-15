@@ -10,6 +10,7 @@
 </head>
 <body>
 
+    <div id="toastMessage">✅ Mentve!</div>
     <button id="ackAlertBtn" onclick="stopAlert()">🛑 ÚJ HIBA! Értesítés leállítása</button>
 
     <div id="dashLockdownScreen" style="display:none; padding: 40px; text-align: center; height:100vh; background:var(--bg-dark);">
@@ -27,6 +28,9 @@
                 <div class="live-badge">ÉLŐ</div>
             </div>
             <div class="time-group">
+                <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
+                    <option value="" disabled selected>☰ Navigáció</option>
+                </select>
                 <button onclick="fetchDashboardData(); timer = REFRESH_INTERVAL_SEC; document.getElementById('progressBar').style.width = '0%'; document.getElementById('countdownDisplay').innerText = timer;" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; font-size:14px; display:flex; align-items:center; gap:5px;">
                     🔄
                 </button>
@@ -39,7 +43,7 @@
                 </div>
                 <div>
                     <div class="clock" id="clockDisplay">00:00:00</div>
-                    <div class="refresh-info">Frissítés: <span id="countdownDisplay">20</span>mp</div>
+                    <div class="refresh-info">Frissítés: <span id="countdownDisplay">300</span>mp</div>
                 </div>
             </div>
             <div id="progressBar"></div>
@@ -49,7 +53,7 @@
             <div id="shiftAlertBanner" style="margin-top:20px;"></div>
             
             <div id="checklistAlarmBanner" style="display:none; margin-top:20px; background:var(--pri-crit); color:white; padding:20px; border-radius:8px; font-size:24px; font-weight:bold; text-align:center; animation: flashRedAnim 1s infinite; border: 4px solid white; box-shadow: 0 0 20px rgba(239,68,68,0.8);">
-                🚨 FIGYELEM! A MŰSZAKVEZETŐI CHECKLIST KITÖLTÉSE ELMARADT! KÉRJÜK AZONNAL PÓTOLNI A "CHECKLIST" FÜLÖN! 🚨
+                🚨 FIGYELEM! A MŰSZAKVEZETŐI CHECKLIST KITÖLTÉSE ELMARADT! KÉRJÜK AZONNAL PÓTOLNI! 🚨
             </div>
 
             <!-- CHECKLIST NÉZET -->
@@ -81,8 +85,12 @@
         </div>
     </div>
     
-    <script src="common.js?v=1"></script>
-    <script src="termeles_dash.js?v=4"></script>
-    <script> if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js'); } </script>
+    <script src="common.js?v=2"></script>
+    <script src="termeles_dash.js?v=6"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
 </body>
 </html>
