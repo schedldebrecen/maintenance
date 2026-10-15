@@ -1,0 +1,16 @@
+{
+  "name": "Ipari CMMS",
+  "short_name": "CMMS",
+  "description": "Karbantartás és Termelés Menedzsment",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "Logo-Schedl (1).png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

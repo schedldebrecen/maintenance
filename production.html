@@ -5,47 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ipari CMMS - Termelés</title>
     <link rel="stylesheet" href="style.css?v=3">
-	<style>
-  :root {
-    /* Fő színek felülírása modern, ipari fekete-szürke árnyalatokra */
-    --primary: #1f2937 !important;      /* Sötétszürke (fő szín) */
-    --pri-normal: #4b5563 !important;   /* Középszürke (pl. gombok alapértelmezetten) */
-    --pri-info: #6b7280 !important;     /* Világosabb szürke (Infó gombok, ikonok) */
-    --pri-obs: #111827 !important;      /* Majdnem fekete (Sötét gombok / Hover) */
-    
-    /* Panelek és kártyák finomhangolása */
-    --border: #d1d5db !important;       /* Szürke szegélyek */
-  }
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+      :root {
+        /* Fő színek felülírása modern, ipari fekete-szürke árnyalatokra */
+        --primary: #1f2937 !important;      /* Sötétszürke (fő szín) */
+        --pri-normal: #4b5563 !important;   /* Középszürke (pl. gombok alapértelmezetten) */
+        --pri-info: #6b7280 !important;     /* Világosabb szürke (Infó gombok, ikonok) */
+        --pri-obs: #111827 !important;      /* Majdnem fekete (Sötét gombok / Hover) */
+        
+        /* Panelek és kártyák finomhangolása */
+        --border: #d1d5db !important;       /* Szürke szegélyek */
+      }
 
-  /* A felső fejléc (Header) átszínezése fekete-szürke átmenetre */
-  .header, header, .navbar, .top-bar {
-    background-color: #1f2937 !important;
-    background: linear-gradient(to right, #111827, #4b5563) !important;
-  }
+      /* A felső fejléc (Header) átszínezése fekete-szürke átmenetre */
+      .header, header, .navbar, .top-bar, .topbar {
+        background-color: #1f2937 !important;
+        background: linear-gradient(to right, #111827, #4b5563) !important;
+      }
 
-  /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
-  button:hover {
-    background-color: #111827 !important;
-    border-color: #111827 !important;
-  }
+      /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
+      button:hover {
+        background-color: #111827 !important;
+        border-color: #111827 !important;
+      }
 
-  /* A "Napló mentése" és a "Belépés" gombok erőszakos átszínezése */
-  #btnShiftLog, #loginView button {
-    background-color: var(--pri-normal) !important;
-    border: 1px solid var(--pri-normal) !important;
-    color: white !important;
-  }
+      /* A "Napló mentése" és a "Belépés" gombok erőszakos átszínezése */
+      #btnShiftLog, #loginView button {
+        background-color: var(--pri-normal) !important;
+        border: 1px solid var(--pri-normal) !important;
+        color: white !important;
+      }
 
-  /* Információs dobozok hátterének és szegélyének igazítása */
-  .checklist-box, .task-card {
-    border-color: #d1d5db !important;
-  }
-  
-  #appF_*, .extra-info-box {
-    background-color: #f3f4f6 !important; /* Nagyon halvány szürke háttér a komment doboznak */
-    border-color: #d1d5db !important;
-  }
-</style>
+      /* Információs dobozok hátterének és szegélyének igazítása */
+      .checklist-box, .task-card {
+        border-color: #d1d5db !important;
+      }
+      
+      #appF_*, .extra-info-box {
+        background-color: #f3f4f6 !important; /* Nagyon halvány szürke háttér a komment doboznak */
+        border-color: #d1d5db !important;
+      }
+    </style>
 </head>
 <body>
 
@@ -80,8 +82,8 @@
         <div class="user-info">
             <button onclick="location.reload()" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🔄 Frissítés</button>
             <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
-    			<option value="" disabled selected>☰ Navigáció</option>
-		    </select>
+                <option value="" disabled selected>☰ Navigáció</option>
+            </select>
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
@@ -91,7 +93,7 @@
         <div id="shiftAlertBanner"></div>
         <div class="nav" id="mainNavigation">
             <button class="active" onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
-            <button onclick="switchTab('checklistView', this); if(typeof loadChecklistLogsUI === 'function') loadChecklistLogsUI();">📋 Checklist</button>
+            <button onclick="switchTab('checklistView', this); if(typeof viewChecklistLogs === 'function') viewChecklistLogs();">📋 Checklist</button>
             <button id="navChecklistAdminTab" onclick="switchTab('checklistAdminView', this); loadChecklistData();" style="display:none; color: var(--pri-info);">⚙️ Checklist Admin</button>
             <button onclick="switchTab('profilCserelo', this)">Profil</button>
         </div>
@@ -106,19 +108,18 @@
                     <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
                 </div>
 
-
-				<!-- ÚJ: ÁLLÁSIDŐ ÉS FELADATVÁLASZTÓ BLOKK -->
-<div class="form-full" style="background:#f8fafc; padding:15px; border:1px solid #cbd5e1; border-radius:6px; margin-top:15px; margin-bottom:15px;">
-    <div style="display:flex; align-items:center; margin-bottom:15px;">
-        <label style="font-weight:bold; color:var(--primary); font-size:15px; margin-right:10px;">⏳ Állásidő a műszakban (perc):</label>
-        <input type="number" id="muszakDowntime" class="dash-input" placeholder="Pl. 45" style="width:100px; margin:0;">
-    </div>
-    
-    <label style="font-weight:bold; color:var(--pri-crit); display:block; border-top:1px dashed #cbd5e1; padding-top:10px;">🔗 Mely feladatok okozták a leállást? (Kattints a kártyákra a kijelöléshez)</label>
-    <div id="muszakTaskContainer" class="grid-cards" style="margin-top: 10px; max-height: 350px; overflow-y: auto; padding: 5px; gap:10px;">
-        <div style="color:var(--text-muted);">Feladatok betöltése...</div>
-    </div>
-</div>
+                <!-- ÁLLÁSIDŐ ÉS FELADATVÁLASZTÓ BLOKK -->
+                <div class="form-full" style="background:#f8fafc; padding:15px; border:1px solid #cbd5e1; border-radius:6px; margin-top:15px; margin-bottom:15px;">
+                    <div style="display:flex; align-items:center; margin-bottom:15px;">
+                        <label style="font-weight:bold; color:var(--primary); font-size:15px; margin-right:10px;">⏳ Állásidő a műszakban (perc):</label>
+                        <input type="number" id="muszakDowntime" class="dash-input" placeholder="Pl. 45" style="width:100px; margin:0;">
+                    </div>
+                    
+                    <label style="font-weight:bold; color:var(--pri-crit); display:block; border-top:1px dashed #cbd5e1; padding-top:10px;">🔗 Mely feladatok okozták a leállást? (Kattints a kártyákra a kijelöléshez)</label>
+                    <div id="muszakTaskContainer" class="grid-cards" style="margin-top: 10px; max-height: 350px; overflow-y: auto; padding: 5px; gap:10px;">
+                        <div style="color:var(--text-muted);">Feladatok betöltése...</div>
+                    </div>
+                </div>
                 <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
             </div>
             <div class="filter-panel" style="margin-top:25px;">
@@ -126,13 +127,14 @@
                 <div class="form-grid">
                     <input type="text" id="szuroMuszakUser" placeholder="Szűrés..." onkeyup="filterShiftLogs()">
                     <select id="szuroMuszakTipus" onchange="filterShiftLogs()"><option value="">Összes műszak</option><option value="Délelőtt">Délelőtt</option><option value="Délután">Délután</option><option value="Éjszaka">Éjszaka</option></select>
-                    <input type="date" id="szuroMuszakDatumTol" onchange="filterShiftLogs()"><input type="date" id="szuroMuszakDatumIg" onchange="filterShiftLogs()">
+                    <input type="date" id="szuroMuszakDatumTol" onchange="filterShiftLogs()">
+                    <input type="date" id="szuroMuszakDatumIg" onchange="filterShiftLogs()">
                 </div>
             </div>
             <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
         </div>
 
-        <!-- ÚJ: ELKÉSZÜLT CHECKLISTÁK -->
+        <!-- ELKÉSZÜLT CHECKLISTÁK -->
         <div id="checklistView" class="view box">
             <h3 style="color:var(--pri-normal);">📋 Elkészült Checklisták és Export</h3>
             <div class="filter-panel">
@@ -156,7 +158,6 @@
             <div class="filter-panel" style="margin-bottom:20px;">
                 <h4 style="margin-top:0; color:var(--primary);">Új ellenőrzőpont hozzáadása / Szerkesztése</h4>
                 <div class="form-grid">
-
                     <div><label style="font-size:12px; color:var(--text-muted);">Terület (Nem kötelező)</label><select id="clSablonTerulet" onchange="frissitClSablonGep()"><option value="">Általános / Válassz területet...</option></select></div>
                     <div><label style="font-size:12px; color:var(--text-muted);">Gép (Nem kötelező)</label><select id="clSablonGep"><option value="">Általános / Összes gép...</option></select></div>                    
                   
@@ -168,10 +169,10 @@
                         </select>
                     </div>
 
-			        <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Utasítás (Szöveges leírás)</label><input type="text" id="clSablonUtasitas" placeholder="Pl.: Ellenőrizd a nyomást a manométeren..."></div>
-			        
+                    <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Utasítás (Szöveges leírás)</label><input type="text" id="clSablonUtasitas" placeholder="Pl.: Ellenőrizd a nyomást a manométeren..."></div>
+                    
                     <div><label style="font-size:12px; color:var(--text-muted);">Kép linkje (Opcionális)</label><input type="text" id="clSablonKep" placeholder="Kép URL (Google Drive link)"></div>
-			        <div>
+                    <div>
                         <label style="font-size:12px; color:var(--text-muted);">Fájl / PDF linkje és Neve (Opcionális)</label>
                         <div style="display:flex; gap:10px;">
                             <input type="text" id="clSablonFajl" placeholder="Dokumentum URL (link)" style="flex:1;">
@@ -216,6 +217,7 @@
         </div>
     </div>
 </div>
+
 <!-- FELUGRÓ ABLAK A RÉSZLETEKHEZ -->
 <div class="modal-overlay" id="statDetailsModal" onclick="closeStatModal(event)" style="display:none;">
     <div class="modal-content" onclick="event.stopPropagation()">
@@ -224,6 +226,13 @@
         <button class="btn-close-modal" onclick="closeStatModal(true)">Bezárás</button>
     </div>
 </div>
-<script src="termeles.js?v=8"></script>
+
+<script src="common.js?v=1"></script>
+<script src="termeles.js?v=9"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
+    }
+</script>
 </body>
 </html>

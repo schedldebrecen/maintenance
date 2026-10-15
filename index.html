@@ -4,50 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ipari CMMS - Karbantartás</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+      :root {
+        /* Fő színek felülírása tiszta, ipari kék árnyalatokra a Karbantartás apphoz */
+        --primary: #1d4ed8 !important;      /* Sötétebb kék (fő szín) */
+        --pri-normal: #2563eb !important;   /* Alap kék (pl. gombok alapértelmezetten) */
+        --pri-info: #3b82f6 !important;     /* Világosabb kék (Infó gombok, ikonok) */
+        --pri-obs: #1e40af !important;      /* Nagyon sötét kék (Sötét gombok / Hover) */
+        
+        /* Panelek és kártyák finomhangolása */
+        --border: #bfdbfe !important;       /* Halványkék szegélyek */
+      }
+
+      /* A felső fejléc (Header) átszínezése kék átmenetre */
+      .header, header, .navbar, .top-bar, .topbar {
+        background-color: #1d4ed8 !important;
+        background: linear-gradient(to right, #1e40af, #2563eb) !important;
+      }
+
+      /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
+      button:hover {
+        background-color: #1e40af !important;
+        border-color: #1e40af !important;
+      }
+
+      /* Alap gombok erőszakos átszínezése */
+      #btnShiftLog, #loginView button {
+        background-color: var(--pri-normal) !important;
+        border: 1px solid var(--pri-normal) !important;
+        color: white !important;
+      }
+
+      /* Információs dobozok hátterének és szegélyének igazítása */
+      .checklist-box, .task-card {
+        border-color: #bfdbfe !important;
+      }
+      
+      #appF_*, .extra-info-box {
+        background-color: #eff6ff !important; /* Nagyon halvány kék háttér a komment doboznak */
+        border-color: #bfdbfe !important;
+      }
+    </style>
 </head>
-<style>
-  :root {
-    /* Fő színek felülírása tiszta, ipari kék árnyalatokra a Karbantartás apphoz */
-    --primary: #1d4ed8 !important;      /* Sötétebb kék (fő szín) */
-    --pri-normal: #2563eb !important;   /* Alap kék (pl. gombok alapértelmezetten) */
-    --pri-info: #3b82f6 !important;     /* Világosabb kék (Infó gombok, ikonok) */
-    --pri-obs: #1e40af !important;      /* Nagyon sötét kék (Sötét gombok / Hover) */
-    
-    /* Panelek és kártyák finomhangolása */
-    --border: #bfdbfe !important;       /* Halványkék szegélyek */
-  }
-
-  /* A felső fejléc (Header) átszínezése kék átmenetre */
-  .header, header, .navbar, .top-bar {
-    background-color: #1d4ed8 !important;
-    background: linear-gradient(to right, #1e40af, #2563eb) !important;
-  }
-
-  /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
-  button:hover {
-    background-color: #1e40af !important;
-    border-color: #1e40af !important;
-  }
-
-  /* Alap gombok (ha véletlenül más színűek maradnának) erőszakos átszínezése */
-  #btnShiftLog, #loginView button {
-    background-color: var(--pri-normal) !important;
-    border: 1px solid var(--pri-normal) !important;
-    color: white !important;
-  }
-
-  /* Információs dobozok hátterének és szegélyének igazítása */
-  .checklist-box, .task-card {
-    border-color: #bfdbfe !important;
-  }
-  
-  #appF_*, .extra-info-box {
-    background-color: #eff6ff !important; /* Nagyon halvány kék háttér a komment doboznak */
-    border-color: #bfdbfe !important;
-  }
-</style>
-    
 <body>
 
 <div id="toastMessage">✅ Mentve!</div>
@@ -79,9 +80,10 @@
     <div class="topbar">
         <h2 style="margin: 0; display:flex; align-items:center;"><img src="Logo-Schedl (1).png" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;"></h2>
         <div class="user-info">
-                <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
+            <button onclick="location.reload()" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🔄 Frissítés</button>
+            <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
                 <option value="" disabled selected>☰ Navigáció</option>
-        </select>
+            </select>
             <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
             <button class="btn-logout" onclick="logout()">Kilépés</button>
         </div>
@@ -104,7 +106,10 @@
             <h3>Új hiba vagy feladat kiadása</h3>
             <div class="form-grid">
                 <div><select id="kategoria" onchange="frissitGepek()"><option value="">Válassz kategóriát...</option></select></div>
-                <div><select id="gep"><option value="">Előbb válassz kategóriát...</option></select></div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <select id="gep" style="flex:1;"><option value="">Előbb válassz kategóriát...</option></select>
+                    <button type="button" onclick="openQrScanner('gep')" title="Gép QR-kód beolvasása" style="width:auto; padding:10px 14px; margin:6px 0 12px; background:var(--pri-info); white-space:nowrap;">📷 QR</button>
+                </div>
                 <div class="form-full"><input type="text" id="hiba" placeholder="Hiba rövid leírása"></div>
                 <div>
                     <select id="prioritasLegordulo" style="font-weight:bold;">
@@ -119,8 +124,8 @@
                 <div class="form-full"><textarea id="megoldas" rows="2" placeholder="Megoldás (Azonnali elhárítás esetén)"></textarea></div>
             </div>
             <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
-                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📎 Fotó / Videó csatolása</button>
-                <input type="file" id="kepInput" accept="image/*,video/*" multiple style="display:none;" onchange="feldolgozUjKep(this)">
+                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📎 Fotó csatolása</button>
+                <input type="file" id="kepInput" accept="image/*" multiple style="display:none;" onchange="feldolgozUjKep(this)">
                 <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;"><span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva.</span></div>
             </div>
             <button onclick="submitTask()" id="btnSubmit">Beküldés a rendszerbe</button>
@@ -172,7 +177,6 @@
                     <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Kezdő dátum (Ha üres, azonnal indítja)</label><input type="date" id="ismKezdoDatum"></div>
                 </div>
 
-                <!-- Kiegészítő HTML a munkautasításhoz -->
                 <div style="margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1;">
                     <label style="font-weight:bold; color:var(--primary);">📘 Munkautasítás / Leírás (Opcionális):</label>
                     <textarea id="ismUtasitas" class="dash-input" rows="2" placeholder="Ide írhatod a szerelési útmutatót vagy extra instrukciót..."></textarea>
@@ -332,13 +336,22 @@
             <h2 style="margin:0; color:var(--primary);">🔍 Raktár Alkatrész Kereső</h2>
             <button class="btn-close-modal" style="margin:0; width:auto; padding:5px 10px;" onclick="closePartsModal(true)">✕</button>
         </div>
-        <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin-bottom:10px; font-size:16px;">
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin:0; flex:1; font-size:16px;">
+            <button type="button" onclick="openQrScanner('partsSearchInput')" title="Alkatrész QR / Vonalkód olvasás" style="width:auto; padding:0 15px; margin:0; background:var(--pri-info); font-size:15px; white-space:nowrap;">📷 QR</button>
+        </div>
         <div id="partsListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:5px; background:var(--bg-color);">
             <div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltése folyamatban...</div>
         </div>
     </div>
 </div>
 
-<script src="karbantartas.js?v=21"></script>
+<script src="common.js?v=1"></script>
+<script src="karbantartas.js?v=22"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
+    }
+</script>
 </body>
 </html>

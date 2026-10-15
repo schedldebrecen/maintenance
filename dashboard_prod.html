@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ipari CMMS - Élő Dashboard (Termelés)</title>
     <link rel="stylesheet" href="style_dash.css?v=3">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
 
@@ -25,9 +27,6 @@
                 <div class="live-badge">ÉLŐ</div>
             </div>
             <div class="time-group">
-                <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
-    			    <option value="" disabled selected>☰ Navigáció</option>
-		        </select>
                 <button onclick="fetchDashboardData(); timer = REFRESH_INTERVAL_SEC; document.getElementById('progressBar').style.width = '0%'; document.getElementById('countdownDisplay').innerText = timer;" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; font-size:14px; display:flex; align-items:center; gap:5px;">
                     🔄
                 </button>
@@ -46,57 +45,11 @@
             <div id="progressBar"></div>
         </div>
 
-        
-	<div class="dash-nav" style="display:none;">
-            <button id="tabNyitott" class="active" onclick="switchDashTab('nyitott')">🚨 Aktuális Feladatok</button>
-            <button id="tabLezart" onclick="switchDashTab('lezart')">✅ Lezárt Feladatok</button>
-            <button id="tabChecklist" onclick="switchDashTab('checklist')">📋 Ellenőrzőlista</button>
-        </div>
-
         <div class="dashboard-container">
             <div id="shiftAlertBanner" style="margin-top:20px;"></div>
             
             <div id="checklistAlarmBanner" style="display:none; margin-top:20px; background:var(--pri-crit); color:white; padding:20px; border-radius:8px; font-size:24px; font-weight:bold; text-align:center; animation: flashRedAnim 1s infinite; border: 4px solid white; box-shadow: 0 0 20px rgba(239,68,68,0.8);">
                 🚨 FIGYELEM! A MŰSZAKVEZETŐI CHECKLIST KITÖLTÉSE ELMARADT! KÉRJÜK AZONNAL PÓTOLNI A "CHECKLIST" FÜLÖN! 🚨
-            </div>
-
-            <!-- NYITOTT FELADATOK NÉZET -->
-            <div id="view-nyitott" class="view-section">
-                <div class="kpi-bar" style="padding: 20px 0;">
-                    <div class="kpi-card crit" id="kpiCard-Crit" onclick="setDashboardFilter('Crit')"><h3>Termelésleállás</h3><div class="val" id="kpiCrit">0</div></div>
-                    <div class="kpi-card high" id="kpiCard-High" onclick="setDashboardFilter('High')"><h3>Sürgős (Magas)</h3><div class="val" id="kpiHigh">0</div></div>
-                    <div class="kpi-card prog" id="kpiCard-Prog" onclick="setDashboardFilter('Prog')"><h3>Folyamatban</h3><div class="val" id="kpiProg">0</div></div>
-                    <div class="kpi-card total active-filter" id="kpiCard-Total" onclick="setDashboardFilter(null)"><h3>Munkára vár (Fő)</h3><div class="val" id="kpiTotal">0</div></div>
-                    <div class="kpi-card info" id="kpiCard-Info" onclick="setDashboardFilter('Info')"><h3>Informatív / Megf.</h3><div class="val" id="kpiInfo">0</div></div>
-                </div>
-                <div class="grid" id="taskGrid" style="margin-top: 10px;"></div>
-            </div>
-
-            <!-- LEZÁRT FELADATOK NÉZET -->
-            <div id="view-lezart" class="view-section">
-                <div class="filter-panel">
-                    <h4 style="margin: 0 0 15px 0; color: var(--pri-info); border-bottom: 1px solid var(--border); padding-bottom: 10px;">Lezárt Feladatok Szűrése</h4>
-                    <div class="form-grid">
-                        <div><label style="font-size:12px; color:var(--text-muted);">Keresés kulcsszóra</label><input type="text" id="szuroLezartSzoveg" placeholder="Keresés..." onkeyup="renderClosedTasks()"></div>
-                        <div>
-                            <label style="font-size:12px; color:var(--text-muted);">Részleg</label>
-                            <select id="szuroReszleg" onchange="renderClosedTasks()">
-                                <option value="termeles" selected>Termelés (Alapértelmezett)</option>
-                                <option value="karbantartas">Karbantartás (Minden lezárt hibájuk)</option>
-                                <option value="">Összes Részleg Együtt</option>
-                            </select>
-                        </div>
-                        <div><label style="font-size:12px; color:var(--text-muted);">Gépcsoport</label><select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden kategória...</option></select></div>
-                        <div><label style="font-size:12px; color:var(--text-muted);">Konkrét gép</label><select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select></div>
-                        <div><label style="font-size:12px; color:var(--text-muted);">Dátum tól</label><input type="date" id="filterDatumTol" onchange="renderClosedTasks()"></div>
-                        <div><label style="font-size:12px; color:var(--text-muted);">Dátum ig</label><input type="date" id="filterDatumIg" onchange="renderClosedTasks()"></div>
-                        <div>
-                            <label style="font-size:12px; color:var(--text-muted);">Típus</label>
-                            <select id="szuroLezartIsmetlodo" onchange="renderClosedTasks()"><option value="">Összes (Eseti + Preventív)</option><option value="normal">Csak eseti hibák</option><option value="ismetlodo">Csak preventív</option></select>
-                        </div>
-                    </div>
-                </div>
-                <div class="grid" id="closedTaskGrid" style="margin-top: 20px;"></div>
             </div>
 
             <!-- CHECKLIST NÉZET -->
@@ -109,15 +62,10 @@
         			        <button onclick="fetchDashboardData()" style="background:var(--pri-info); color:white; border:none; padding:8px 15px; border-radius:6px; font-weight:bold; cursor:pointer; width:auto;">🔄 Frissítés</button>
     			        </div>
                     </div>
-
-                    <!-- Ide kerül a zöld sáv, ha már ki van töltve -->
                     <div id="checklistStatusContainer"></div>
-
                     <div id="checklistQuestionsContainer" style="display:none;">
-
                         <p style="color:var(--text-muted); font-size:16px; margin-bottom:20px;">Kérjük, ellenőrizd az alábbi pontokat! A megjegyzés nem kötelező, de NOK esetén automatikus hibajegy nyílik belőle.</p>
                         <div id="clQuestionsList"></div>
-                        
                         <div id="clSubmitSection" style="margin-top:30px; border-top:2px solid var(--border); padding-top:20px; background:var(--bg-dark); padding:20px; border-radius:8px;">
                             <h3 style="color:var(--pri-normal); margin-top:0;" id="clSubmitTitle">Hitelesítés és Beküldés</h3>
                             <div id="clLoginForm" style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
@@ -130,73 +78,11 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
-
-    <!-- FELADAT RÉSZLETEK MODAL -->
-    <div class="modal-overlay" id="taskModal" onclick="closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <h2 id="modalTitle" style="flex:1; margin-bottom:5px;">Gép neve</h2>
-                <span id="modalPrio" class="badge badge-normal" style="margin-left:15px; font-size:14px; display:none;">Normál</span>
-            </div>
-            <div style="color: #cbd5e1; font-size: 18px; margin-bottom: 20px; line-height:1.4; white-space:pre-wrap;" id="modalSubtitle">Feladat leírása</div>
-            <div id="modalDetails" style="font-size:15px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 15px; margin-bottom:20px;"></div>
-
-            <div id="dashActionPanel" style="background:var(--bg-dark); padding:20px; border-radius:8px; border:1px solid var(--border);">
-                <div id="dashLoginFormModal">
-                    <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Bejelentkezés művelethez</h4>
-                    <select id="dashLoginNevSelectModal" class="dash-input" onchange="checkDashLoginCustom(this)"><option value="">Válassz...</option></select>
-                    <input type="text" id="dashLoginNevModal" class="dash-input" placeholder="Név begépelése..." style="display:none;">
-                    <input type="password" id="dashLoginPinModal" class="dash-input" placeholder="PIN kód">
-                    <button class="dash-btn" onclick="dashLoginModal()">Bejelentkezés</button>
-                    <div id="dashLoginStatusModal" style="color:var(--pri-crit); font-size:12px; margin-top:5px; font-weight:bold;"></div>
-                </div>
-                <div id="dashTaskActions" style="display:none;">
-                    <h4 style="margin:0 0 10px 0; color:var(--pri-info);">Műveletek végrehajtása</h4>
-                    <button id="btnDashStart" class="dash-btn start" onclick="dashStartTask()">▶️ Munkát elkezdem</button>
-                    <div id="dashCloseSection" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
-                        <input type="text" id="dashMegoldas" class="dash-input" placeholder="Megoldás leírása...">
-                        
-                        <!-- Dinamikus alkatrész hozzáadás -->
-                        <div id="alkatreszekContainer" style="margin-bottom:10px;">
-                            <div class="alkatresz-sor" style="display:flex; gap:8px; margin-bottom:5px; align-items:center;">
-                                <div style="flex:3; display:flex; gap:0; margin:0; border: 1px solid var(--border); border-radius:4px; overflow:hidden;">
-                                    <input type="text" id="dashAlkCikk_0" class="dash-input alk-cikkszam" placeholder="Cikkszám (Raktár)" style="flex:1; margin:0; font-size:13px; padding:6px; border:none; outline:none; min-width:80px;">
-                                    <button type="button" onclick="openPartsModal('dashAlkCikk_0')" style="background:var(--pri-obs); color:white; border:none; padding:0; width:35px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;">🔍</button>
-                                </div>
-                                <input type="number" class="dash-input alk-db" placeholder="Db" style="flex:1; margin:0; font-size:13px; padding:6px; min-width:40px;">
-                            </div>
-                        </div>
-                        <button type="button" onclick="addAlkatreszRow()" style="background:var(--pri-info); color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer; font-weight:bold; margin-bottom:10px;">➕ Alkatrész hozzáadása</button>
-                        
-                        <div style="display:flex; gap:10px;">
-                            <input type="number" id="dashIdo" step="1" class="dash-input" placeholder="Javítás (perc)">
-                            <input type="number" id="dashDowntime" step="1" class="dash-input" placeholder="Kiesés (perc)">
-                        </div>
-                        <button class="dash-btn" style="background:var(--pri-normal);" onclick="dashCloseTask()">✅ Jegy lezárása</button>
-                    </div>
-                </div>
-            </div>
-            <button class="btn-close-modal" onclick="closeModal(true)">Bezárás (Művelet nélkül)</button>
-        </div>
-    </div>
-
-    <!-- ALKATRÉSZ KERESŐ MODAL (Raktár) -->
-    <div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
-        <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
-                <h2 style="margin:0; color:var(--primary);">🔍 Raktár Alkatrész Kereső</h2>
-                <button class="btn-close-modal" style="margin:0; width:auto; padding:5px 10px;" onclick="closePartsModal(true)">✕</button>
-            </div>
-            <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin-bottom:10px; font-size:16px;">
-            <div id="partsListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:5px; background:var(--bg-color);">
-                <div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltése folyamatban...</div>
-            </div>
-        </div>
-    </div>
-
-    <script src="termeles_dash.js?v=3"></script>
+    
+    <script src="common.js?v=1"></script>
+    <script src="termeles_dash.js?v=4"></script>
+    <script> if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js'); } </script>
 </body>
 </html>
