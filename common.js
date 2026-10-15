@@ -25,8 +25,35 @@ async function secureFetch(payload) {
         if (rawText.trim().startsWith("<!DOCTYPE") || rawText.trim().startsWith("<html")) throw new Error("Szerver hiba (HTML)!");
         const data = JSON.parse(rawText);
         if (data.status === "error" && String(data.message).includes("ACCESS_DENIED")) { 
-            window.isSessionExpired = true; 
-            if(typeof showSessionPopup === 'function') showSessionPopup(); else alert("Biztonsági munkamenet lejárt! Kérlek, jelentkezz be újra.");
+            localStorage.removeItem("activeUser");
+            localStorage.removeItem("activeRole");
+            localStorage.removeItem("sessionToken");
+
+            if (typeof showSessionPopup === 'function') {
+                window.isSessionExpired = true;
+                showSessionPopup();
+            } else if (document.getElementById('loginView')) {
+                const lockdownEl = document.getElementById('lockdownScreen');
+                const isLockdown = lockdownEl && lockdownEl.style.display !== 'none';
+                window.isSessionExpired = !isLockdown;
+                
+                alert("Biztonsági munkamenet lejárt! Kérlek, jelentkezz be újra.");
+                
+                if (document.getElementById('appView')) document.getElementById('appView').style.display = 'none';
+                if (lockdownEl) lockdownEl.style.display = 'none';
+                document.getElementById('loginView').style.display = 'block';
+                
+                document.querySelectorAll('[id^="lockdownApprBtn_"]').forEach(btn => {
+                    btn.disabled = false;
+                    btn.innerText = "✅ Jóváhagyom";
+                });
+            } else if (typeof dashLogout === 'function') {
+                alert("Biztonsági munkamenet lejárt! Kérlek, jelentkezz be újra.");
+                dashLogout();
+            } else {
+                alert("Biztonsági munkamenet lejárt! Kérlek, jelentkezz be újra.");
+                location.reload();
+            }
             throw new Error("ACCESS_DENIED"); 
         }
         return { json: () => Promise.resolve(data) };
@@ -86,7 +113,6 @@ function onScanSuccess(decodedText, decodedResult) {
         for(let kat in gepAdatbazis) { if (gepAdatbazis[kat].includes(decodedText)) { foundKat = kat; break; } }
         if (foundKat) {
             document.getElementById('kategoria').value = foundKat;
-
             if(typeof frissitGepek === 'function') frissitGepek();
             setTimeout(() => { document.getElementById('gep').value = decodedText; }, 100);
         } else { document.getElementById('hiba').value = decodedText + " (Vonalkód adat)"; }
@@ -103,10 +129,10 @@ function onScanFailure(error) {}
 // --- SEGÉDFÜGGVÉNYEK ---
 function parseChecklistData(raw) {
     let res = { cl: "", ut: "", kep: "", fajl: "", fnev: "" }; if (!raw) return res; let text = String(raw);
-    let mU = text.match(/\[UT\]([\s\S]*?)\[\/UT\]/); if(mU){ res.ut = mU[1]; text = text.replace(mU[0],""); }
-    let mK = text.match(/\[KEP\]([\s\S]*?)\[\/KEP\]/); if(mK){ res.kep = mK[1]; text = text.replace(mK[0],""); }
-    let mF = text.match(/\[FAJL\]([\s\S]*?)\[\/FAJL\]/); if(mF){ res.fajl = mF[1]; text = text.replace(mF[0],""); }
-    let mFN = text.match(/\[FNEV\]([\s\S]*?)\[\/FNEV\]/); if(mFN){ res.fnev = mFN[1]; text = text.replace(mFN[0],""); }
+    let mU = text.match(/[UT]([\s\S]*?)\[\/UT\]/); if(mU){ res.ut = mU[1]; text = text.replace(mU[0],""); }
+    let mK = text.match(/[KEP]([\s\S]*?)\[\/KEP\]/); if(mK){ res.kep = mK[1]; text = text.replace(mK[0],""); }
+    let mF = text.match(/[FAJL]([\s\S]*?)\[\/FAJL\]/); if(mF){ res.fajl = mF[1]; text = text.replace(mF[0],""); }
+    let mFN = text.match(/[FNEV]([\s\S]*?)\[\/FNEV\]/); if(mFN){ res.fnev = mFN[1]; text = text.replace(mFN[0],""); }
     res.cl = text.trim(); return res;
 }
 
