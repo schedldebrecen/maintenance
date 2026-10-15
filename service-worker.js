@@ -1,5 +1,6 @@
-const CACHE_NAME = 'cmms-cache-v3';
+const CACHE_NAME = 'cmms-cache-v4';
 const urlsToCache = [
+  './',
   'index.html',
   'production.html',
   'dashboard.html',
@@ -10,7 +11,8 @@ const urlsToCache = [
   'karbantartas.js',
   'termeles.js',
   'dashboard.js',
-  'termeles_dash.js'
+  'termeles_dash.js',
+  'Logo-Schedl%20(1).png'
 ];
 
 self.addEventListener('install', event => {
@@ -42,7 +44,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Sem a Google Scriptet, sem a Google átirányításokat (googleusercontent) nem fogjuk meg!
+  // A Google Script és átirányításait, valamint a nem-GET kéréseket kihagyjuk
   if (
     event.request.method !== 'GET' || 
     event.request.url.includes('script.google.com') || 
@@ -50,7 +52,31 @@ self.addEventListener('fetch', event => {
   ) {
     return;
   }
+
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    (async () => {
+      // 1. Keresés a cache-ben (?v=... paraméterek figyelmen kívül hagyásával)
+      let cachedResponse = await caches.match(event.request, { ignoreSearch: true });
+      if (cachedResponse) return cachedResponse;
+
+      // 2. Ha nincs .html a végén (pl. /maintenance/dashboard), megpróbáljuk .html-lel a cache-ből
+      const url = new URL(event.request.url);
+      if (!url.pathname.endsWith('/') && !url.pathname.includes('.')) {
+        let htmlResponse = await caches.match(url.origin + url.pathname + '.html', { ignoreSearch: true });
+        if (htmlResponse) return htmlResponse;
+      }
+
+      // 3. Ha nincs a cache-ben, letöltjük a hálózatról
+      try {
+        return await fetch(event.request);
+      } catch (err) {
+        // Offline állapotban elnyeljük a hibát, hogy ne dobjon Uncaught TypeError-t
+        return new Response('Offline állapot: Az erőforrás nem érhető el.', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
+        });
+      }
+    })()
   );
 });
