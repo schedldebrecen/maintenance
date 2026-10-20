@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyártósori PLC Hibafigyelő & Layout</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --ok-green: #10b981;
+            --warn-orange: #f59e0b;
+            --err-red: #ef4444;
+            --accent: #3b82f6;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { margin: 0; background: var(--bg-dark); color: var(--text-main); }
+
+        /* Felső navigáció */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 24px; background: #020617; border-bottom: 1px solid var(--border);
+        }
+        .nav-tabs { display: flex; gap: 10px; }
+        .tab-btn {
+            padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--card-bg); color: var(--text-main); cursor: pointer;
+            font-weight: 600; font-size: 14px; transition: 0.2s;
+        }
+        .tab-btn.active { background: var(--accent); border-color: var(--accent); }
+        .container { padding: 20px 24px; max-width: 1600px; margin: auto; }
+
+        /* FÜL 1: LAYOUT ÉS AKTÍV HIBÁK */
+        .layout-grid {
+            display: grid; grid-template-columns: 2fr 1fr; gap: 20px;
+        }
+        .plant-floor {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px;
+        }
+        .line-box {
+            border: 3px solid var(--ok-green); border-radius: 12px; padding: 18px 22px;
+            background: rgba(16, 185, 129, 0.08); cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s; position: relative;
+        }
+        .line-box:hover { transform: translateY(-2px); }
+        .line-box.selected { outline: 3px solid var(--accent); }
+
+        /* Státusz színek és animációk */
+        .line-box.status-ERROR {
+            border-color: var(--err-red); background: rgba(239, 68, 68, 0.15);
+            animation: pulse-red 1.4s infinite;
+        }
+        .line-box.status-WARNING {
+            border-color: var(--warn-orange); background: rgba(245, 158, 11, 0.15);
+            animation: pulse-orange 2s infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+            50% { box-shadow: 0 0 22px 6px rgba(239, 68, 68, 0.35); }
+        }
+        @keyframes pulse-orange {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+            50% { box-shadow: 0 0 16px 4px rgba(245, 158, 11, 0.25); }
+        }
+
+        .line-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .line-title { font-size: 20px; font-weight: 700; }
+        .badge {
+            padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700;
+        }
+        .badge.OK { background: var(--ok-green); color: #022c22; }
+        .badge.WARNING { background: var(--warn-orange); color: #451a03; }
+        .badge.ERROR { background: var(--err-red); color: white; }
+
+        /* Gépállomások vizuális sávja a soron belül */
+        .stations-row {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px;
+        }
+        .station-pill {
+            background: #0f172a; border: 1px solid var(--border); border-radius: 6px;
+            padding: 8px; text-align: center; font-size: 12px; color: var(--text-muted);
+        }
+        .top-alarm-banner {
+            font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: 6px;
+            background: rgba(0,0,0,0.35); display: flex; justify-content: space-between;
+        }
+
+        /* Jobb oldali részletes hibalista panel */
+        .details-panel {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; display: flex; flex-direction: column;
+            max-height: 650px;
+        }
+        .alarm-list { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+        .alarm-card {
+            padding: 12px; border-radius: 8px; border-left: 5px solid var(--err-red);
+            background: #0f172a;
+        }
+        .alarm-card.WARNING { border-left-color: var(--warn-orange); }
+        .alarm-card-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .alarm-card-text { font-size: 15px; font-weight: 600; }
+
+        /* Táblázatok (Beállítások és Statisztika) */
+        .card-panel {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px;
+        }
+        .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        input[type="text"], select {
+            background: #0f172a; color: white; border: 1px solid var(--border);
+            padding: 9px 14px; border-radius: 6px; font-size: 14px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+        th { background: #0f172a; color: var(--text-muted); position: sticky; top: 0; }
+        .table-scroll { max-height: 540px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+
+        /* KPI kártyák a statisztikánál */
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .kpi-box { background: #0f172a; border: 1px solid var(--border); padding: 16px; border-radius: 10px; }
+        .kpi-val { font-size: 28px; font-weight: 800; margin-top: 6px; color: var(--accent); }
+        .bar-wrap { background: #0f172a; height: 10px; border-radius: 5px; overflow: hidden; width: 140px; }
+        .bar-fill { height: 100%; background: var(--err-red); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <span style="font-size: 20px; font-weight: 800;">🏭 SCADA / PLC Hibafigyelő Központ</span>
+        <span id="conn_badge" style="margin-left: 12px; font-size: 12px; padding: 4px 10px; border-radius: 12px; background: #3b82f6;">Szimulációs Demó Aktív</span>
+    </div>
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('layout', this)">🗺️ 3 Soros Layout</button>
+        <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Hibaüzenetek Beállítása (Pipálás)</button>
+        <button class="tab-btn" onclick="switchTab('stats', this)">📊 Hiba & Idő Statisztika</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- ================= 1. FÜL: LAYOUT ================= -->
+    <div id="tab_layout" class="tab-content">
+        <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-muted);">💡 Kattints bármelyik gyártósorra a jelenleg fennálló összes hiba megtekintéséhez!</span>
+            <button class="tab-btn" style="background:#334155;" onclick="triggerRandomDemoAlarm()">🎲 Teszt Hiba Generálása / Törlése</button>
+        </div>
+
+        <div class="layout-grid">
+            <!-- Bal oldal: 3 Gyártósor vizuális layout -->
+            <div class="plant-floor" id="lines_container"></div>
+
+            <!-- Jobb oldal: Kiválasztott gyártósor aktív hibalistája -->
+            <div class="details-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <h3 id="selected_line_title" style="margin: 0;">Kiválasztva: 1. Gyártósor</h3>
+                    <span id="selected_line_count" class="badge OK">0 aktív</span>
+                </div>
+                <div class="alarm-list" id="active_alarm_list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 2. FÜL: HIBA KONFIGURÁCIÓ ================= -->
+    <div id="tab_config" class="tab-content" style="display: none;">
+        <div class="card-panel">
+            <div class="toolbar">
+                <label><b>Gyártósor:</b></label>
+                <select id="cfg_line" onchange="renderConfigTable()">
+                    <option value="LINE_1">1. Gyártósor (PLC 1)</option>
+                    <option value="LINE_2">2. Gyártósor (PLC 2)</option>
+                    <option value="LINE_3">3. Gyártósor (PLC 3)</option>
+                </select>
+
+                <input type="text" id="cfg_search" placeholder="🔍 Keresés szöveg vagy DB cím alapján (pl. Vészstop, P1.17, DB40)..." style="width: 380px;" oninput="renderConfigTable()">
+
+                <select id="cfg_filter_sev" onchange="renderConfigTable()">
+                    <option value="ALL">Minden típus</option>
+                    <option value="ERROR">🔴 Csak Piros Hiba (ERROR)</option>
+                    <option value="WARNING">🟠 Csak Narancs Infó (WARNING)</option>
+                </select>
+
+                <label style="cursor: pointer;">
+                    <input type="checkbox" id="cfg_hide_empty" checked onchange="renderConfigTable()"> 
+                    <code>&lt;No value&gt;</code> tartalékok elrejtése
+                </label>
+            </div>
+
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 90px;">Megjelenítés</th>
+                            <th style="width: 70px;">ID</th>
+                            <th style="width: 140px;">PLC Cím</th>
+                            <th>Hibaüzenet Szövege (HMIAlarms.xlsx)</th>
+                            <th style="width: 220px;">Jelzés Szintje (Szín)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cfg_tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 3. FÜL: STATISZTIKA ================= -->
+    <div id="tab_stats" class="tab-content" style="display: none;">
+        <div class="kpi-row">
+            <div class="kpi-box">
+                <div style="color: var(--text-muted); font-size: 13px;">Összes Hibaesemény (Időszak)</div>
+                <div class="kpi-val" id="kpi_total_count">0 db</div>
+            </div>
+            <div class="kpi-box">
+                <div style="color: var(--text-muted); font-size: 13px;">Teljes Hiba / Állásidő</div>
+                <div class="kpi-val" id="kpi_total_time" style="color: var(--err-red);">0 perc</div>
+            </div>
+            <div class="kpi-box">
+                <div style="color: var(--text-muted); font-size: 13px;">Átlagos Elhárítási Idő (MTTR)</div>
+                <div class="kpi-val" id="kpi_mttr" style="color: var(--warn-orange);">0 mp</div>
+            </div>
+            <div class="kpi-box">
+                <div style="color: var(--text-muted); font-size: 13px;">Legkritikusabb Állomás</div>
+                <div class="kpi-val" id="kpi_worst_line" style="font-size: 20px; color: var(--ok-green);">-</div>
+            </div>
+        </div>
+
+        <div class="card-panel">
+            <div class="toolbar">
+                <label><b>Gyártósor szűrő:</b></label>
+                <select id="stat_line" onchange="renderStats()">
+                    <option value="ALL">Összes Gyártósor (1-3)</option>
+                    <option value="LINE_1">1. Gyártósor</option>
+                    <option value="LINE_2">2. Gyártósor</option>
+                    <option value="LINE_3">3. Gyártósor</option>
+                </select>
+            </div>
+
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Gyártósor</th>
+                            <th>PLC Cím</th>
+                            <th>Hibaüzenet</th>
+                            <th>Szint</th>
+                            <th>Előfordulás (db)</th>
+                            <th>Összes Időtartam</th>
+                            <th>Átlagos Idő</th>
+                            <th>Időarány</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stat_tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8000/api";
+    let selectedLine = "LINE_1";
+
+    const LINES = [
+        { id: "LINE_1", name: "1. Gyártósor (Szerelősor 1)", stations: ["Beadagoló P1", "Nyomásteszter", "Robot Cella", "Címkéző", "Kihordó Pálya"] },
+        { id: "LINE_2", name: "2. Gyártósor (Szerelősor 2)", stations: ["Beadagoló P1", "Nyomásteszter", "Robot Cella", "Címkéző", "Kihordó Pálya"] },
+        { id: "LINE_3", name: "3. Gyártósor (Szerelősor 3)", stations: ["Beadagoló P1", "Nyomásteszter", "Robot Cella", "Címkéző", "Kihordó Pálya"] }
+    ];
+
+    // Valódi minták a csatolt HMIAlarms.xlsx fájlból
+    let alarmDefinitions = [
+        { DefID: 1, LineID: "LINE_1", AlarmID: 1, PLCAddress: "%DB40.DBX0.0", AlarmText: "Vészstop lenyomva a Főszekrényen", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 2, LineID: "LINE_1", AlarmID: 3, PLCAddress: "%DB40.DBX0.2", AlarmText: "Vészstop -1- lenyomva a beadagoló pályán", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 3, LineID: "LINE_1", AlarmID: 7, PLCAddress: "%DB40.DBX0.6", AlarmText: "Vészstop lenyomva a Címkéző Állomásnál", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 4, LineID: "LINE_1", AlarmID: 17, PLCAddress: "%DB40.DBX10.0", AlarmText: "Inxpect Diagnosztikai Hiba", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 5, LineID: "LINE_1", AlarmID: 256, PLCAddress: "%DB40.DBX37.7", AlarmText: "Pálya P1.17 (J) motor Túlterhelt", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 6, LineID: "LINE_1", AlarmID: 469, PLCAddress: "%DB40.DBX61.4", AlarmText: "Robot: 5 - \"HIBAS KEREK ATMERO\"", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 7, LineID: "LINE_1", AlarmID: 1063, PLCAddress: "%DB41.DBX15.6", AlarmText: "P1.10 Motor túlmelegedés", Severity: "WARNING", IsEnabled: 1 },
+        { DefID: 8, LineID: "LINE_1", AlarmID: 1233, PLCAddress: "%DB41.DBX35.0", AlarmText: "P1.17 ERP kommunikáció van de a kerék paraméterei hibásak", Severity: "WARNING", IsEnabled: 1 },
+        { DefID: 9, LineID: "LINE_1", AlarmID: 1405, PLCAddress: "%DB41.DBX54.4", AlarmText: "Robot Cella Paletta 2 keresztszenzor 1 akadályt érzékel", Severity: "WARNING", IsEnabled: 1 },
+        { DefID: 10, LineID: "LINE_1", AlarmID: 12, PLCAddress: "%DB40.DBX1.3", AlarmText: "<No value>", Severity: "ERROR", IsEnabled: 0 },
+        // LINE_2 és LINE_3 definíciók
+        { DefID: 11, LineID: "LINE_2", AlarmID: 266, PLCAddress: "%DB40.DBX39.1", AlarmText: "Pálya P1.20 Továbbítási Időtúllépés történt", Severity: "ERROR", IsEnabled: 1 },
+        { DefID: 12, LineID: "LINE_2", AlarmID: 1419, PLCAddress: "%DB41.DBX56.2", AlarmText: "P1.14 - A szekcióin kerék van adat nélkül", Severity: "WARNING", IsEnabled: 1 },
+        { DefID: 13, LineID: "LINE_3", AlarmID: 483, PLCAddress: "%DB40.DBX63.2", AlarmText: "Robot: 12 - \"HOME PROGRAM LEFUTAS HIBA\"", Severity: "ERROR", IsEnabled: 1 }
+    ];
+
+    // Aktív hibák (demó adatok induláskor)
+    let activeAlarms = [
+        { LogID: 101, LineID: "LINE_1", PLCAddress: "%DB40.DBX37.7", StartTime: "2026-10-20 22:14:10", ElapsedSec: 495 },
+        { LogID: 102, LineID: "LINE_1", PLCAddress: "%DB41.DBX54.4", StartTime: "2026-10-20 22:18:00", ElapsedSec: 265 },
+        { LogID: 103, LineID: "LINE_2", PLCAddress: "%DB41.DBX56.2", StartTime: "2026-10-20 22:20:30", ElapsedSec: 115 }
+    ];
+
+    // Történeti statisztika (demó adatok)
+    let statHistory = [
+        { LineID: "LINE_1", PLCAddress: "%DB40.DBX37.7", OccurrenceCount: 14, TotalDurationSec: 5420 },
+        { LineID: "LINE_1", PLCAddress: "%DB40.DBX61.4", OccurrenceCount: 9, TotalDurationSec: 3180 },
+        { LineID: "LINE_2", PLCAddress: "%DB40.DBX39.1", OccurrenceCount: 19, TotalDurationSec: 2890 },
+        { LineID: "LINE_1", PLCAddress: "%DB41.DBX54.4", OccurrenceCount: 27, TotalDurationSec: 1950 },
+        { LineID: "LINE_3", PLCAddress: "%DB40.DBX63.2", OccurrenceCount: 5, TotalDurationSec: 1420 }
+    ];
+
+    function formatDuration(sec) {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return m > 0 ? `${m} p ${s} mp` : `${s} mp`;
+    }
+
+    function getEnrichedActiveAlarms() {
+        return activeAlarms.map(a => {
+            const def = alarmDefinitions.find(d => d.LineID === a.LineID && d.PLCAddress === a.PLCAddress);
+            if (!def || !def.IsEnabled) return null;
+            return { ...a, AlarmText: def.AlarmText, Severity: def.Severity, AlarmID: def.AlarmID };
+        }).filter(Boolean).sort((a, b) => (a.Severity === "ERROR" ? -1 : 1));
+    }
+
+    function renderLayout() {
+        const enriched = getEnrichedActiveAlarms();
+        const container = document.getElementById("lines_container");
+        container.innerHTML = "";
+
+        LINES.forEach(line => {
+            const lineAlarms = enriched.filter(a => a.LineID === line.id);
+            const hasError = lineAlarms.some(a => a.Severity === "ERROR");
+            const hasWarn = lineAlarms.some(a => a.Severity === "WARNING");
+
+            let stateClass = "OK";
+            let badgeText = "🟢 ÜZEMKÉSZ (OK)";
+            if (hasError) { stateClass = "ERROR"; badgeText = `🔴 HIBA (${lineAlarms.length} aktív)`; }
+            else if (hasWarn) { stateClass = "WARNING"; badgeText = `🟠 FIGYELMEZTETÉS (${lineAlarms.length} aktív)`; }
+
+            const topAlarm = lineAlarms[0];
+            const bannerHtml = topAlarm
+                ? `<div class="top-alarm-banner">
+                     <span>⚠️ <b>[${topAlarm.PLCAddress}]</b> ${topAlarm.AlarmText}</span>
+                     <span>⏱️ ${formatDuration(topAlarm.ElapsedSec)}</span>
+                   </div>`
+                : `<div class="top-alarm-banner" style="color: var(--ok-green);">✔ Nincs aktív hibaüzenet a PLC-ben</div>`;
+
+            const div = document.createElement("div");
+            div.className = `line-box status-${stateClass} ${selectedLine === line.id ? 'selected' : ''}`;
+            div.onclick = () => { selectedLine = line.id; renderLayout(); };
+
+            div.innerHTML = `
+                <div class="line-header">
+                    <span class="line-title">${line.name}</span>
+                    <span class="badge ${stateClass}">${badgeText}</span>
+                </div>
+                <div class="stations-row">
+                    ${line.stations.map(st => `<div class="station-pill">${st}</div>`).join("")}
+                </div>
+                ${bannerHtml}
+            `;
+            container.appendChild(div);
+        });
+
+        renderSelectedLineDetails(enriched);
+    }
+
+    function renderSelectedLineDetails(enriched) {
+        const lineObj = LINES.find(l => l.id === selectedLine);
+        document.getElementById("selected_line_title").innerText = lineObj ? lineObj.name : selectedLine;
+
+        const listDiv = document.getElementById("active_alarm_list");
+        const countBadge = document.getElementById("selected_line_count");
+        const alarms = enriched.filter(a => a.LineID === selectedLine);
+
+        countBadge.innerText = `${alarms.length} aktív`;
+        countBadge.className = `badge ${alarms.some(a => a.Severity === 'ERROR') ? 'ERROR' : (alarms.length ? 'WARNING' : 'OK')}`;
+
+        if (alarms.length === 0) {
+            listDiv.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">✅ Ezen a gyártósoron jelenleg nincs aktív hiba.</div>`;
+            return;
+        }
+
+        listDiv.innerHTML = alarms.map(a => `
+            <div class="alarm-card ${a.Severity}">
+                <div class="alarm-card-head">
+                    <span><b>${a.PLCAddress}</b> (ID: ${a.AlarmID})</span>
+                    <span>Kezdet: ${a.StartTime} (<b>${formatDuration(a.ElapsedSec)}</b>)</span>
+                </div>
+                <div class="alarm-card-text">
+                    ${a.Severity === 'ERROR' ? '🔴' : '🟠'} ${a.AlarmText}
+                </div>
+            </div>
+        `).join("");
+    }
+
+    function renderConfigTable() {
+        const line = document.getElementById("cfg_line").value;
+        const q = document.getElementById("cfg_search").value.toLowerCase().trim();
+        const sev = document.getElementById("cfg_filter_sev").value;
+        const hideEmpty = document.getElementById("cfg_hide_empty").checked;
+
+        const tbody = document.getElementById("cfg_tbody");
+        const filtered = alarmDefinitions.filter(d => {
+            if (d.LineID !== line) return false;
+            if (hideEmpty && d.AlarmText === "<No value>") return false;
+            if (sev !== "ALL" && d.Severity !== sev) return false;
+            if (q && !(`${d.AlarmText} ${d.PLCAddress} ${d.AlarmID}`).toLowerCase().includes(q)) return false;
+            return true;
+        });
+
+        tbody.innerHTML = filtered.map(d => `
+            <tr>
+                <td style="text-align: center;">
+                    <input type="checkbox" style="transform: scale(1.4); cursor: pointer;" 
+                           ${d.IsEnabled ? 'checked' : ''} 
+                           onchange="toggleAlarmEnable(${d.DefID}, this.checked)">
+                </td>
+                <td>#${d.AlarmID}</td>
+                <td><code>${d.PLCAddress}</code></td>
+                <td style="font-weight: 600;">${d.AlarmText}</td>
+                <td>
+                    <select onchange="changeAlarmSeverity(${d.DefID}, this.value)" 
+                            style="border-color: ${d.Severity === 'ERROR' ? '#ef4444' : '#f59e0b'};">
+                        <option value="ERROR" ${d.Severity === 'ERROR' ? 'selected' : ''}>🔴 Piros Hiba (ERROR)</option>
+                        <option value="WARNING" ${d.Severity === 'WARNING' ? 'selected' : ''}>🟠 Narancs Infó (WARNING)</option>
+                    </select>
+                </td>
+            </tr>
+        `).join("");
+    }
+
+    function toggleAlarmEnable(defId, enabled) {
+        const item = alarmDefinitions.find(d => d.DefID === defId);
+        if (item) {
+            item.IsEnabled = enabled ? 1 : 0;
+            renderLayout();
+            renderStats();
+        }
+    }
+
+    function changeAlarmSeverity(defId, newSev) {
+        const item = alarmDefinitions.find(d => d.DefID === defId);
+        if (item) {
+            item.Severity = newSev;
+            renderConfigTable();
+            renderLayout();
+            renderStats();
+        }
+    }
+
+    function renderStats() {
+        const filterLine = document.getElementById("stat_line").value;
+        const tbody = document.getElementById("stat_tbody");
+
+        const rows = statHistory.map(s => {
+            const def = alarmDefinitions.find(d => d.LineID === s.LineID && d.PLCAddress === s.PLCAddress);
+            if (!def || !def.IsEnabled) return null;
+            if (filterLine !== "ALL" && s.LineID !== filterLine) return null;
+            return { ...s, AlarmText: def.AlarmText, Severity: def.Severity };
+        }).filter(Boolean).sort((a, b) => b.TotalDurationSec - a.TotalDurationSec);
+
+        const totalCount = rows.reduce((sum, r) => sum + r.OccurrenceCount, 0);
+        const totalSec = rows.reduce((sum, r) => sum + r.TotalDurationSec, 0);
+        const maxSec = rows.length ? rows[0].TotalDurationSec : 1;
+
+        document.getElementById("kpi_total_count").innerText = `${totalCount} db`;
+        document.getElementById("kpi_total_time").innerText = `${Math.round(totalSec / 60)} perc`;
+        document.getElementById("kpi_mttr").innerText = totalCount ? `${Math.round(totalSec / totalCount)} mp` : "0 mp";
+        document.getElementById("kpi_worst_line").innerText = rows.length ? `${rows[0].LineID} (${rows[0].PLCAddress})` : "-";
+
+        tbody.innerHTML = rows.map(r => {
+            const avg = Math.round(r.TotalDurationSec / r.OccurrenceCount);
+            const pct = Math.round((r.TotalDurationSec / maxSec) * 100);
+            return `
+                <tr>
+                    <td><b>${r.LineID}</b></td>
+                    <td><code>${r.PLCAddress}</code></td>
+                    <td style="font-weight: 600;">${r.AlarmText}</td>
+                    <td><span class="badge ${r.Severity}">${r.Severity === 'ERROR' ? '🔴 Hiba' : '🟠 Infó'}</span></td>
+                    <td><b>${r.OccurrenceCount}x</b></td>
+                    <td>${formatDuration(r.TotalDurationSec)}</td>
+                    <td>${formatDuration(avg)}</td>
+                    <td>
+                        <div class="bar-wrap">
+                            <div class="bar-fill" style="width:${pct}%; background:${r.Severity === 'ERROR' ? '#ef4444' : '#f59e0b'};"></div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function triggerRandomDemoAlarm() {
+        if (activeAlarms.find(a => a.LineID === "LINE_3")) {
+            activeAlarms = activeAlarms.filter(a => a.LineID !== "LINE_3");
+        } else {
+            activeAlarms.push({
+                LogID: Date.now(), LineID: "LINE_3", PLCAddress: "%DB40.DBX63.2",
+                StartTime: new Date().toTimeString().slice(0, 8), ElapsedSec: 1
+            });
+        }
+        renderLayout();
+    }
+
+    function switchTab(tabName, btn) {
+        document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
+        document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+        document.getElementById("tab_" + tabName).style.display = "block";
+        btn.classList.add("active");
+        if (tabName === "config") renderConfigTable();
+        if (tabName === "stats") renderStats();
+    }
+
+    // Másodpercenkénti számláló frissítés
+    setInterval(() => {
+        activeAlarms.forEach(a => a.ElapsedSec++);
+        renderLayout();
+    }, 1000);
+
+    renderLayout();
+</script>
+</body>
+</html>
