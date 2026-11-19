@@ -2,357 +2,63 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ipari CMMS - Karbantartás</title>
-    <link rel="stylesheet" href="style.css?v=3">
-    <link rel="icon" type="image/png" href="Logo-Schedl (1).png">
-    <link rel="manifest" href="manifest.json">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMMS - Átköltöztünk</title>
     <style>
-      :root {
-        /* Fő színek felülírása tiszta, ipari kék árnyalatokra a Karbantartás apphoz */
-        --primary: #1d4ed8 !important;      /* Sötétebb kék (fő szín) */
-        --pri-normal: #2563eb !important;   /* Alap kék (pl. gombok alapértelmezetten) */
-        --pri-info: #3b82f6 !important;     /* Világosabb kék (Infó gombok, ikonok) */
-        --pri-obs: #1e40af !important;      /* Nagyon sötét kék (Sötét gombok / Hover) */
-        
-        /* Panelek és kártyák finomhangolása */
-        --border: #bfdbfe !important;       /* Halványkék szegélyek */
-      }
-
-      /* A felső fejléc (Header) átszínezése kék átmenetre */
-      .header, header, .navbar, .top-bar, .topbar {
-        background-color: #1d4ed8 !important;
-        background: linear-gradient(to right, #1e40af, #2563eb) !important;
-      }
-
-      /* A gombok hover (ráhúzás) effektusának igazítása (sötétebbre vált) */
-      button:hover {
-        background-color: #1e40af !important;
-        border-color: #1e40af !important;
-      }
-
-      /* Alap gombok erőszakos átszínezése */
-      #btnShiftLog, #loginView button {
-        background-color: var(--pri-normal) !important;
-        border: 1px solid var(--pri-normal) !important;
-        color: white !important;
-      }
-
-      /* Információs dobozok hátterének és szegélyének igazítása */
-      .checklist-box, .task-card {
-        border-color: #bfdbfe !important;
-      }
-      
-      #appF_*, .extra-info-box {
-        background-color: #eff6ff !important; /* Nagyon halvány kék háttér a komment doboznak */
-        border-color: #bfdbfe !important;
-      }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 24px;
+            color: #f8fafc;
+        }
+        p {
+            color: #94a3b8;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+        a.btn {
+            display: inline-block;
+            background-color: #2563eb;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 12px 28px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        a.btn:hover {
+            background-color: #1d4ed8;
+        }
     </style>
 </head>
 <body>
-
-<div id="toastMessage">✅ Mentve!</div>
-
-<div id="loginView" class="container active view" style="max-width: 400px; margin-top: 10vh;">
-    <div class="box" style="text-align: center;">
-        <img src="Logo-Schedl (1).png" alt="Schedl Logo" style="max-width: 220px; margin-bottom: 20px;">
-        <h2 style="color: var(--primary); margin-top: 0; margin-bottom: 20px;">Ipari CMMS - Karbantartás</h2>
-        <div class="login-input-group">
-            <select id="loginNevSelect" onchange="checkLoginCustom(this)" style="margin-bottom:0;"><option value="">Név betöltése...</option></select>
-            <input type="text" id="loginNev" placeholder="Vagy gépeld be a neved..." style="display:none; margin-top:10px;">
-        </div>
-        <input type="password" id="loginJelszo" placeholder="PIN kód">
-        <button onclick="login()">Belépés</button>
-        <div id="loginStatus" style="color:var(--pri-crit); margin-top:10px; text-align:center; font-weight:bold;"></div>
+    <div class="card">
+        <h1>A rendszer elköltözött</h1>
+        <p>Kérlek, ezentúl használd az új címet:</p>
+        <a href="https://schdeb.hu" class="btn">Tovább a schdeb.hu oldalra</a>
     </div>
-</div>
-
-<div id="lockdownScreen" class="container view" style="display:none; text-align: center; height:100vh; padding-top: 30px;">
-    <div class="box" style="display:inline-block; text-align:left; max-width:850px; width:100%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 2px solid var(--pri-crit);">
-        <div style="text-align:center; margin-bottom: 15px;"><img src="Logo-Schedl (1).png" style="max-width: 160px;"></div>
-        <h2 style="margin-top:0; color:var(--pri-crit);">🚨 Rendszer Lezárva - Hiányzó Műszaknapló!</h2>
-        <p style="font-size:15px; margin-bottom:15px; color:var(--text-muted);">Az alábbi műszakokhoz vagy nem írtak naplót, vagy hiányzik a jóváhagyásod. Kérlek pótold vagy hagyd jóvá, hogy továbbléphess!</p>
-        <div id="unapprovedLogsList" style="margin-top:15px; max-height:55vh; overflow-y:auto; padding-right:10px;"></div>
-    </div>
-</div>
-
-<div id="appView" style="display:none;">
-    <div class="topbar">
-        <h2 style="margin: 0; display:flex; align-items:center;"><img src="Logo-Schedl (1).png" style="height: 28px; background: white; padding: 2px 8px; border-radius: 4px;"></h2>
-        <div class="user-info">
-            <button onclick="location.reload()" style="background:var(--pri-normal); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto;">🔄 Frissítés</button>
-            <select id="appNavDropdown" onchange="if(this.value) window.location.href=this.value;" style="background:var(--pri-obs); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:10px; width:auto; outline:none; appearance:auto;">
-                <option value="" disabled selected>☰ Navigáció</option>
-            </select>
-            <span id="currentUserText" style="font-weight:bold; font-size: 16px;"></span>
-            <button class="btn-logout" onclick="logout()">Kilépés</button>
-        </div>
-    </div>
-
-    <div class="container">
-        <div id="shiftAlertBanner"></div>
-        <div class="nav" id="mainNavigation">
-            <button class="active" onclick="switchTab('ujHiba', this)">➕ Rögzítés</button>
-            <button onclick="switchTab('nyitottFeladatok', this); loadTasks();">Nyitott</button>
-            <button onclick="switchTab('lezartFeladatok', this); loadTasks();">Lezárt</button>
-            <button onclick="switchTab('muszakatadasView', this); loadShiftLogs();">Műszak</button>
-            <button onclick="switchTab('statisztikaView', this); loadTasks();">📊 Statisztika</button>
-            <button id="navBeosztasTab" onclick="switchTab('beosztasView', this); loadSchedule();">📅 Beosztás</button>
-            <button id="navAdminTab" onclick="switchTab('adminIsmetlodoView', this); loadRecurringTasks();" style="display:none; color: var(--pri-crit);">🔁 Ismétlődő</button>
-            <button onclick="switchTab('profilCserelo', this)">Profil</button>
-        </div>
-
-        <div id="ujHiba" class="view active box">
-            <h3>Új hiba vagy feladat kiadása</h3>
-            <div class="form-grid">
-                <div><select id="kategoria" onchange="frissitGepek()"><option value="">Válassz kategóriát...</option></select></div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <select id="gep" style="flex:1;"><option value="">Előbb válassz kategóriát...</option></select>
-                    <button type="button" onclick="openQrScanner('gep')" title="Gép QR-kód beolvasása" style="width:auto; padding:10px 14px; margin:6px 0 12px; background:var(--pri-info); white-space:nowrap;">📷 QR</button>
-                </div>
-                <div class="form-full"><input type="text" id="hiba" placeholder="Hiba rövid leírása"></div>
-                <div>
-                    <select id="prioritasLegordulo" style="font-weight:bold;">
-                        <option value="Informatív" style="color:var(--pri-info);">ℹ️ Informatív</option>
-                        <option value="Megfigyelés alatt" style="color:var(--pri-obs);">👀 Megfigyelés alatt</option>
-                        <option value="Normál" selected>✅ Normál</option>
-                        <option value="Magas prioritás">⚠️ Magas prioritás</option>
-                        <option value="Termelésleállás" style="color:red;">🚨 Termelésleállással járó</option>
-                    </select>
-                </div>
-                <div><div style="display:flex; gap:10px;"><input type="number" id="ido" step="1" placeholder="Javítás (perc)"><input type="number" id="downtime" step="1" placeholder="Kiesés (perc)"></div></div>
-                <div class="form-full"><textarea id="megoldas" rows="2" placeholder="Megoldás (Azonnali elhárítás esetén)"></textarea></div>
-            </div>
-            <div style="background:#f8fafc; padding:10px; border:1px dashed #cbd5e1; border-radius:4px; margin-bottom:15px;">
-                <button type="button" onclick="document.getElementById('kepInput').click()" style="background:var(--text-muted); width:auto; padding:8px 15px; font-size:13px;">📎 Fotó csatolása</button>
-                <input type="file" id="kepInput" accept="image/*" multiple style="display:none;" onchange="feldolgozUjKep(this)">
-                <div id="kepElonezet" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; min-height: 40px; align-items: center;"><span id="uresKepSzoveg" style="color: #94a3b8; font-size: 12px;">Nincs fájl csatolva.</span></div>
-            </div>
-            <button onclick="submitTask()" id="btnSubmit">Beküldés a rendszerbe</button>
-        </div>
-
-        <div id="beosztasView" class="view box">
-            <h3>📅 Dolgozói Beosztás és Szabadság</h3>
-            <div id="dashPaintbrushPanel" style="display:none; background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
-                <div style="color:var(--primary); font-weight:bold; margin-bottom:10px; font-size:15px;">🖌️ Ecset eszköz beosztáshoz</div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button class="brush-btn" style="background:#ffe599; color:#000;" onclick="setBrush('Délelőtt', this)">Délelőtt</button>
-                    <button class="brush-btn" style="background:#e69138; color:#fff;" onclick="setBrush('Délután', this)">Délután</button>
-                    <button class="brush-btn" style="background:#3f51b5; color:#fff;" onclick="setBrush('Éjszaka', this)">Éjszaka</button>
-                    <button class="brush-btn" style="background:#fff2cc; color:#000;" onclick="setBrush('Nappal', this)">Nappal</button>
-                    <button class="brush-btn" style="background:#93c47d; color:#000;" onclick="setBrush('Szabadság', this)">Szabadság</button>
-                    <button class="brush-btn" style="background:#f59e0b; color:#fff;" onclick="setBrush('Ügyelet', this)">📞 Ügyelet Célzása</button>
-                    <button class="brush-btn" style="background:#ef4444; color:#fff;" onclick="setBrush('Törlés', this)">Törlés</button>
-                    <div style="margin-left:auto; display:flex; align-items:center; gap:15px;"><span id="activeBrushDisplay" style="color:var(--text-main); font-weight:bold; font-size:14px;">Aktív: Nincs</span><button style="width:auto; margin:0; padding:8px 15px; background:var(--pri-normal);" onclick="savePaintedSchedule()" id="btnSaveSchedule">💾 Mentés</button></div>
-                </div>
-                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); display:flex; gap:10px; align-items:center;">
-                    <input type="text" id="ujBeosztasDolgozo" placeholder="Dolgozó neve..." style="width:auto; margin:0; padding:6px 10px; font-size:13px;">
-                    <button onclick="addScheduleWorker()" style="width:auto; margin:0; padding:6px 12px; background:var(--accent); font-size:13px;">➕ Hozzáadás</button>
-                </div>
-            </div>
-            <div id="scheduleContainer" style="margin-top:10px;">Betöltés...</div>
-        </div>
-
-        <div id="adminIsmetlodoView" class="view box" style="border: 2px solid var(--pri-crit);">
-            <h3 style="color: var(--pri-crit);">🔁 Ismétlődő Feladatok (Tervezett Karbantartás)</h3>
-            <div class="filter-panel">
-                <div class="form-grid">
-                    <div><select id="ismKategoria" onchange="frissitIsmGepek()"><option value="">Válassz kategóriát...</option></select></div>
-                    <div><select id="ismGep"><option value="">Előbb válassz kategóriát...</option></select></div>
-                    <div class="form-full"><input type="text" id="ismHiba" placeholder="Feladat rövid neve"></div>
-                    <div class="form-full"><textarea id="ismChecklist" rows="2" placeholder="📝 Ellenőrzőlista (soronként egy feladat)..."></textarea></div>
-                    <div>
-                        <select id="ismPrioritas">
-                            <option value="Informatív" style="color:var(--pri-info);">ℹ️ Informatív</option>
-                            <option value="Megfigyelés alatt" style="color:var(--pri-obs);">👀 Megfigyelés alatt</option>
-                            <option value="Normál" selected>✅ Normál</option>
-                            <option value="Magas prioritás">⚠️ Magas (Sürgős)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <select id="ismTipus" style="font-weight:bold; color:var(--primary);">
-                            <option value="Napi">🔄 Napi (Minden nap)</option><option value="Heti - Hétfő">📅 Heti - Hétfő</option><option value="Heti - Kedd">📅 Heti - Kedd</option><option value="Heti - Szerda">📅 Heti - Szerda</option><option value="Heti - Csütörtök">📅 Heti - Csütörtök</option><option value="Heti - Péntek">📅 Heti - Péntek</option><option value="Heti - Szombat">📅 Heti - Szombat</option><option value="Heti - Vasárnap">📅 Heti - Vasárnap</option><option value="Havi">📆 Havi</option><option value="3 Havi">📅 Negyedévente</option><option value="6 Havi">📅 Félévente</option><option value="Éves">📆 Éves</option>
-                        </select>
-                    </div>
-                    <div class="form-full"><label style="font-size:12px; color:var(--text-muted);">Kezdő dátum (Ha üres, azonnal indítja)</label><input type="date" id="ismKezdoDatum"></div>
-                </div>
-
-                <div style="margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1;">
-                    <label style="font-weight:bold; color:var(--primary);">📘 Munkautasítás / Leírás (Opcionális):</label>
-                    <textarea id="ismUtasitas" class="dash-input" rows="2" placeholder="Ide írhatod a szerelési útmutatót vagy extra instrukciót..."></textarea>
-                    
-                    <label style="margin-top:5px; font-weight:bold; color:var(--primary);">🖼️ Kép csatolása (Opcionális Drive Link):</label>
-                    <input type="text" id="ismKep" class="dash-input" placeholder="https://drive.google.com/...">
-                    
-                    <div style="display:flex; gap:10px; margin-top:5px;">
-                        <div style="flex:1;">
-                            <label style="font-weight:bold; color:var(--primary);">📄 Dokumentum / PDF Link (Opcionális):</label>
-                            <input type="text" id="ismFajl" class="dash-input" placeholder="https://drive.google.com/...">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-weight:bold; color:var(--primary);">🏷️ Fájl Gomb Felirata:</label>
-                            <input type="text" id="ismFajlNev" class="dash-input" placeholder="Pl. Kezelési útmutató">
-                        </div>
-                    </div>
-                </div>
-
-                <button onclick="addRecurringTask()" id="btnIsmSubmit" style="background:var(--pri-crit); margin-top:15px;">Beállítás mentése</button>
-            </div>
-            <div id="recurringTasksContainer" class="full-width-list">Betöltés...</div>
-        </div>
-
-        <div id="muszakatadasView" class="view box">
-            <div id="shiftLogInputSection">
-                <h3>Műszaknapló írása</h3>
-                <div class="form-grid">
-                    <div><select id="muszakTipus"><option value="Délelőtt (06:00-14:00)">Délelőtt (06:00-14:00)</option><option value="Délután (14:00-22:00)">Délután (14:00-22:00)</option><option value="Éjszaka (22:00-06:00)">Éjszaka (22:00-06:00)</option></select></div>
-                    <div><input type="date" id="muszakDatum" onchange="frissitMuszakFeladatok()"></div>
-                    <div class="form-full"><textarea id="muszakSzoveg" rows="3" placeholder="Információ a következő műszaknak..."></textarea></div>
-                </div>
-                <div class="form-full" style="background:#f8fafc; padding:15px; border:1px solid #cbd5e1; border-radius:6px; margin-top:15px; margin-bottom:15px;">
-                    <label style="font-weight:bold; color:var(--pri-crit); display:block; padding-top:5px;">🔗 Mely feladatokon dolgoztál a műszakban? (Kattints a kártyákra)</label>
-                    <div id="muszakTaskContainer" class="grid-cards" style="margin-top: 10px; max-height: 350px; overflow-y: auto; padding: 5px; gap:10px;">
-                        <div style="color:var(--text-muted);">Feladatok betöltése...</div>
-                    </div>
-                </div>
-                <button onclick="submitShiftLog()" id="btnShiftLog">Napló mentése</button>
-            </div>
-            <div class="filter-panel" style="margin-top:25px;">
-                <div class="filter-header"><h4>Korábbi bejegyzések</h4><button class="btn-export" onclick="exportShiftLogs()">📥 Export CSV</button></div>
-                <div class="form-grid">
-                    <input type="text" id="szuroMuszakUser" placeholder="Szűrés íróra/szövegre..." onkeyup="filterShiftLogs()">
-                    <select id="szuroMuszakTipus" onchange="filterShiftLogs()"><option value="">Összes műszak</option><option value="Délelőtt">Délelőtt</option><option value="Délután">Délután</option><option value="Éjszaka">Éjszaka</option></select>
-                    <input type="date" id="szuroMuszakDatumTol" onchange="filterShiftLogs()">
-                    <input type="date" id="szuroMuszakDatumIg" onchange="filterShiftLogs()">
-                </div>
-            </div>
-            <div id="shiftLogsContainer" class="full-width-list">Betöltés...</div>
-        </div>
-
-        <div id="nyitottFeladatok" class="view box">
-            <div class="filter-panel">
-                <div class="filter-header"><h4>Nyitott Feladatok Szűrése</h4><button class="btn-export" onclick="exportTasks(getFilteredOpenTasks(), 'Nyitott_Hibak.csv')">📥 Export</button></div>
-                <div class="form-grid">
-                    <div class="form-full"><input type="text" id="szuroNyitottSzoveg" placeholder="Keresés hiba leírásában, gépnévben vagy beküldőben..." onkeyup="renderOpenTasks()"></div>
-                    <select id="szuroNyitottReszleg" onchange="renderOpenTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
-                    <select id="szuroNyitottKategoria" onchange="frissitSzuroNyitottGepek()"><option value="">Minden kategória...</option></select>
-                    <select id="szuroNyitottGep" onchange="renderOpenTasks()"><option value="">Összes gép...</option></select>
-                    <select id="szuroNyitottPrioritas" onchange="renderOpenTasks()"><option value="">Összes prioritás</option><option value="Termelésleállás">🚨 Termelésleállás</option><option value="Magas prioritás">⚠️ Sürgős</option><option value="Normál">✅ Normál</option><option value="Megfigyelés alatt">👀 Megfigyelés</option><option value="Informatív">ℹ️ Informatív</option></select>
-                    <select id="szuroNyitottIsmetlodo" onchange="renderOpenTasks()"><option value="">Összes (Eseti + Ismétlődő)</option><option value="normal" selected>Csak eseti</option><option value="ismetlodo">Csak ismétlődő</option></select>
-                </div>
-            </div>
-            <div id="openTasksContainer" class="grid-cards">Betöltés...</div>
-        </div>
-
-        <div id="lezartFeladatok" class="view box">
-            <div class="filter-panel">
-                <div class="filter-header">
-                    <h4>Lezárt Feladatok Szűrése</h4>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-export" style="background:var(--pri-crit);" onclick="exportClosedTasksPDF()">📄 PDF Feladatlapok</button>
-                        <button class="btn-export" onclick="exportTasks(getFilteredClosedTasks(), 'Lezart_Hibak.csv')">📥 CSV Export</button>
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-full"><input type="text" id="szuroLezartSzoveg" placeholder="Keresés leírásában, megoldásban, gépnévben..." onkeyup="renderClosedTasks()"></div>
-                    <select id="szuroLezartReszleg" onchange="renderClosedTasks()"><option value="">Összes Részleg</option><option value="karbantartas">Karbantartás</option><option value="termeles">Termelés</option></select>
-                    <select id="szuroKategoria" onchange="frissitSzuroGepek()"><option value="">Minden kategória...</option></select>
-                    <select id="szuroGep" onchange="renderClosedTasks()"><option value="">Összes gép...</option></select>
-                    <select id="szuroLezartPrioritas" onchange="renderClosedTasks()"><option value="">Összes prioritás</option><option value="Termelésleállás">🚨 Termelésleállás</option><option value="Magas prioritás">⚠️ Sürgős</option><option value="Normál">✅ Normál</option><option value="Megfigyelés alatt">👀 Megfigyelés</option><option value="Informatív">ℹ️ Informatív</option></select>
-                    <select id="szuroLezartIsmetlodo" onchange="renderClosedTasks()"><option value="">Összes</option><option value="normal">Csak eseti</option><option value="ismetlodo">Csak ismétlődő</option></select>
-                    <input type="date" id="filterDatumTol" onchange="renderClosedTasks()">
-                    <input type="date" id="filterDatumIg" onchange="renderClosedTasks()">
-                </div>
-            </div>
-            <div id="closedTasksContainer" class="grid-cards">Adatok betöltése...</div>
-        </div>
-
-        <div id="statisztikaView" class="view box">
-            <div class="filter-panel" style="margin-bottom: 25px; border-left:4px solid var(--accent);">
-                <div class="filter-header"><h4 style="color:var(--accent); font-size:16px;">⏳ Időszak kiválasztása a statisztikákhoz</h4></div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button id="btnStatMind" class="stat-btn active" onclick="setStatPeriod('mind')">Összes</button><button id="btnStatMa" class="stat-btn" onclick="setStatPeriod('napi')">Ma</button><button id="btnStatHet" class="stat-btn" onclick="setStatPeriod('heti')">Ezen a héten</button><button id="btnStatHo" class="stat-btn" onclick="setStatPeriod('havi')">Ebben a hónapban</button>
-                    <div style="display:flex; gap:5px; align-items:center; margin-left:auto; background:var(--surface); padding:5px 10px; border-radius:4px; border:1px solid var(--border);"><input type="date" id="statDatumTol" onchange="setStatPeriod('egyedi')" style="margin:0; width:auto; border:none; padding:5px;"><span style="color:var(--text-muted);">-</span><input type="date" id="statDatumIg" onchange="setStatPeriod('egyedi')" style="margin:0; width:auto; border:none; padding:5px;"></div>
-                </div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border); padding-bottom:15px; margin-bottom:20px;">
-                <h3 style="border:none; margin:0; padding:0;">📊 Szűrt Statisztikák Eredménye</h3>
-                <div style="display:flex; gap:10px;"><button class="btn-export" style="background:var(--pri-normal);" onclick="exportDetailedStats()">📥 Tételes Export</button><button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('heti')">📅 Heti</button><button class="btn-export" style="background:var(--primary);" onclick="exportStatisztika('havi')">📆 Havi</button></div>
-            </div>
-            <h4 style="color:var(--pri-crit);">📈 Eseti Meghibásodások és Kiesések</h4>
-            <div class="kpi-grid" style="margin-bottom:30px;">
-                <div class="kpi-card alert" style="cursor:pointer;" onclick="openStatModal('downtime')"><h4>Termeléskiesés 👆</h4><div class="value" id="statDowntime">0</div><small>perc</small></div>
-                <div class="kpi-card alert"><h4>Leállás (Eseti)</h4><div class="value" id="statLeallas">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-high);"><h4>Felvett Eseti Hiba</h4><div class="value" id="statNyitott">0</div><small>db (Kritikus + Normál)</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Informatív / Megfigyelés</h4><div class="value" id="statInfoNyitott">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Javítási Idő (Össz)</h4><div class="value" id="statJavIdo">0</div><small>perc</small></div>
-            </div>
-            <h4 style="color:var(--pri-info); border-top:1px solid var(--border); padding-top:20px;">🔁 Preventív Karbantartások</h4>
-            <div class="kpi-grid" style="margin-bottom:30px;">
-                <div class="kpi-card" style="border-bottom-color:var(--pri-info);"><h4>Kiadott Preventív</h4><div class="value" id="statPrevNyitott" style="color:var(--pri-info);">0</div><small>db</small></div>
-                <div class="kpi-card" style="border-bottom-color:var(--pri-normal);"><h4>Preventív Munkaidő</h4><div class="value" id="statPrevIdo" style="color:var(--pri-normal);">0</div><small>perc</small></div>
-            </div>
-            <div class="form-grid" style="border-top:1px solid var(--border); padding-top:20px;">
-                <div style="background:#f8fafc; padding:15px; border:1px solid var(--border); border-radius:8px;"><h4 style="margin:0 0 15px 0; color:var(--primary);">🔥 Top 3 Legproblémásabb Gép</h4><div id="topMachinesContainer" style="font-size:14px; line-height:1.8;">Nincs adat.</div></div>
-                <div style="background:#f8fafc; padding:15px; border:1px solid var(--border); border-radius:8px;"><h4 style="margin:0 0 15px 0; color:var(--primary);">📊 Globális Trend</h4><div style="display:flex; justify-content:space-between; margin-bottom:10px;"><div><b>Előző hónap:</b></div><div id="statTrendLast" style="text-align:right; color:var(--text-muted);">0 perc kiesés<br>0 perc javítás</div></div><div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:10px;"><div><b>Aktuális hónap:</b></div><div id="statTrendThis" style="text-align:right; color:var(--primary);">0 perc kiesés<br>0 perc javítás</div></div></div>
-            </div>
-            <div id="adminStatsContainer" style="display:none; margin-top:30px; border-top:2px solid var(--pri-crit); padding-top:20px;">
-                <h3 style="color:var(--pri-crit);">👥 Dolgozói Statisztikák</h3>
-                <div style="overflow-x:auto;">
-                    <table class="admin-table">
-                        <thead><tr><th>Felhasználó</th><th>Felvitt Hibák</th><th>Megoldott Hibák</th><th style="color:var(--pri-crit);">Reakció (Sürgős)</th><th>Reakció (Normál)</th></tr></thead>
-                        <tbody id="adminStatsTableBody"><tr><td colspan="5" style="text-align:center;">Adatok betöltése...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="profilCserelo" class="view box">
-            <h3>Profil és Beállítások</h3>
-            <div class="settings-row">
-                <div><strong>Push Értesítések</strong><br><small>Új hibák jelzése a munkahelyi zónában</small></div>
-                <label style="position:relative; display:inline-block; width:44px; height:24px;">
-                    <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" style="opacity:0; width:0; height:0;"><span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#cbd5e1; transition:.3s; border-radius:34px;" id="notifSlider"></span>
-                </label>
-            </div>
-            <h4 style="border-top:1px solid var(--border); padding-top:15px; margin-top:20px;">PIN kód módosítása</h4>
-            <input type="password" id="regiJelszo" placeholder="Jelenlegi PIN kód"><input type="password" id="ujJelszo" placeholder="Új PIN kód">
-            <button onclick="saveSettings()" class="btn-secondary">Beállítások Mentése</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="statDetailsModal" onclick="closeStatModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <h2 id="statModalTitle" style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border); padding-bottom:10px;">Részletek</h2>
-        <div id="statModalBody" style="max-height: 60vh; overflow-y: auto; margin-bottom: 20px;"></div>
-        <button class="btn-close-modal" onclick="closeStatModal(true)">Bezárás</button>
-    </div>
-</div>
-
-<div class="modal-overlay" id="partsModal" onclick="closePartsModal(event)" style="display:none; z-index: 2000;">
-    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 650px; height: 85vh; display: flex; flex-direction: column;">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:10px;">
-            <h2 style="margin:0; color:var(--primary);">🔍 Raktár Alkatrész Kereső</h2>
-            <button class="btn-close-modal" style="margin:0; width:auto; padding:5px 10px;" onclick="closePartsModal(true)">✕</button>
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <input type="text" id="partsSearchInput" class="dash-input" placeholder="Gépelj a kereséshez (név, cikkszám vagy gyártó)..." onkeyup="filterPartsList()" style="margin:0; flex:1; font-size:16px;">
-            <button type="button" onclick="openQrScanner('partsSearchInput')" title="Alkatrész QR / Vonalkód olvasás" style="width:auto; padding:0 15px; margin:0; background:var(--pri-info); font-size:15px; white-space:nowrap;">📷 QR</button>
-        </div>
-        <div id="partsListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:5px; background:var(--bg-color);">
-            <div style='padding:10px; text-align:center; color:var(--text-muted);'>Alkatrészek betöltése folyamatban...</div>
-        </div>
-    </div>
-</div>
-
-<script src="common.js?v=1"></script>
-<script src="karbantartas.js?v=22"></script>
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js');
-    }
-</script>
 </body>
 </html>
